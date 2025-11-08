@@ -1,0 +1,81 @@
+import React from 'react';
+import { BackgroundGradientAnimation } from '../ui/BackgroundGradientAnimation';
+import { useAddy } from '../../Contexts/AddyContext';
+import { router } from '@inertiajs/react';
+
+export function InsightsCard({ userName, message }) {
+  const { openAddy, topInsight, state, hasInsights } = useAddy();
+
+  // Use Addy's top insight if available, otherwise use the passed message
+  const displayMessage = topInsight 
+    ? topInsight.description 
+    : (state?.context || message);
+
+  const displayTitle = topInsight 
+    ? topInsight.title 
+    : `Hi, ${userName}`;
+
+  const handleCardClick = () => {
+    openAddy();
+  };
+
+  return (
+    <BackgroundGradientAnimation className="bg-gradient-to-br from-teal-500 to-mint-300 p-8 shadow-lg cursor-pointer hover:shadow-xl transition-shadow" onClick={handleCardClick}>
+      <div className="flex justify-between items-start">
+        <div className="max-w-md">
+          <p className="text-sm font-medium text-white/80 mb-3">
+            {hasInsights ? 'Active Insights' : 'Insights'}
+          </p>
+          <h2 className="text-3xl font-bold text-white mb-3">
+            {displayTitle}
+          </h2>
+          <p className="text-white/90 leading-relaxed mb-4">
+            {displayMessage}
+          </p>
+          
+          {topInsight && topInsight.url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (topInsight.url) {
+                  router.visit(topInsight.url);
+                }
+              }}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
+            >
+              Take Action →
+            </button>
+          )}
+
+          {!topInsight && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openAddy();
+              }}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
+            >
+              Talk to Addy →
+            </button>
+          )}
+
+          {hasInsights && (
+            <p className="text-white/70 text-sm mt-4">
+              Click to view all insights
+            </p>
+          )}
+        </div>
+      </div>
+      
+      {/* Large White Addy Icon - positioned relative to BackgroundGradientAnimation */}
+      <div className="absolute -right-4 -bottom-4 opacity-20 z-20">
+        <img 
+          src="/assets/logos/icon-white.png" 
+          alt="Addy" 
+          className="w-48 h-48 transform rotate-12"
+        />
+      </div>
+    </BackgroundGradientAnimation>
+  );
+}
+
