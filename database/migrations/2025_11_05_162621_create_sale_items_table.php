@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -24,10 +25,20 @@ return new class extends Migration
             $table->timestamps();
             
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
-            $table->foreign('goods_service_id')->references('id')->on('goods_and_services');
+            // Foreign key for goods_service_id will be added after goods_and_services table exists
             $table->index('sale_id');
             $table->index('goods_service_id');
             });
+            
+            // Add foreign key after goods_and_services table exists
+            if (Schema::hasTable('goods_and_services')) {
+                Schema::table('sale_items', function (Blueprint $table) {
+                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sale_items' AND COLUMN_NAME = 'goods_service_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
+                    if (empty($foreignKeys)) {
+                        $table->foreign('goods_service_id')->references('id')->on('goods_and_services');
+                    }
+                });
+            }
         }
     }
 
