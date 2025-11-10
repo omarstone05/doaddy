@@ -11,8 +11,8 @@ return new class extends Migration
         // User patterns - learning behavior
         Schema::create('addy_user_patterns', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
+            $table->uuid('user_id');
             
             // Weekly rhythm
             $table->json('weekly_rhythm')->nullable(); // Day preferences
@@ -31,13 +31,15 @@ return new class extends Migration
             
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unique(['organization_id', 'user_id']);
         });
 
         // Predictions - forecasting
         Schema::create('addy_predictions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
             
             $table->string('type'); // cash_flow, budget_burn, sales, inventory
             $table->string('category'); // money, sales, people, inventory
@@ -54,13 +56,14 @@ return new class extends Migration
             
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->index(['organization_id', 'type', 'target_date']);
         });
 
         // Cultural settings - per organization
         Schema::create('addy_cultural_settings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
             
             // Weekly rhythm customization
             $table->json('weekly_themes')->nullable(); // Monday: "Deep Work", etc.
@@ -79,6 +82,7 @@ return new class extends Migration
             
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->unique('organization_id');
         });
     }

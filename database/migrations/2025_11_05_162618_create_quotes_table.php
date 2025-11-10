@@ -29,6 +29,20 @@ return new class extends Migration
             $table->index(['organization_id', 'quote_date']);
             $table->index('quote_number');
         });
+        
+        // Add foreign key constraint to invoices table if it exists
+        if (Schema::hasTable('invoices') && Schema::hasColumn('invoices', 'quote_id')) {
+            Schema::table('invoices', function (Blueprint $table) {
+                $table->foreign('quote_id')->references('id')->on('quotes')->onDelete('set null');
+            });
+        }
+        
+        // Add foreign key constraint to quote_items table if it exists
+        if (Schema::hasTable('quote_items') && Schema::hasColumn('quote_items', 'quote_id')) {
+            Schema::table('quote_items', function (Blueprint $table) {
+                $table->foreign('quote_id')->references('id')->on('quotes')->onDelete('cascade');
+            });
+        }
     }
 
     public function down(): void

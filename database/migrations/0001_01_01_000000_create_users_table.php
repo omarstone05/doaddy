@@ -21,7 +21,7 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
             
-            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            // Foreign key will be added in a later migration after organizations table exists
             $table->unique(['organization_id', 'email']);
         });
 

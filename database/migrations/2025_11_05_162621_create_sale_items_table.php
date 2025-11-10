@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sale_items', function (Blueprint $table) {
+        if (!Schema::hasTable('sale_items')) {
+            Schema::create('sale_items', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('sale_id');
             $table->uuid('goods_service_id');
@@ -26,7 +27,8 @@ return new class extends Migration
             $table->foreign('goods_service_id')->references('id')->on('goods_and_services');
             $table->index('sale_id');
             $table->index('goods_service_id');
-        });
+            });
+        }
     }
 
     public function down(): void

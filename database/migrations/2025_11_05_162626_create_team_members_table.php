@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('team_members', function (Blueprint $table) {
+        if (!Schema::hasTable('team_members')) {
+            Schema::create('team_members', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->uuid('user_id')->nullable();
@@ -29,7 +30,8 @@ return new class extends Migration
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->index(['organization_id', 'is_active']);
-        });
+            });
+        }
     }
 
     public function down(): void

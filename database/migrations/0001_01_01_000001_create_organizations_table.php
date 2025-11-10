@@ -21,6 +21,13 @@ return new class extends Migration
             $table->json('settings')->nullable();
             $table->timestamps();
         });
+        
+        // Add foreign key constraint to users table if it exists
+        if (Schema::hasTable('users') && Schema::hasColumn('users', 'organization_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            });
+        }
     }
 
     public function down(): void

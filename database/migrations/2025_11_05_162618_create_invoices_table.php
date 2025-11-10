@@ -34,7 +34,7 @@ return new class extends Migration
             
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->foreign('customer_id')->references('id')->on('customers');
-            $table->foreign('quote_id')->references('id')->on('quotes')->onDelete('set null');
+            // Foreign key will be added after quotes table is created
             $table->foreign('parent_invoice_id')->references('id')->on('invoices')->onDelete('set null');
             $table->index(['organization_id', 'invoice_date']);
             $table->index('invoice_number');

@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sales', function (Blueprint $table) {
+        if (!Schema::hasTable('sales')) {
+            Schema::create('sales', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('sale_number')->unique();
@@ -37,7 +38,8 @@ return new class extends Migration
             $table->index('customer_id');
             $table->index('register_session_id');
             $table->index('sale_number');
-        });
+            });
+        }
     }
 
     public function down(): void

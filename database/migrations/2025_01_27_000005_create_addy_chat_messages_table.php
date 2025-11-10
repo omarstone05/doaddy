@@ -10,13 +10,15 @@ return new class extends Migration
     {
         Schema::create('addy_chat_messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
+            $table->uuid('user_id');
             $table->string('role'); // 'user' or 'assistant'
             $table->text('content');
             $table->json('metadata')->nullable(); // command info, actions, etc.
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['organization_id', 'created_at']);
             $table->index('user_id');
         });

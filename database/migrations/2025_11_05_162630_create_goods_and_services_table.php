@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('goods_and_services', function (Blueprint $table) {
+        if (!Schema::hasTable('goods_and_services')) {
+            Schema::create('goods_and_services', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('name');
@@ -37,7 +38,8 @@ return new class extends Migration
             $table->index(['organization_id', 'type', 'is_active']);
             $table->index('sku');
             $table->index('barcode');
-        });
+            });
+        }
     }
 
     public function down(): void

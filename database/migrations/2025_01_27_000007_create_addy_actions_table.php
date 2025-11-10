@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('addy_actions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
+            $table->uuid('user_id');
             $table->foreignId('chat_message_id')->nullable()->constrained('addy_chat_messages')->nullOnDelete();
             
             // Action details
@@ -35,6 +35,8 @@ return new class extends Migration
             
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['organization_id', 'status']);
             $table->index(['action_type', 'created_at']);
         });
@@ -42,8 +44,8 @@ return new class extends Migration
         // Action learning patterns
         Schema::create('addy_action_patterns', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->uuid('organization_id');
+            $table->uuid('user_id');
             
             $table->string('action_type');
             $table->integer('times_suggested')->default(0);
@@ -58,6 +60,8 @@ return new class extends Migration
             
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unique(['organization_id', 'user_id', 'action_type']);
         });
     }

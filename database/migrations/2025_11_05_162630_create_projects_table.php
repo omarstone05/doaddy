@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('projects', function (Blueprint $table) {
+        if (!Schema::hasTable('projects')) {
+            Schema::create('projects', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('name');
@@ -31,7 +32,8 @@ return new class extends Migration
             $table->foreign('project_manager_id')->references('id')->on('users')->onDelete('set null');
             $table->foreign('created_by_id')->references('id')->on('users')->onDelete('set null');
             $table->index(['organization_id', 'status']);
-        });
+            });
+        }
     }
 
     /**

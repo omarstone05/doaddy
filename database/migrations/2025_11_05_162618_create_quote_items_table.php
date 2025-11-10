@@ -19,8 +19,7 @@ return new class extends Migration
             $table->integer('display_order')->default(0);
             $table->timestamps();
             
-            $table->foreign('quote_id')->references('id')->on('quotes')->onDelete('cascade');
-            $table->foreign('goods_service_id')->references('id')->on('goods_and_services')->onDelete('set null');
+            // Foreign keys will be added after quotes and goods_and_services tables are created
             $table->index('quote_id');
         });
     }

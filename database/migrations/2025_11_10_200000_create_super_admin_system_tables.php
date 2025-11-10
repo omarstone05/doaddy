@@ -23,7 +23,7 @@ return new class extends Migration
         if (!Schema::hasTable('admin_role_user')) {
             Schema::create('admin_role_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->uuid('user_id');
             $table->foreignId('admin_role_id')->constrained()->onDelete('cascade');
             $table->timestamps();
             });
@@ -34,9 +34,9 @@ return new class extends Migration
             Schema::create('support_tickets', function (Blueprint $table) {
             $table->id();
             $table->string('ticket_number')->unique();
-            $table->foreignId('organization_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('assigned_to')->nullable()->constrained('users')->onDelete('set null');
+            $table->uuid('organization_id')->nullable();
+            $table->uuid('user_id');
+            $table->uuid('assigned_to')->nullable();
             $table->string('subject');
             $table->text('description');
             $table->enum('status', ['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'])->default('open');
@@ -48,6 +48,9 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('assigned_to')->references('id')->on('users')->onDelete('set null');
             $table->index(['status', 'priority']);
             $table->index(['organization_id', 'status']);
             $table->index('ticket_number');
@@ -59,11 +62,13 @@ return new class extends Migration
             Schema::create('support_ticket_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('support_ticket_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->uuid('user_id');
             $table->text('message');
             $table->boolean('is_internal_note')->default(false);
             $table->json('attachments')->nullable();
             $table->timestamps();
+            
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             });
         }
 
@@ -86,8 +91,8 @@ return new class extends Migration
         if (!Schema::hasTable('email_logs')) {
             Schema::create('email_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->uuid('organization_id')->nullable();
+            $table->uuid('user_id')->nullable();
             $table->string('to');
             $table->string('cc')->nullable();
             $table->string('bcc')->nullable();
@@ -100,6 +105,8 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamps();
             
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->index(['status', 'created_at']);
             $table->index('organization_id');
             });
@@ -109,7 +116,7 @@ return new class extends Migration
         if (!Schema::hasTable('admin_activity_logs')) {
             Schema::create('admin_activity_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('admin_id')->constrained('users')->onDelete('cascade');
+            $table->uuid('admin_id');
             $table->string('action');
             $table->string('model_type');
             $table->unsignedBigInteger('model_id')->nullable();
@@ -119,6 +126,7 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->timestamps();
             
+            $table->foreign('admin_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['admin_id', 'created_at']);
             $table->index(['model_type', 'model_id']);
             });
