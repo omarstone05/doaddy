@@ -3,12 +3,14 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sale_returns', function (Blueprint $table) {
+        if (!Schema::hasTable('sale_returns')) {
+            Schema::create('sale_returns', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->uuid('sale_id');
@@ -24,10 +26,21 @@ return new class extends Migration
             
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->foreign('sale_id')->references('id')->on('sales')->onDelete('cascade');
-            $table->foreign('processed_by_id')->references('id')->on('team_members')->onDelete('cascade');
+            // Foreign key for processed_by_id will be added after team_members table exists
             $table->index(['organization_id', 'return_date']);
             $table->index('sale_id');
-        });
+            });
+            
+            // Add foreign key after team_members table exists
+            if (Schema::hasTable('team_members')) {
+                Schema::table('sale_returns', function (Blueprint $table) {
+                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sale_returns' AND COLUMN_NAME = 'processed_by_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
+                    if (empty($foreignKeys)) {
+                        $table->foreign('processed_by_id')->references('id')->on('team_members')->onDelete('cascade');
+                    }
+                });
+            }
+        }
     }
 
     public function down(): void
