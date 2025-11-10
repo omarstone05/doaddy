@@ -59,11 +59,13 @@ class AdminSeeder extends Seeder
         );
 
         // Create default super admin user if doesn't exist
+        // IMPORTANT: Change password immediately after first login in production!
+        $defaultPassword = env('ADMIN_DEFAULT_PASSWORD', 'admin123');
         $admin = User::firstOrCreate(
             ['email' => 'admin@addybusiness.com'],
             [
                 'name' => 'Super Admin',
-                'password' => Hash::make('admin123'), // Change in production
+                'password' => Hash::make($defaultPassword),
                 'email_verified_at' => now(),
                 'is_super_admin' => true,
             ]
