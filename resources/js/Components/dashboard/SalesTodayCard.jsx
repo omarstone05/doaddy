@@ -4,7 +4,7 @@ import { Megaphone } from 'lucide-react';
 
 export function SalesTodayCard({ count, link }) {
   return (
-    <Card dismissible className="min-h-[180px]">
+    <Card dismissible className="h-full">
       <div className="flex items-start gap-4">
         <div className="p-3 bg-teal-500/10 rounded-xl flex-shrink-0">
           <Megaphone className="h-6 w-6 text-teal-500" />

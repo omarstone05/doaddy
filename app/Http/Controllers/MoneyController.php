@@ -62,6 +62,7 @@ class MoneyController extends Controller
         // Get Money-specific insights
         $insights = AddyInsight::active($organizationId)
             ->where('category', 'money')
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [

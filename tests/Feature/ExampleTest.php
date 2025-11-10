@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        // Root redirects to login or dashboard, so expect 302 or 200
+        $this->assertContains($response->status(), [200, 302]);
     }
 }

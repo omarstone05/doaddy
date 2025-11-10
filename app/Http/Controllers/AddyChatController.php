@@ -29,6 +29,8 @@ class AddyChatController extends Controller
             'role' => 'user',
             'content' => $request->message,
         ]);
+        
+        $chatMessageId = $userMessage->id;
 
         // Parse command
         $parser = new AddyCommandParser();
@@ -38,7 +40,7 @@ class AddyChatController extends Controller
         $history = AddyChatMessage::getRecentHistory($organization->id, $user->id, 5);
 
         // Generate response
-        $generator = new AddyResponseGenerator($organization);
+        $generator = new AddyResponseGenerator($organization, $user);
         $response = $generator->generateResponse(
             $intent, 
             $request->message,
@@ -47,6 +49,14 @@ class AddyChatController extends Controller
                 'content' => $msg->content,
             ])->toArray()
         );
+        
+        // If action was created, link it to the chat message
+        if (isset($response['action']['action_id'])) {
+            $action = \App\Models\AddyAction::find($response['action']['action_id']);
+            if ($action) {
+                $action->update(['chat_message_id' => $chatMessageId]);
+            }
+        }
 
         // Save assistant response
         $assistantMessage = AddyChatMessage::create([
@@ -57,12 +67,14 @@ class AddyChatController extends Controller
             'metadata' => [
                 'intent' => $intent,
                 'quick_actions' => $response['quick_actions'] ?? [],
+                'action' => $response['action'] ?? null,
             ],
         ]);
 
         return response()->json([
             'message' => $assistantMessage->load('user'),
             'quick_actions' => $response['quick_actions'] ?? [],
+            'action' => $response['action'] ?? null,
         ]);
     }
 

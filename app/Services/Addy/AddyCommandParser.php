@@ -11,6 +11,19 @@ class AddyCommandParser
     {
         $message = strtolower(trim($message));
         
+        // Check for action requests FIRST
+        if ($this->isActionRequest($message)) {
+            $action = $this->parseAction($message);
+            if ($action) {
+                return [
+                    'intent' => 'action',
+                    'action_type' => $action['action_type'],
+                    'parameters' => $action['parameters'],
+                    'confidence' => 0.9,
+                ];
+            }
+        }
+        
         // Greeting
         if ($this->isGreeting($message)) {
             return [
@@ -200,6 +213,118 @@ class AddyCommandParser
             }
         }
         return false;
+    }
+
+    /**
+     * Check if message is an action request
+     */
+    protected function isActionRequest(string $message): bool
+    {
+        $actionKeywords = [
+            'send', 'create', 'generate', 'schedule', 'approve', 
+            'make', 'draft', 'prepare', 'export', 'download',
+            'confirm', 'record', 'add', 'log', 'enter', 'register'
+        ];
+        
+        foreach ($actionKeywords as $keyword) {
+            if (str_starts_with($message, $keyword) || str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Parse action from message
+     */
+    protected function parseAction(string $message): ?array
+    {
+        // Send invoice reminders
+        if (str_contains($message, 'send') && (str_contains($message, 'reminder') || str_contains($message, 'invoice'))) {
+            return [
+                'action_type' => 'send_invoice_reminders',
+                'parameters' => [],
+            ];
+        }
+        
+        // Create/confirm/record transaction or expense
+        // Patterns: "create transaction", "create expense", "confirm expense", "record expense", "log expense", etc.
+        if ((str_contains($message, 'create') || str_contains($message, 'confirm') || str_contains($message, 'record') || 
+             str_contains($message, 'log') || str_contains($message, 'add') || str_contains($message, 'enter')) && 
+            (str_contains($message, 'transaction') || str_contains($message, 'expense') || str_contains($message, 'income'))) {
+            
+            // Extract parameters from the message
+            $params = $this->extractTransactionParams($message);
+            
+            // If confirming, try to extract from context (amount, type mentioned earlier)
+            if (str_contains($message, 'confirm')) {
+                // Look for amount in the message
+                if (!isset($params['amount']) && preg_match('/\$?(\d+(?:\.\d{2})?)/', $message, $matches)) {
+                    $params['amount'] = (float) $matches[1];
+                }
+                
+                // Default to expense if confirming and no type specified
+                if (!isset($params['flow_type'])) {
+                    $params['flow_type'] = 'expense';
+                }
+            }
+            
+            return [
+                'action_type' => 'create_transaction',
+                'parameters' => $params,
+            ];
+        }
+        
+        // Generate report
+        if (str_contains($message, 'generate') || str_contains($message, 'create report')) {
+            return [
+                'action_type' => 'generate_report',
+                'parameters' => ['type' => $this->extractReportType($message)],
+            ];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract transaction parameters from message
+     */
+    protected function extractTransactionParams(string $message): array
+    {
+        $params = [];
+        
+        // Extract amount
+        if (preg_match('/\$?(\d+(?:\.\d{2})?)/', $message, $matches)) {
+            $params['amount'] = (float) $matches[1];
+        }
+        
+        // Extract type (income/expense)
+        if (str_contains($message, 'income') || str_contains($message, 'revenue')) {
+            $params['flow_type'] = 'income';
+        } elseif (str_contains($message, 'expense') || str_contains($message, 'cost')) {
+            $params['flow_type'] = 'expense';
+        }
+        
+        // Extract category
+        if (preg_match('/for\s+([a-z\s]+)/i', $message, $matches)) {
+            $params['category'] = trim($matches[1]);
+        }
+        
+        return $params;
+    }
+
+    /**
+     * Extract report type from message
+     */
+    protected function extractReportType(string $message): string
+    {
+        if (str_contains($message, 'sales')) return 'sales';
+        if (str_contains($message, 'expense')) return 'expenses';
+        if (str_contains($message, 'cash')) return 'cash_flow';
+        if (str_contains($message, 'budget')) return 'budget';
+        
+        return 'general';
     }
 }
 

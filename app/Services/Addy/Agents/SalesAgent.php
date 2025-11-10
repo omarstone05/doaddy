@@ -7,18 +7,34 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Quote;
 use App\Models\Payment;
+use App\Traits\Cacheable;
 use Illuminate\Support\Facades\DB;
 
 class SalesAgent
 {
+    use Cacheable;
+
     protected Organization $organization;
+    protected int $cacheTtl = 300; // 5 minutes
 
     public function __construct(Organization $organization)
     {
         $this->organization = $organization;
     }
 
+    protected function getOrganizationId(): int|string
+    {
+        return $this->organization->id;
+    }
+
     public function perceive(): array
+    {
+        return $this->remember('perception', function () {
+            return $this->doPerceive();
+        });
+    }
+
+    protected function doPerceive(): array
     {
         return [
             'customer_stats' => $this->getCustomerStats(),
@@ -50,9 +66,15 @@ class SalesAgent
 
     protected function getInvoiceHealth(): array
     {
+        // Check for overdue: status is 'overdue' OR (status is 'sent' and due_date < now())
         $overdueInvoices = Invoice::where('organization_id', $this->organization->id)
-            ->where('status', 'sent')
-            ->where('due_date', '<', now())
+            ->where(function($query) {
+                $query->where('status', 'overdue')
+                      ->orWhere(function($q) {
+                          $q->where('status', 'sent')
+                            ->where('due_date', '<', now());
+                      });
+            })
             ->get();
 
         $pendingInvoices = Invoice::where('organization_id', $this->organization->id)
@@ -60,8 +82,8 @@ class SalesAgent
             ->where('due_date', '>=', now())
             ->get();
 
-        $overdueAmount = $overdueInvoices->sum('total');
-        $pendingAmount = $pendingInvoices->sum('total');
+        $overdueAmount = $overdueInvoices->sum('total_amount');
+        $pendingAmount = $pendingInvoices->sum('total_amount');
 
         return [
             'overdue_count' => $overdueInvoices->count(),
@@ -97,7 +119,7 @@ class SalesAgent
                 $date->copy()->startOfMonth(),
                 $date->copy()->endOfMonth()
             ])
-            ->sum('total');
+            ->sum('total_amount');
     }
 
     protected function getQuoteConversion(): array

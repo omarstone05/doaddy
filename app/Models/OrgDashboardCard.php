@@ -18,6 +18,10 @@ class OrgDashboardCard extends Model
         'config',
         'display_order',
         'is_visible',
+        'row',
+        'col',
+        'width',
+        'height',
     ];
 
     protected function casts(): array

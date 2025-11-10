@@ -25,6 +25,9 @@ export function Card({
       'transition-shadow',
       'duration-200',
       'relative',
+      'h-full',
+      'flex',
+      'flex-col',
       paddingClasses[padding],
       className
     )}>

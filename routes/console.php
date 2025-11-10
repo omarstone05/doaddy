@@ -15,3 +15,11 @@ Schedule::call(function () {
         \App\Jobs\RunAddyDecisionLoop::dispatch($org);
     }
 })->dailyAt('06:00');
+
+// Generate predictions daily at 7 AM (after thought cycle)
+Schedule::call(function () {
+    $organizations = \App\Models\Organization::all();
+    foreach ($organizations as $org) {
+        \App\Jobs\GenerateAddyPredictions::dispatch($org);
+    }
+})->dailyAt('07:00');

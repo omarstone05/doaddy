@@ -10,7 +10,15 @@ export default function Login() {
 
     const submit = (e) => {
         e.preventDefault();
-        post('/login');
+        post('/login', {
+            onError: (errors) => {
+                // Handle 419 CSRF token mismatch
+                if (errors.message && errors.message.includes('419')) {
+                    alert('Your session has expired. Please refresh the page and try again.');
+                    window.location.reload();
+                }
+            },
+        });
     };
 
     return (

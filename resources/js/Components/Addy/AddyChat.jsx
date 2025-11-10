@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAddy } from '../../Contexts/AddyContext';
 import axios from 'axios';
 import { router } from '@inertiajs/react';
+import ActionConfirmation from './ActionConfirmation';
 
 export default function AddyChat() {
     const { isOpen, closeAddy } = useAddy();
@@ -218,13 +219,33 @@ export default function AddyChat() {
                                                 <div className="whitespace-pre-wrap">{message.content}</div>
                                             </div>
 
+                                            {/* Action Confirmation */}
+                                            {message.role === 'assistant' && message.metadata?.action && (
+                                                <ActionConfirmation
+                                                    action={message.metadata.action}
+                                                    onConfirm={(result) => {
+                                                        // Reload messages to show result
+                                                        loadHistory();
+                                                    }}
+                                                    onCancel={() => {
+                                                        // Optionally reload
+                                                    }}
+                                                />
+                                            )}
+
                                             {/* Quick actions */}
                                             {message.role === 'assistant' && message.metadata?.quick_actions && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     {message.metadata.quick_actions.map((action, idx) => (
                                                         <button
                                                             key={idx}
-                                                            onClick={() => handleQuickAction(action)}
+                                                            onClick={() => {
+                                                                if (action.type === 'confirm' && action.action_id) {
+                                                                    // Handle action confirmation via ActionConfirmation component
+                                                                    return;
+                                                                }
+                                                                handleQuickAction(action);
+                                                            }}
                                                             className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 hover:bg-gray-50 transition"
                                                         >
                                                             {action.label}

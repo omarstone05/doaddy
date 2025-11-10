@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\AddyInsightController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\AddyChatController;
+use App\Http\Controllers\AddyActionController;
+use App\Http\Controllers\Settings\AddySettingsController;
 use App\Http\Controllers\CommissionRuleController;
 use App\Http\Controllers\CommissionEarningController;
 use App\Http\Controllers\DocumentController;
@@ -56,13 +58,34 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    // Super Admin only routes
-    Route::get('/admin/system-settings', [SystemSettingsController::class, 'index'])
-        ->name('admin.system-settings');
-    Route::post('/admin/system-settings', [SystemSettingsController::class, 'update'])
-        ->name('admin.system-settings.update');
-    Route::post('/admin/system-settings/test', [SystemSettingsController::class, 'testConnection'])
-        ->name('admin.system-settings.test');
+    // Super Admin only routes - Platform management
+    Route::prefix('admin')->middleware(['admin'])->name('admin.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
+        
+        // System Settings (AI, Platform Configuration)
+        Route::get('/system-settings', [SystemSettingsController::class, 'index'])->name('system-settings');
+        Route::post('/system-settings', [SystemSettingsController::class, 'update'])->name('system-settings.update');
+        Route::post('/system-settings/test', [SystemSettingsController::class, 'testConnection'])->name('system-settings.test');
+        
+        // Platform Settings (Global Settings)
+        Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'index'])->name('settings.index');
+        Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])->name('settings.update');
+        
+        // Organization Management
+        Route::resource('organizations', \App\Http\Controllers\Admin\AdminOrganizationController::class);
+        Route::post('/organizations/{organization}/suspend', [\App\Http\Controllers\Admin\AdminOrganizationController::class, 'suspend'])->name('organizations.suspend');
+        Route::post('/organizations/{organization}/unsuspend', [\App\Http\Controllers\Admin\AdminOrganizationController::class, 'unsuspend'])->name('organizations.unsuspend');
+        
+        // User Management
+        Route::resource('users', \App\Http\Controllers\Admin\AdminUserController::class);
+        Route::post('/users/{user}/toggle-super-admin', [\App\Http\Controllers\Admin\AdminUserController::class, 'toggleSuperAdmin'])->name('users.toggle-super-admin');
+        
+        // Support Tickets
+        Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show']);
+        Route::post('/tickets/{ticket}/assign', [\App\Http\Controllers\Admin\AdminTicketController::class, 'assign'])->name('tickets.assign');
+        Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\Admin\AdminTicketController::class, 'updateStatus'])->name('tickets.update-status');
+        Route::post('/tickets/{ticket}/messages', [\App\Http\Controllers\Admin\AdminTicketController::class, 'addMessage'])->name('tickets.add-message');
+    });
     
     // Addy Insights API
     Route::prefix('api/addy')->group(function () {
@@ -74,12 +97,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/chat', [AddyChatController::class, 'sendMessage']);
         Route::get('/chat/history', [AddyChatController::class, 'getHistory']);
         Route::delete('/chat/history', [AddyChatController::class, 'clearHistory']);
+        
+        // Addy Actions
+        Route::post('/actions/{action}/confirm', [AddyActionController::class, 'confirm'])->name('addy.actions.confirm');
+        Route::post('/actions/{action}/cancel', [AddyActionController::class, 'cancel'])->name('addy.actions.cancel');
+        Route::post('/actions/{action}/rate', [AddyActionController::class, 'rate'])->name('addy.actions.rate');
+        Route::get('/actions/history', [AddyActionController::class, 'history'])->name('addy.actions.history');
+        Route::get('/actions/suggestions', [AddyActionController::class, 'suggestions'])->name('addy.actions.suggestions');
     });
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/cards/reorder', [DashboardCardController::class, 'updateOrder'])->name('dashboard.cards.reorder');
+    Route::post('/dashboard/cards/layout', [DashboardCardController::class, 'updateLayout'])->name('dashboard.cards.layout');
     Route::post('/dashboard/cards/{id}/toggle', [DashboardCardController::class, 'toggleVisibility'])->name('dashboard.cards.toggle');
     Route::post('/dashboard/cards/add', [DashboardCardController::class, 'addCard'])->name('dashboard.cards.add');
     Route::delete('/dashboard/cards/{id}', [DashboardCardController::class, 'removeCard'])->name('dashboard.cards.remove');
@@ -269,6 +300,10 @@ Route::middleware('auth')->group(function () {
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    
+    // Addy Settings
+    Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');
+    Route::post('/settings/addy', [AddySettingsController::class, 'update'])->name('settings.addy.update');
     
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

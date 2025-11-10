@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { ArrowLeft, Lock, Unlock, DollarSign } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export default function RegisterIndex({ openSession, closedSessions, accounts })
     };
 
     return (
-        <AuthenticatedLayout>
+        <SectionLayout sectionName="Sales">
             <Head title="Register Sessions" />
             <div className="max-w-6xl mx-auto ">
                 <div className="mb-6">
@@ -215,7 +215,7 @@ export default function RegisterIndex({ openSession, closedSessions, accounts })
                     </div>
                 )}
             </div>
-        </AuthenticatedLayout>
+        </SectionLayout>
     );
 }
 

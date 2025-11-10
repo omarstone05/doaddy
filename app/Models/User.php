@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,6 +28,8 @@ class User extends Authenticatable
         'password',
         'organization_id',
         'is_super_admin',
+        'admin_notes',
+        'last_active_at',
     ];
 
     /**
@@ -49,6 +53,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'last_active_at' => 'datetime',
         ];
     }
 
@@ -60,5 +65,50 @@ class User extends Authenticatable
     public function teamMember(): HasOne
     {
         return $this->hasOne(TeamMember::class);
+    }
+
+    // Admin methods
+    public function adminRoles(): BelongsToMany
+    {
+        return $this->belongsToMany(AdminRole::class, 'admin_role_user')
+            ->withTimestamps();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->adminRoles()->exists() || $this->is_super_admin;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->adminRoles()->where('slug', 'super_admin')->exists() || $this->is_super_admin;
+    }
+
+    public function hasAdminPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->adminRoles()
+            ->get()
+            ->pluck('permissions')
+            ->flatten()
+            ->contains($permission);
+    }
+
+    public function canImpersonate(): bool
+    {
+        return $this->hasAdminPermission('impersonate_users');
+    }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'assigned_to');
     }
 }

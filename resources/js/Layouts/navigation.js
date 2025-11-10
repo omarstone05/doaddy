@@ -19,6 +19,7 @@ import {
     Building2,
     FileCheck,
     Shield,
+    Settings,
 } from 'lucide-react';
 
 export const navigation = [
@@ -40,7 +41,6 @@ export const navigation = [
             { name: 'Accounts', href: '/money/accounts', icon: Wallet },
             { name: 'Movements', href: '/money/movements', icon: TrendingUp },
             { name: 'Budgets', href: '/money/budgets', icon: FileText },
-            { name: 'Register Sessions', href: '/register-sessions', icon: Receipt },
         ],
     },
     {
@@ -49,6 +49,7 @@ export const navigation = [
         items: [
             { name: 'Overview', href: '/sales', icon: ShoppingCart },
             { name: 'POS', href: '/pos', icon: ShoppingCart },
+            { name: 'Register Sessions', href: '/register-sessions', icon: Receipt },
             { name: 'Customers', href: '/customers', icon: Users },
             { name: 'Quotes', href: '/quotes', icon: FileText },
             { name: 'Invoices', href: '/invoices', icon: FileText },
@@ -102,7 +103,14 @@ export const navigation = [
             { name: 'Tax', href: '/compliance/tax', icon: Receipt },
             { name: 'Audit Trail', href: '/activity-logs', icon: Shield },
             { name: 'Notifications', href: '/notifications', icon: Bell },
-            { name: 'Settings', href: '/settings', icon: Building2 },
+        ],
+    },
+    {
+        name: 'Settings',
+        icon: Building2,
+        items: [
+            { name: 'Overview', href: '/settings', icon: Building2 },
+            { name: 'Addy Preferences', href: '/settings/addy', icon: MessageSquare },
         ],
     },
 ];

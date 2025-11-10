@@ -20,7 +20,7 @@ export default function SettingsIndex({ organization }) {
     };
 
     return (
-        <SectionLayout sectionName="Compliance">
+        <SectionLayout sectionName="Settings">
             <Head title="Settings" />
             <div className="max-w-4xl mx-auto">
                 <div className="mb-6">

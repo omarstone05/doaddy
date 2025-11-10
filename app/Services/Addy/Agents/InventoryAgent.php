@@ -5,18 +5,34 @@ namespace App\Services\Addy\Agents;
 use App\Models\Organization;
 use App\Models\GoodsAndService;
 use App\Models\StockMovement;
+use App\Traits\Cacheable;
 use Illuminate\Support\Facades\DB;
 
 class InventoryAgent
 {
+    use Cacheable;
+
     protected Organization $organization;
+    protected int $cacheTtl = 300; // 5 minutes
 
     public function __construct(Organization $organization)
     {
         $this->organization = $organization;
     }
 
+    protected function getOrganizationId(): int|string
+    {
+        return $this->organization->id;
+    }
+
     public function perceive(): array
+    {
+        return $this->remember('perception', function () {
+            return $this->doPerceive();
+        });
+    }
+
+    protected function doPerceive(): array
     {
         return [
             'stock_levels' => $this->getStockLevels(),

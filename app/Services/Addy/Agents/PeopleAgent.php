@@ -6,18 +6,34 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\PayrollRun;
 use App\Models\LeaveRequest;
+use App\Traits\Cacheable;
 use Illuminate\Support\Facades\DB;
 
 class PeopleAgent
 {
+    use Cacheable;
+
     protected Organization $organization;
+    protected int $cacheTtl = 300; // 5 minutes
 
     public function __construct(Organization $organization)
     {
         $this->organization = $organization;
     }
 
+    protected function getOrganizationId(): int|string
+    {
+        return $this->organization->id;
+    }
+
     public function perceive(): array
+    {
+        return $this->remember('perception', function () {
+            return $this->doPerceive();
+        });
+    }
+
+    protected function doPerceive(): array
     {
         return [
             'team_stats' => $this->getTeamStats(),
@@ -31,13 +47,14 @@ class PeopleAgent
     {
         $allTeam = User::where('organization_id', $this->organization->id)->get();
         
-        $activeTeam = $allTeam->where('status', 'active');
-        $onLeave = $allTeam->where('on_leave', true);
+        // User model doesn't have status or on_leave fields
+        // Count all users as active for now
+        $activeTeam = $allTeam;
 
         return [
             'total' => $allTeam->count(),
             'active' => $activeTeam->count(),
-            'on_leave' => $onLeave->count(),
+            'on_leave' => 0, // User model doesn't have on_leave field
             'new_this_month' => $allTeam->filter(function($user) {
                 return $user->created_at >= now()->startOfMonth();
             })->count(),
@@ -47,11 +64,11 @@ class PeopleAgent
     protected function getPayrollHealth(): array
     {
         $thisMonth = PayrollRun::where('organization_id', $this->organization->id)
-            ->whereBetween('period_start', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereBetween('start_date', [now()->startOfMonth(), now()->endOfMonth()])
             ->first();
 
         $lastMonth = PayrollRun::where('organization_id', $this->organization->id)
-            ->whereBetween('period_start', [
+            ->whereBetween('start_date', [
                 now()->subMonth()->startOfMonth(), 
                 now()->subMonth()->endOfMonth()
             ])
@@ -59,16 +76,16 @@ class PeopleAgent
 
         $nextPayroll = PayrollRun::where('organization_id', $this->organization->id)
             ->where('status', 'pending')
-            ->where('payment_date', '>', now())
-            ->orderBy('payment_date')
+            ->where('end_date', '>', now())
+            ->orderBy('end_date')
             ->first();
 
         return [
             'this_month_total' => $thisMonth ? $thisMonth->total_amount : 0,
             'last_month_total' => $lastMonth ? $lastMonth->total_amount : 0,
-            'next_payroll_date' => $nextPayroll ? $nextPayroll->payment_date : null,
+            'next_payroll_date' => $nextPayroll ? $nextPayroll->end_date : null,
             'next_payroll_amount' => $nextPayroll ? $nextPayroll->total_amount : 0,
-            'days_until_payroll' => $nextPayroll ? now()->diffInDays($nextPayroll->payment_date) : null,
+            'days_until_payroll' => $nextPayroll ? now()->diffInDays($nextPayroll->end_date) : null,
         ];
     }
 

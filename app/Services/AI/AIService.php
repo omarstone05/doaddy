@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 class AIService
 {
     protected string $provider;
-    protected string $apiKey;
+    protected ?string $apiKey;
     protected string $model;
 
     public function __construct()

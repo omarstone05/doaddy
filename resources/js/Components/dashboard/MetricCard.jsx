@@ -10,7 +10,7 @@ export function MetricCard({
   icon: Icon
 }) {
   return (
-    <Card dismissible={dismissible} className="min-h-[180px]">
+    <Card dismissible={dismissible} className="h-full">
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 mb-4">
           {Icon && (

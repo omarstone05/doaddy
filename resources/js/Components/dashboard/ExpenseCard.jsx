@@ -13,7 +13,7 @@ export function ExpenseCard({
   const isPositive = percentageChange > 0;
   
   return (
-    <Card dismissible={dismissible}>
+    <Card dismissible={dismissible} className="h-full flex flex-col">
       <div className="mb-6">
         <h3 className="text-sm font-medium text-gray-700 mb-2">
           Expenses

@@ -44,6 +44,26 @@ class DashboardCardController extends Controller
         return back();
     }
 
+    public function updateLayout(Request $request)
+    {
+        $organizationId = Auth::user()->organization_id;
+        $layouts = $request->input('layouts', []);
+        
+        foreach ($layouts as $layout) {
+            OrgDashboardCard::where('organization_id', $organizationId)
+                ->where('id', $layout['id'])
+                ->update([
+                    'row' => $layout['row'] ?? 0,
+                    'col' => $layout['col'] ?? 0,
+                    'width' => $layout['width'] ?? 8, // Default 8x8
+                    'height' => $layout['height'] ?? 8, // Default 8x8
+                    'display_order' => $layout['display_order'] ?? 0,
+                ]);
+        }
+        
+        return response()->json(['success' => true]);
+    }
+
     public function toggleVisibility(Request $request, $id)
     {
         $orgCard = OrgDashboardCard::where('organization_id', Auth::user()->organization_id)
@@ -59,8 +79,47 @@ class DashboardCardController extends Controller
         $organizationId = Auth::user()->organization_id;
         $dashboardCardId = $request->input('dashboard_card_id');
         
+        // Check if card already exists for this organization
+        $existingCard = OrgDashboardCard::where('organization_id', $organizationId)
+            ->where('dashboard_card_id', $dashboardCardId)
+            ->first();
+        
+        if ($existingCard) {
+            // If card exists but is hidden, make it visible again
+            if (!$existingCard->is_visible) {
+                $existingCard->update(['is_visible' => true]);
+            }
+            // Otherwise, card already exists and is visible - do nothing
+            return back();
+        }
+        
+        // Card doesn't exist, create new one
         $maxOrder = OrgDashboardCard::where('organization_id', $organizationId)
             ->max('display_order') ?? 0;
+        
+        // Calculate default position
+        // Try to place small cards (width <= 4) in row 0, col 8-11 (next to Addy card)
+        // Otherwise place in next available row
+        $existingCards = OrgDashboardCard::where('organization_id', $organizationId)
+            ->where('is_visible', true)
+            ->get();
+        
+        // Check if we can fit in row 0 (after Addy card at col 0-7)
+        $cardsInRow0 = $existingCards->filter(function($card) {
+            return $card->row === 0 && $card->col >= 8;
+        });
+        
+        $usedColsInRow0 = $cardsInRow0->reduce(function($max, $card) {
+            return max($max, $card->col + $card->width);
+        }, 8);
+        
+        $defaultWidth = 8; // Default card width (8x8)
+        $defaultHeight = 8; // Default card height (8x8)
+        
+        // Position will be calculated by frontend auto-layout
+        // Just set defaults here
+        $row = 0;
+        $col = 0;
         
         OrgDashboardCard::create([
             'id' => (string) Str::uuid(),
@@ -68,6 +127,10 @@ class DashboardCardController extends Controller
             'dashboard_card_id' => $dashboardCardId,
             'display_order' => $maxOrder + 1,
             'is_visible' => true,
+            'row' => $row,
+            'col' => $col,
+            'width' => $defaultWidth,
+            'height' => $defaultHeight,
         ]);
         
         return back();

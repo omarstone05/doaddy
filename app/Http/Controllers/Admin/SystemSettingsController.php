@@ -9,28 +9,37 @@ use Inertia\Inertia;
 
 class SystemSettingsController extends Controller
 {
-    public function __construct()
-    {
-        // Add middleware to ensure only super admin can access
-        $this->middleware(function ($request, $next) {
-            if (!$request->user() || !$request->user()->is_super_admin) {
-                abort(403, 'Unauthorized');
-            }
-            return $next($request);
-        });
-    }
+    // Middleware is applied via route group in web.php
 
     public function index()
     {
-        return Inertia::render('Admin/SystemSettings', [
-            'settings' => [
-                'ai_provider' => PlatformSetting::get('ai_provider', 'openai'),
-                'openai_api_key' => PlatformSetting::get('openai_api_key') ? '••••••••••••' : null,
-                'openai_model' => PlatformSetting::get('openai_model', 'gpt-4o'),
-                'anthropic_api_key' => PlatformSetting::get('anthropic_api_key') ? '••••••••••••' : null,
-                'anthropic_model' => PlatformSetting::get('anthropic_model', 'claude-sonnet-4-20250514'),
-            ],
-        ]);
+        try {
+            $openaiKey = PlatformSetting::get('openai_api_key');
+            $anthropicKey = PlatformSetting::get('anthropic_api_key');
+            
+            return Inertia::render('Admin/SystemSettings', [
+                'settings' => [
+                    'ai_provider' => PlatformSetting::get('ai_provider', 'openai'),
+                    'openai_api_key' => $openaiKey ? '••••••••••••' : null,
+                    'openai_model' => PlatformSetting::get('openai_model', 'gpt-4o'),
+                    'anthropic_api_key' => $anthropicKey ? '••••••••••••' : null,
+                    'anthropic_model' => PlatformSetting::get('anthropic_model', 'claude-sonnet-4-20250514'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            // If there's an error loading settings, return defaults
+            \Log::error('Error loading system settings: ' . $e->getMessage());
+            
+            return Inertia::render('Admin/SystemSettings', [
+                'settings' => [
+                    'ai_provider' => 'openai',
+                    'openai_api_key' => null,
+                    'openai_model' => 'gpt-4o',
+                    'anthropic_api_key' => null,
+                    'anthropic_model' => 'claude-sonnet-4-20250514',
+                ],
+            ]);
+        }
     }
 
     public function update(Request $request)
@@ -70,16 +79,24 @@ class SystemSettingsController extends Controller
             $ai = new \App\Services\AI\AIService();
             $response = $ai->ask('Hello! Please respond with "Connection successful"');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'API connection successful!',
-                'response' => $response,
-            ]);
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'API connection successful!',
+                    'response' => $response,
+                ]);
+            }
+
+            return back()->with('success', 'API connection successful!');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 400);
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
+
+            return back()->withErrors(['message' => $e->getMessage()]);
         }
     }
 }

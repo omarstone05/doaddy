@@ -58,6 +58,7 @@ class SalesController extends Controller
         // Get Sales-specific insights
         $insights = AddyInsight::active($organizationId)
             ->where('category', 'sales')
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [

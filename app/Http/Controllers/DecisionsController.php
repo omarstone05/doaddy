@@ -29,9 +29,14 @@ class DecisionsController extends Controller
             ->where('status', 'active')
             ->count();
         
-        // Get Decisions-specific insights (using cross-section insights that relate to decisions)
+        // Get Decisions-specific insights
+        // Priority: cross-section insights (strategic/decision-oriented), then high-priority insights from any category
         $insights = AddyInsight::active($organizationId)
-            ->whereIn('category', ['cross-section'])
+            ->where(function($query) {
+                $query->where('category', 'cross-section')
+                      ->orWhere('priority', '>=', 0.8); // High-priority insights are decision-relevant
+            })
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [

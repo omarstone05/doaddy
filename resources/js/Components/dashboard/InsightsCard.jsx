@@ -20,7 +20,7 @@ export function InsightsCard({ userName, message }) {
   };
 
   return (
-    <BackgroundGradientAnimation className="bg-gradient-to-br from-teal-500 to-mint-300 p-8 shadow-lg cursor-pointer hover:shadow-xl transition-shadow" onClick={handleCardClick}>
+    <BackgroundGradientAnimation className="bg-gradient-to-br from-teal-500 to-mint-300 p-8 shadow-lg cursor-pointer hover:shadow-xl transition-shadow h-full" onClick={handleCardClick}>
       <div className="flex justify-between items-start">
         <div className="max-w-md">
           <p className="text-sm font-medium text-white/80 mb-3">

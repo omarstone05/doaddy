@@ -32,9 +32,18 @@ class ComplianceController extends Controller
         $auditLogs = ActivityLog::where('organization_id', $organizationId)
             ->count();
         
-        // Get Compliance-specific insights (using cross-section insights that relate to compliance)
+        // Get Compliance-specific insights
+        // Priority: cross-section insights (risk/compliance-related), then high-priority alerts
         $insights = AddyInsight::active($organizationId)
-            ->whereIn('category', ['cross-section'])
+            ->where(function($query) {
+                $query->where('category', 'cross-section')
+                      ->orWhere(function($q) {
+                          // High-priority alerts are compliance-relevant
+                          $q->where('priority', '>=', 0.85)
+                            ->where('type', 'alert');
+                      });
+            })
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [

@@ -16,6 +16,13 @@ class LoginController extends Controller
 
     public function store(Request $request)
     {
+        // Check if this is a CSRF token mismatch (419 error)
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Your session has expired. Please refresh the page and try again.',
+            ], 419);
+        }
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -23,6 +30,12 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            
+            // Redirect super admins to admin dashboard
+            if (Auth::user()->isSuperAdmin()) {
+                return redirect()->intended('/admin/dashboard');
+            }
+            
             return redirect()->intended('/dashboard');
         }
 

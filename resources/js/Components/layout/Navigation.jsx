@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Search, Bell, ChevronDown } from 'lucide-react';
+import { Search, Bell, ChevronDown, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Navigation items - main sections only for pill navigation
@@ -152,6 +152,13 @@ export function Navigation() {
                       {auth?.user?.organization?.name || 'Organization'}
                     </p>
                   </div>
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

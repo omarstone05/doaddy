@@ -12,7 +12,7 @@ export function ChartCard({
   dismissible = true 
 }) {
   return (
-    <Card dismissible={dismissible}>
+    <Card dismissible={dismissible} className="h-full flex flex-col">
       <div className="mb-6">
         <h3 className="text-sm font-medium text-gray-700 mb-2">
           {title}
@@ -29,7 +29,8 @@ export function ChartCard({
         )}
       </div>
       
-      <ResponsiveContainer width="100%" height={200}>
+      <div className="flex-1 min-h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <defs>
             <linearGradient id={`color${dataKey}`} x1="0" y1="0" x2="0" y2="1">
@@ -65,6 +66,7 @@ export function ChartCard({
           />
         </AreaChart>
       </ResponsiveContainer>
+      </div>
     </Card>
   );
 }

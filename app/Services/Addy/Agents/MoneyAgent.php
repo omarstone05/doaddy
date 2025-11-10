@@ -6,19 +6,35 @@ use App\Models\Organization;
 use App\Models\MoneyMovement;
 use App\Models\BudgetLine;
 use App\Models\MoneyAccount;
+use App\Traits\Cacheable;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class MoneyAgent
 {
+    use Cacheable;
+
     protected Organization $organization;
+    protected int $cacheTtl = 300; // 5 minutes
 
     public function __construct(Organization $organization)
     {
         $this->organization = $organization;
     }
 
+    protected function getOrganizationId(): int|string
+    {
+        return $this->organization->id;
+    }
+
     public function perceive(): array
+    {
+        return $this->remember('perception', function () {
+            return $this->doPerceive();
+        });
+    }
+
+    protected function doPerceive(): array
     {
         return [
             'cash_position' => $this->getCashPosition(),

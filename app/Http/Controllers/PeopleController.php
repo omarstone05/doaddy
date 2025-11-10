@@ -33,6 +33,7 @@ class PeopleController extends Controller
         // Get People-specific insights
         $insights = AddyInsight::active($organizationId)
             ->where('category', 'people')
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [

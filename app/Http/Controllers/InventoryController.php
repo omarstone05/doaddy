@@ -39,6 +39,7 @@ class InventoryController extends Controller
         // Get Inventory-specific insights
         $insights = AddyInsight::active($organizationId)
             ->where('category', 'inventory')
+            ->orderBy('priority', 'desc')
             ->limit(3)
             ->get()
             ->map(fn($insight) => [
