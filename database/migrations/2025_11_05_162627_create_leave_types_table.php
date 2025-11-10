@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('leave_types', function (Blueprint $table) {
+        if (!Schema::hasTable('leave_types')) {
+            Schema::create('leave_types', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('name');
@@ -24,7 +25,8 @@ return new class extends Migration
             
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->index(['organization_id', 'is_active']);
-        });
+            });
+        }
     }
 
     /**
