@@ -48,19 +48,17 @@ class SalesAgent
     protected function getCustomerStats(): array
     {
         $totalCustomers = Customer::where('organization_id', $this->organization->id)->count();
-        $activeCustomers = Customer::where('organization_id', $this->organization->id)
-            ->where('status', 'active')
-            ->count();
         
         $newThisMonth = Customer::where('organization_id', $this->organization->id)
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->count();
 
+        // Since customers table doesn't have a status column, all customers are considered active
         return [
             'total' => $totalCustomers,
-            'active' => $activeCustomers,
+            'active' => $totalCustomers, // All customers are active (no status field)
             'new_this_month' => $newThisMonth,
-            'inactive' => $totalCustomers - $activeCustomers,
+            'inactive' => 0, // No inactive customers since there's no status field
         ];
     }
 
