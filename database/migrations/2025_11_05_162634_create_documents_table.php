@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,7 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('documents', function (Blueprint $table) {
+        if (!Schema::hasTable('documents')) {
+            Schema::create('documents', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('name');
@@ -27,10 +29,21 @@ return new class extends Migration
             $table->timestamps();
             
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
-            $table->foreign('created_by_id')->references('id')->on('users')->onDelete('set null');
+            // Foreign key for created_by_id will be added after users table exists
             $table->index(['organization_id', 'status']);
             $table->index(['organization_id', 'category']);
-        });
+            });
+            
+            // Add foreign key after users table exists
+            if (Schema::hasTable('users')) {
+                Schema::table('documents', function (Blueprint $table) {
+                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'documents' AND COLUMN_NAME = 'created_by_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
+                    if (empty($foreignKeys)) {
+                        $table->foreign('created_by_id')->references('id')->on('users')->onDelete('set null');
+                    }
+                });
+            }
+        }
     }
 
     /**
