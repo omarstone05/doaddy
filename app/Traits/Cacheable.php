@@ -18,11 +18,22 @@ trait Cacheable
     {
         $fullKey = $this->getCacheKey($key);
         
-        return Cache::tags($this->getCacheTags())->remember(
-            $fullKey,
-            $this->cacheTtl,
-            $callback
-        );
+        // Check if cache driver supports tagging
+        $store = Cache::getStore();
+        if (method_exists($store, 'getTags') || method_exists($store, 'tags')) {
+            try {
+                return Cache::tags($this->getCacheTags())->remember(
+                    $fullKey,
+                    $this->cacheTtl,
+                    $callback
+                );
+            } catch (\BadMethodCallException $e) {
+                // Fall back to regular caching if tagging not supported
+            }
+        }
+        
+        // Fallback to regular caching without tags
+        return Cache::remember($fullKey, $this->cacheTtl, $callback);
     }
 
     /**
@@ -56,7 +67,19 @@ trait Cacheable
      */
     public function clearCache(): void
     {
-        Cache::tags($this->getCacheTags())->flush();
+        $store = Cache::getStore();
+        if (method_exists($store, 'getTags') || method_exists($store, 'tags')) {
+            try {
+                Cache::tags($this->getCacheTags())->flush();
+                return;
+            } catch (\BadMethodCallException $e) {
+                // Fall back to regular cache clearing
+            }
+        }
+        
+        // Fallback: clear by key pattern (limited support)
+        $fullKey = $this->getCacheKey('*');
+        Cache::forget($fullKey);
     }
 
     /**
@@ -65,7 +88,18 @@ trait Cacheable
     protected function forgetCache(string $key): void
     {
         $fullKey = $this->getCacheKey($key);
-        Cache::tags($this->getCacheTags())->forget($fullKey);
+        
+        $store = Cache::getStore();
+        if (method_exists($store, 'getTags') || method_exists($store, 'tags')) {
+            try {
+                Cache::tags($this->getCacheTags())->forget($fullKey);
+                return;
+            } catch (\BadMethodCallException $e) {
+                // Fall back to regular cache forgetting
+            }
+        }
+        
+        Cache::forget($fullKey);
     }
 
     /**

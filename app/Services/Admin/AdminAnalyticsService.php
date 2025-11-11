@@ -121,7 +121,7 @@ class AdminAnalyticsService
     protected function getAverageResponseTime(): ?float
     {
         $avg = SupportTicket::whereNotNull('first_response_at')
-            ->selectRaw('AVG((julianday(first_response_at) - julianday(created_at)) * 24) as avg_hours')
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, first_response_at)) as avg_hours')
             ->value('avg_hours');
 
         return $avg ? round($avg, 1) : null;
@@ -130,7 +130,7 @@ class AdminAnalyticsService
     protected function getAverageResolutionTime(): ?float
     {
         $avg = SupportTicket::whereNotNull('resolved_at')
-            ->selectRaw('AVG((julianday(resolved_at) - julianday(created_at)) * 24) as avg_hours')
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avg_hours')
             ->value('avg_hours');
 
         return $avg ? round($avg, 1) : null;
