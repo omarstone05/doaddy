@@ -240,6 +240,15 @@ class AddyCommandParser
      */
     protected function parseAction(string $message): ?array
     {
+        // Create invoice
+        if ((str_contains($message, 'create') || str_contains($message, 'make') || str_contains($message, 'generate') || str_contains($message, 'new')) 
+            && str_contains($message, 'invoice')) {
+            return [
+                'action_type' => 'create_invoice',
+                'parameters' => $this->extractInvoiceParameters($message),
+            ];
+        }
+        
         // Send invoice reminders
         if (str_contains($message, 'send') && (str_contains($message, 'reminder') || str_contains($message, 'invoice'))) {
             return [
@@ -285,6 +294,31 @@ class AddyCommandParser
         }
         
         return null;
+    }
+
+    /**
+     * Extract invoice parameters from message
+     */
+    protected function extractInvoiceParameters(string $message): array
+    {
+        $params = [];
+        
+        // Extract customer name
+        if (preg_match('/(?:for|to)\s+([a-z\s]+?)(?:\s|$|,|\.|for|invoice)/i', $message, $matches)) {
+            $params['customer_name'] = trim($matches[1]);
+        }
+        
+        // Extract amount
+        if (preg_match('/\$?(\d+(?:\.\d{2})?)/', $message, $matches)) {
+            $params['total_amount'] = (float) $matches[1];
+        }
+        
+        // Extract date
+        if (preg_match('/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/', $message, $matches)) {
+            $params['invoice_date'] = $matches[0];
+        }
+        
+        return $params;
     }
 
     /**

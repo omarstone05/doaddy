@@ -215,22 +215,26 @@ class DocumentProcessorService
 
         try {
             $prompt = "Extract structured information from this document text. Focus on identifying:
-1. Transaction type (income/expense/receipt/invoice)
+1. Document type: 'invoice' (outgoing invoice to create for a customer), 'receipt' (expense), 'income' (money received), or 'unknown'
 2. Amount(s) and currency
-3. Date(s)
-4. Description/merchant/vendor name
-5. Category (if identifiable)
-6. Any other relevant business transaction details
+3. Date(s) including due_date if it's an invoice
+4. Customer/client name (if invoice) or merchant/vendor name (if receipt/expense)
+5. Description/items
+6. Category (if identifiable)
+7. Any other relevant business transaction details
 
 Return the information in JSON format with these fields:
-- type: 'income' or 'expense' or 'unknown'
-- amount: numeric amount
+- document_type: 'invoice', 'receipt', 'income', or 'unknown'
+- type: 'income' or 'expense' (for receipts/income) or 'invoice' (for invoices)
+- amount: numeric amount (total for invoice)
 - currency: currency code (e.g., ZMW, USD)
 - date: date in YYYY-MM-DD format
+- due_date: due date in YYYY-MM-DD format (for invoices)
 - description: transaction description
-- merchant: merchant/vendor name if available
+- customer_name: customer/client name (for invoices)
+- merchant: merchant/vendor name (for receipts/expenses)
 - category: expense/income category if identifiable
-- items: array of line items if multiple items found
+- items: array of line items with description, quantity, unit_price (for invoices or multi-item receipts)
 
 Document text:
 {$text}";

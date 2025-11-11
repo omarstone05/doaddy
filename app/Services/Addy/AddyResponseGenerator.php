@@ -58,6 +58,30 @@ class AddyResponseGenerator
         // Use the first extracted data item
         $data = $extractedData[0] ?? [];
         
+        // Check if this is an invoice (outgoing invoice we need to create for a customer)
+        if (isset($data['type']) && ($data['type'] === 'invoice' || (isset($data['document_type']) && $data['document_type'] === 'invoice'))) {
+            // For invoices, we need customer_id, items, etc.
+            // If we have customer info, use it; otherwise, we'll need to ask
+            return [
+                'intent' => 'action',
+                'action_type' => 'create_invoice',
+                'parameters' => [
+                    'customer_id' => $data['customer_id'] ?? null,
+                    'customer_name' => $data['customer_name'] ?? $data['merchant'] ?? null,
+                    'invoice_date' => $data['date'] ?? now()->toDateString(),
+                    'due_date' => $data['due_date'] ?? null,
+                    'items' => $data['items'] ?? (isset($data['amount']) ? [[
+                        'description' => $data['description'] ?? 'Invoice item',
+                        'quantity' => 1,
+                        'unit_price' => (float) $data['amount'],
+                    ]] : []),
+                    'total_amount' => (float) ($data['amount'] ?? 0),
+                    'notes' => $data['description'] ?? null,
+                ],
+            ];
+        }
+        
+        // Otherwise, treat as transaction (income/expense)
         if (isset($data['type']) && isset($data['amount'])) {
             return [
                 'intent' => 'action',
@@ -81,6 +105,50 @@ class AddyResponseGenerator
      */
     protected function enrichActionFromHistory(array $intent, array $chatHistory, string $currentMessage, array $extractedData = []): array
     {
+        // If this is a create invoice action, enrich with customer and item details
+        if ($intent['action_type'] === 'create_invoice') {
+            // First, try to use extracted data from files
+            if (!empty($extractedData)) {
+                $data = $extractedData[0] ?? [];
+                if (isset($data['customer_name']) && !isset($intent['parameters']['customer_id']) && !isset($intent['parameters']['customer_name'])) {
+                    $intent['parameters']['customer_name'] = $data['customer_name'];
+                }
+                if (isset($data['items']) && empty($intent['parameters']['items'])) {
+                    $intent['parameters']['items'] = $data['items'];
+                }
+                if (isset($data['amount']) && !isset($intent['parameters']['total_amount'])) {
+                    $intent['parameters']['total_amount'] = (float) $data['amount'];
+                }
+                if (isset($data['date']) && !isset($intent['parameters']['invoice_date'])) {
+                    $intent['parameters']['invoice_date'] = $data['date'];
+                }
+                if (isset($data['due_date']) && !isset($intent['parameters']['due_date'])) {
+                    $intent['parameters']['due_date'] = $data['due_date'];
+                }
+            }
+            
+            // Combine all previous messages to search for parameters
+            $fullContext = '';
+            foreach ($chatHistory as $msg) {
+                if ($msg['role'] === 'user') {
+                    $fullContext .= ' ' . $msg['content'];
+                }
+            }
+            $fullContext .= ' ' . $currentMessage;
+            
+            // Extract customer name from history if not already set
+            if (!isset($intent['parameters']['customer_id']) && !isset($intent['parameters']['customer_name'])) {
+                if (preg_match('/(?:for|to)\s+([a-z\s]+?)(?:\s|$|,|\.|for|invoice)/i', $fullContext, $matches)) {
+                    $intent['parameters']['customer_name'] = trim($matches[1]);
+                }
+            }
+            
+            // Extract amount from history
+            if (!isset($intent['parameters']['total_amount']) && preg_match('/\$?(\d+(?:\.\d{2})?)/', $fullContext, $matches)) {
+                $intent['parameters']['total_amount'] = (float) $matches[1];
+            }
+        }
+        
         // If this is a confirm/create transaction action, look for expense details in history
         if ($intent['action_type'] === 'create_transaction') {
             // First, try to use extracted data from files

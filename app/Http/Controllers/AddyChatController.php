@@ -100,43 +100,64 @@ class AddyChatController extends Controller
         $history = AddyChatMessage::getRecentHistory($organization->id, $user->id, 5);
 
         // Generate response
-        $generator = new AddyResponseGenerator($organization, $user);
-        $response = $generator->generateResponse(
-            $intent, 
-            $enhancedMessage ?: 'File uploaded',
-            $history->map(fn($msg) => [
-                'role' => $msg->role,
-                'content' => $msg->content,
-            ])->toArray(),
-            $extractedData // Pass extracted data as context
-        );
-        
-        // If action was created, link it to the chat message
-        if (isset($response['action']['action_id'])) {
-            $action = \App\Models\AddyAction::find($response['action']['action_id']);
-            if ($action) {
-                $action->update(['chat_message_id' => $chatMessageId]);
+        try {
+            $generator = new AddyResponseGenerator($organization, $user);
+            $response = $generator->generateResponse(
+                $intent, 
+                $enhancedMessage ?: 'File uploaded',
+                $history->map(fn($msg) => [
+                    'role' => $msg->role,
+                    'content' => $msg->content,
+                ])->toArray(),
+                $extractedData // Pass extracted data as context
+            );
+            
+            // If action was created, link it to the chat message
+            if (isset($response['action']['action_id'])) {
+                $action = \App\Models\AddyAction::find($response['action']['action_id']);
+                if ($action) {
+                    $action->update(['chat_message_id' => $chatMessageId]);
+                }
             }
-        }
 
-        // Save assistant response
-        $assistantMessage = AddyChatMessage::create([
-            'organization_id' => $organization->id,
-            'user_id' => $user->id,
-            'role' => 'assistant',
-            'content' => $response['content'],
-            'metadata' => [
-                'intent' => $intent,
+            // Save assistant response
+            $assistantMessage = AddyChatMessage::create([
+                'organization_id' => $organization->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $response['content'],
+                'metadata' => [
+                    'intent' => $intent,
+                    'quick_actions' => $response['quick_actions'] ?? [],
+                    'action' => $response['action'] ?? null,
+                ],
+            ]);
+
+            return response()->json([
+                'message' => $assistantMessage->load('user'),
                 'quick_actions' => $response['quick_actions'] ?? [],
                 'action' => $response['action'] ?? null,
-            ],
-        ]);
-
-        return response()->json([
-            'message' => $assistantMessage->load('user'),
-            'quick_actions' => $response['quick_actions'] ?? [],
-            'action' => $response['action'] ?? null,
-        ]);
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error generating Addy response', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Save error message
+            $errorMessage = AddyChatMessage::create([
+                'organization_id' => $organization->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => "I encountered an error: " . $e->getMessage() . ". Please try rephrasing your request or provide more details.",
+            ]);
+            
+            return response()->json([
+                'message' => $errorMessage->load('user'),
+                'quick_actions' => [],
+                'action' => null,
+            ]);
+        }
     }
 
     public function getHistory(Request $request)
