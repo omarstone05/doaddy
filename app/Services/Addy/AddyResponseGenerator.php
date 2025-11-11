@@ -594,7 +594,7 @@ class AddyResponseGenerator
             'content' => $response,
             'quick_actions' => [
                 ['label' => 'View Inventory', 'url' => '/stock'],
-                ['label' => '🔄 Stock Movements', 'url' => '/stock/movements'],
+                ['label' => 'Stock Movements', 'url' => '/stock/movements'],
             ],
         ];
     }
