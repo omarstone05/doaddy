@@ -15,10 +15,12 @@ class AddyChatMessage extends Model
         'role',
         'content',
         'metadata',
+        'attachments',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'attachments' => 'array',
     ];
 
     public function organization(): BelongsTo

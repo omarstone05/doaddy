@@ -10,7 +10,9 @@ export default function AddyChat() {
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Load chat history on mount
     useEffect(() => {
@@ -42,23 +44,40 @@ export default function AddyChat() {
 
     const sendMessage = async (messageText = null) => {
         const textToSend = messageText || input.trim();
-        if (!textToSend || sending) return;
+        if ((!textToSend && selectedFiles.length === 0) || sending) return;
 
         setSending(true);
+        const filesToSend = [...selectedFiles];
+        setSelectedFiles([]);
         setInput('');
 
         // Add user message to UI immediately
         const userMessage = {
             id: Date.now(),
             role: 'user',
-            content: textToSend,
+            content: textToSend || (filesToSend.length > 0 ? `Uploaded ${filesToSend.length} file(s)` : ''),
+            attachments: filesToSend.map(f => ({
+                file_name: f.name,
+                file_size: f.size,
+                mime_type: f.type,
+            })),
             created_at: new Date().toISOString(),
         };
         setMessages(prev => [...prev, userMessage]);
 
         try {
-            const response = await axios.post('/api/addy/chat', {
-                message: textToSend,
+            const formData = new FormData();
+            if (textToSend) {
+                formData.append('message', textToSend);
+            }
+            filesToSend.forEach((file) => {
+                formData.append('files[]', file);
+            });
+
+            const response = await axios.post('/api/addy/chat', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
 
             // Add assistant response
@@ -75,6 +94,38 @@ export default function AddyChat() {
         } finally {
             setSending(false);
         }
+    };
+
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        const validFiles = files.filter(file => {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 
+                                 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                 'text/plain'];
+            
+            if (file.size > maxSize) {
+                alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+                return false;
+            }
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert(`File ${file.name} is not a supported type.`);
+                return false;
+            }
+            
+            return true;
+        });
+        
+        setSelectedFiles(prev => [...prev, ...validFiles]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const removeFile = (index) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleQuickAction = (action) => {
@@ -223,6 +274,35 @@ export default function AddyChat() {
                                                 }`}
                                             >
                                                 <div className="whitespace-pre-wrap">{message.content}</div>
+                                                
+                                                {/* Display attachments */}
+                                                {message.attachments && message.attachments.length > 0 && (
+                                                    <div className="mt-3 space-y-2">
+                                                        {message.attachments.map((attachment, idx) => (
+                                                            <div key={idx} className={`flex items-center gap-2 p-2 rounded-lg ${
+                                                                message.role === 'user' 
+                                                                    ? 'bg-white/20' 
+                                                                    : 'bg-mint-50/50'
+                                                            }`}>
+                                                                {attachment.mime_type?.startsWith('image/') ? (
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                    </svg>
+                                                                )}
+                                                                <span className="text-sm truncate flex-1">{attachment.file_name}</span>
+                                                                {attachment.file_size && (
+                                                                    <span className="text-xs opacity-75">
+                                                                        {(attachment.file_size / 1024).toFixed(1)} KB
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Action Confirmation */}
@@ -302,19 +382,66 @@ export default function AddyChat() {
                     <div className="border-t border-mint-200/40 backdrop-blur-md p-4 rounded-b-3xl" style={{
                         background: 'linear-gradient(180deg, rgba(240,253,250,0.4) 0%, rgba(255,255,255,0.6) 100%)'
                     }}>
+                        {/* Selected Files Preview */}
+                        {selectedFiles.length > 0 && (
+                            <div className="mb-3 space-y-2">
+                                {selectedFiles.map((file, index) => (
+                                    <div key={index} className="flex items-center gap-2 p-2 bg-white/60 backdrop-blur-sm border border-mint-200/50 rounded-lg">
+                                        {file.type.startsWith('image/') ? (
+                                            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        )}
+                                        <span className="text-sm text-gray-700 flex-1 truncate">{file.name}</span>
+                                        <span className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
+                                        <button
+                                            onClick={() => removeFile(index)}
+                                            className="p-1 text-teal-600 hover:text-teal-700 rounded"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="flex gap-2">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                onChange={handleFileSelect}
+                                className="hidden"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={sending}
+                                className="px-4 py-3 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-xl hover:bg-white/90 hover:border-teal-300/70 transition-all shadow-sm text-teal-600 disabled:opacity-50"
+                                title="Attach file"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                            </button>
                             <textarea
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="Ask me anything..."
+                                placeholder="Ask me anything or attach a receipt/invoice..."
                                 rows="1"
                                 className="flex-1 px-4 py-3 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 resize-none text-gray-900 placeholder:text-gray-400 shadow-sm"
                                 disabled={sending}
                             />
                             <button
                                 onClick={() => sendMessage()}
-                                disabled={!input.trim() || sending}
+                                disabled={(!input.trim() && selectedFiles.length === 0) || sending}
                                 className="px-6 py-3 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +451,7 @@ export default function AddyChat() {
                         </div>
 
                         <p className="text-xs text-teal-600/60 mt-2">
-                            Press Enter to send, Shift+Enter for new line
+                            Press Enter to send, Shift+Enter for new line • Attach receipts, invoices, or documents
                         </p>
                     </div>
                 </div>

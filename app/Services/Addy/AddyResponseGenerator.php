@@ -26,13 +26,18 @@ class AddyResponseGenerator
      * Generate response based on intent
      * NEW FLOW: OpenAI handles all conversation, code assists with data/actions
      */
-    public function generateResponse(array $intent, string $userMessage, array $chatHistory = []): array
+    public function generateResponse(array $intent, string $userMessage, array $chatHistory = [], array $extractedData = []): array
     {
+        // If we have extracted data from files, try to create transaction action
+        if (!empty($extractedData)) {
+            $intent = $this->createIntentFromExtractedData($extractedData, $intent);
+        }
+        
         // Actions are handled by code (create transaction, send invoice, etc.)
         if ($intent['intent'] === 'action') {
-            // If parameters are missing, try to extract from chat history
+            // If parameters are missing, try to extract from chat history or extracted data
             if (empty($intent['parameters']) || !isset($intent['parameters']['amount'])) {
-                $intent = $this->enrichActionFromHistory($intent, $chatHistory, $userMessage);
+                $intent = $this->enrichActionFromHistory($intent, $chatHistory, $userMessage, $extractedData);
             }
             return $this->handleActionRequest($intent, $userMessage);
         }
@@ -46,12 +51,61 @@ class AddyResponseGenerator
     }
     
     /**
+     * Create intent from extracted document data
+     */
+    protected function createIntentFromExtractedData(array $extractedData, array $currentIntent): array
+    {
+        // Use the first extracted data item
+        $data = $extractedData[0] ?? [];
+        
+        if (isset($data['type']) && isset($data['amount'])) {
+            return [
+                'intent' => 'action',
+                'action_type' => 'create_transaction',
+                'parameters' => [
+                    'amount' => (float) $data['amount'],
+                    'flow_type' => $data['type'] === 'income' ? 'income' : 'expense',
+                    'currency' => $data['currency'] ?? 'ZMW',
+                    'description' => $data['description'] ?? ($data['merchant'] ?? 'Transaction from document'),
+                    'category' => $data['category'] ?? null,
+                    'date' => $data['date'] ?? null,
+                ],
+            ];
+        }
+        
+        return $currentIntent;
+    }
+    
+    /**
      * Enrich action parameters from chat history
      */
-    protected function enrichActionFromHistory(array $intent, array $chatHistory, string $currentMessage): array
+    protected function enrichActionFromHistory(array $intent, array $chatHistory, string $currentMessage, array $extractedData = []): array
     {
         // If this is a confirm/create transaction action, look for expense details in history
         if ($intent['action_type'] === 'create_transaction') {
+            // First, try to use extracted data from files
+            if (!empty($extractedData)) {
+                $data = $extractedData[0] ?? [];
+                if (isset($data['amount']) && !isset($intent['parameters']['amount'])) {
+                    $intent['parameters']['amount'] = (float) $data['amount'];
+                }
+                if (isset($data['type']) && !isset($intent['parameters']['flow_type'])) {
+                    $intent['parameters']['flow_type'] = $data['type'] === 'income' ? 'income' : 'expense';
+                }
+                if (isset($data['currency']) && !isset($intent['parameters']['currency'])) {
+                    $intent['parameters']['currency'] = $data['currency'];
+                }
+                if (isset($data['description']) && !isset($intent['parameters']['description'])) {
+                    $intent['parameters']['description'] = $data['description'];
+                }
+                if (isset($data['category']) && !isset($intent['parameters']['category'])) {
+                    $intent['parameters']['category'] = $data['category'];
+                }
+                if (isset($data['date']) && !isset($intent['parameters']['date'])) {
+                    $intent['parameters']['date'] = $data['date'];
+                }
+            }
+            
             // Combine all previous messages to search for parameters
             $fullContext = '';
             foreach ($chatHistory as $msg) {
@@ -61,7 +115,7 @@ class AddyResponseGenerator
             }
             $fullContext .= ' ' . $currentMessage;
             
-            // Extract amount from history
+            // Extract amount from history if not already set
             if (!isset($intent['parameters']['amount']) && preg_match('/\$?(\d+(?:\.\d{2})?)/', $fullContext, $matches)) {
                 $intent['parameters']['amount'] = (float) $matches[1];
             }
