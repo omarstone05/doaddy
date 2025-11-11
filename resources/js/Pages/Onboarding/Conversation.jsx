@@ -91,8 +91,14 @@ const onboardingSteps = [
 
     useEffect(() => {
         scrollToBottom();
-        if (currentStep > 0 && currentStep < onboardingSteps.length) {
+        if (currentStep >= 0 && currentStep < onboardingSteps.length) {
             const step = onboardingSteps[currentStep];
+            
+            // Skip if this is the initial welcome message (already handled in first useEffect)
+            if (currentStep === 0) {
+                return;
+            }
+            
             if (step.type === 'input' || step.type === 'select') {
                 // Pre-fill input with existing data
                 if (step.type === 'input' && formData[step.field]) {
@@ -111,14 +117,12 @@ const onboardingSteps = [
                 }, 300);
             } else if (step.type === 'complete') {
                 // Show complete message
+                setIsTyping(true);
                 setTimeout(() => {
-                    setIsTyping(true);
-                    setTimeout(() => {
-                        const message = step.addy.replace('{name}', formData.name || 'there');
-                        addMessage('addy', message);
-                        setIsTyping(false);
-                    }, 800);
-                }, 300);
+                    const message = step.addy.replace('{name}', formData.name || 'there');
+                    addMessage('addy', message);
+                    setIsTyping(false);
+                }, 800);
             }
         }
     }, [currentStep]);
@@ -134,36 +138,44 @@ const onboardingSteps = [
     const handleNext = () => {
         const step = onboardingSteps[currentStep];
         
-        if (step.type === 'input' || step.type === 'select') {
-            if (!formData[step.field]) {
-                return; // Don't proceed if field is empty
-            }
-        }
-
+        // If we're on complete step, submit the form
         if (step.type === 'complete') {
             // Complete onboarding
             router.post('/onboarding/complete', formData, {
                 onSuccess: () => {
                     router.visit('/dashboard');
                 },
+                onError: (errors) => {
+                    console.error('Onboarding completion error:', errors);
+                    alert('There was an error completing onboarding. Please try again.');
+                },
             });
             return;
         }
-
-        // Add user response to messages
+        
         if (step.type === 'input' || step.type === 'select') {
+            if (!formData[step.field]) {
+                return; // Don't proceed if field is empty
+            }
+        }
+
+        // Add user response to messages (only for input, select already handled in handleSelectChange)
+        if (step.type === 'input') {
             const userMessage = formData[step.field];
             addMessage('user', userMessage);
         }
 
         // Move to next step
-        setCurrentStep(prev => prev + 1);
-        // Pre-fill next input if we have data
-        const nextStep = onboardingSteps[currentStep + 1];
-        if (nextStep && nextStep.type === 'input') {
-            setInputValue(formData[nextStep.field] || '');
-        } else {
-            setInputValue('');
+        const nextStepIndex = currentStep + 1;
+        if (nextStepIndex < onboardingSteps.length) {
+            setCurrentStep(nextStepIndex);
+            // Pre-fill next input if we have data
+            const nextStep = onboardingSteps[nextStepIndex];
+            if (nextStep && nextStep.type === 'input') {
+                setInputValue(formData[nextStep.field] || '');
+            } else {
+                setInputValue('');
+            }
         }
     };
 
@@ -176,17 +188,23 @@ const onboardingSteps = [
     const handleSelectChange = (value) => {
         const step = onboardingSteps[currentStep];
         setFormData(prev => ({ ...prev, [step.field]: value }));
-        // Auto-advance after selection
+        
+        // Add user response to messages immediately
+        addMessage('user', value);
+        
+        // Auto-advance after selection - use handleNext to ensure proper flow
         setTimeout(() => {
             handleNext();
-        }, 300);
+        }, 500);
     };
 
     const currentStepData = onboardingSteps[currentStep];
     const showInput = currentStepData?.type === 'input' && !isTyping;
     const showSelect = currentStepData?.type === 'select' && !isTyping;
     const showButton = currentStepData?.type === 'message' && !isTyping;
-    const showComplete = currentStepData?.type === 'complete' && !isTyping;
+    // Show complete button when on complete step, not typing, and complete message has been shown
+    const completeMessageShown = messages.some(m => m.role === 'addy' && m.content.includes("Perfect!"));
+    const showComplete = currentStepData?.type === 'complete' && !isTyping && completeMessageShown;
     const canProceed = currentStepData?.type === 'input' ? formData[currentStepData.field] : true;
 
     return (
