@@ -3,6 +3,7 @@ import { useAddy } from '../../Contexts/AddyContext';
 import axios from 'axios';
 import { router } from '@inertiajs/react';
 import ActionConfirmation from './ActionConfirmation';
+import ReactMarkdown from 'react-markdown';
 
 export default function AddyChat() {
     const { isOpen, closeAddy } = useAddy();
@@ -222,7 +223,6 @@ export default function AddyChat() {
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center">
-                                <div className="text-6xl mb-4">👋</div>
                                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                                     Hi! I'm Addy
                                 </h3>
@@ -235,25 +235,25 @@ export default function AddyChat() {
                                         onClick={() => sendMessage('What is my cash position?')}
                                         className="px-4 py-3 bg-white/70 backdrop-blur-sm border border-mint-200/50 text-teal-700 rounded-xl hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm text-sm font-medium"
                                     >
-                                        💰 Cash Position
+                                        Cash Position
                                     </button>
                                     <button
                                         onClick={() => sendMessage('Show me top expenses')}
                                         className="px-4 py-3 bg-white/70 backdrop-blur-sm border border-mint-200/50 text-teal-700 rounded-xl hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm text-sm font-medium"
                                     >
-                                        📊 Top Expenses
+                                        Top Expenses
                                     </button>
                                     <button
                                         onClick={() => sendMessage('What should I focus on today?')}
                                         className="px-4 py-3 bg-white/70 backdrop-blur-sm border border-mint-200/50 text-teal-700 rounded-xl hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm text-sm font-medium"
                                     >
-                                        🎯 Daily Focus
+                                        Daily Focus
                                     </button>
                                     <button
                                         onClick={() => sendMessage('Show me overdue invoices')}
                                         className="px-4 py-3 bg-white/70 backdrop-blur-sm border border-mint-200/50 text-teal-700 rounded-xl hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm text-sm font-medium"
                                     >
-                                        📄 Overdue Invoices
+                                        Overdue Invoices
                                     </button>
                                 </div>
                             </div>
@@ -273,7 +273,44 @@ export default function AddyChat() {
                                                         : 'bg-white/70 text-gray-900 border border-mint-200/50'
                                                 }`}
                                             >
-                                                <div className="whitespace-pre-wrap">{message.content}</div>
+                                                {message.role === 'assistant' ? (
+                                                    <div className="prose prose-sm max-w-none">
+                                                        <ReactMarkdown
+                                                            components={{
+                                                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                                                strong: ({ children }) => <strong className="font-semibold text-inherit">{children}</strong>,
+                                                                em: ({ children }) => <em className="italic">{children}</em>,
+                                                                a: ({ href, children }) => (
+                                                                    <a 
+                                                                        href={href} 
+                                                                        className="text-teal-600 hover:text-teal-700 underline"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        {children}
+                                                                    </a>
+                                                                ),
+                                                                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                                                li: ({ children }) => <li className="ml-2">{children}</li>,
+                                                                code: ({ children }) => (
+                                                                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">
+                                                                        {children}
+                                                                    </code>
+                                                                ),
+                                                                blockquote: ({ children }) => (
+                                                                    <blockquote className="border-l-4 border-teal-300 pl-3 italic my-2">
+                                                                        {children}
+                                                                    </blockquote>
+                                                                ),
+                                                            }}
+                                                        >
+                                                            {message.content}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                ) : (
+                                                    <div className="whitespace-pre-wrap">{message.content}</div>
+                                                )}
                                                 
                                                 {/* Display attachments */}
                                                 {message.attachments && message.attachments.length > 0 && (

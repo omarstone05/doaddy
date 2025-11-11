@@ -296,7 +296,7 @@ class AddyResponseGenerator
             if ($prediction) {
                 $value = number_format($prediction->predicted_value, 2);
                 $confidence = number_format($prediction->confidence * 100, 0);
-                $response .= "\n\n💡 **Prediction:** In 30 days, your cash position will be around \${$value} ({$confidence}% confidence).";
+                $response .= "\n\n**Prediction:** In 30 days, your cash position will be around \${$value} ({$confidence}% confidence).";
             }
         }
         
@@ -309,9 +309,9 @@ class AddyResponseGenerator
         }
         
         $quickActions = [
-            ['label' => '💰 Cash Position', 'command' => 'What is my cash position?'],
-            ['label' => '📊 Top Expenses', 'command' => 'Show me top expenses'],
-            ['label' => '🎯 Daily Focus', 'command' => 'What should I focus on today?'],
+            ['label' => 'Cash Position', 'command' => 'What is my cash position?'],
+            ['label' => 'Top Expenses', 'command' => 'Show me top expenses'],
+            ['label' => 'Daily Focus', 'command' => 'What should I focus on today?'],
         ];
         
         if ($suggestion && isset($suggestion['actions'])) {
@@ -345,9 +345,9 @@ class AddyResponseGenerator
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '📊 View Accounts', 'url' => '/money/accounts'],
-                ['label' => '💸 View Expenses', 'url' => '/money/movements'],
-                ['label' => '📈 View Budgets', 'url' => '/money/budgets'],
+                ['label' => 'View Accounts', 'url' => '/money/accounts'],
+                ['label' => 'View Expenses', 'url' => '/money/movements'],
+                ['label' => 'View Budgets', 'url' => '/money/budgets'],
             ],
         ];
     }
@@ -361,7 +361,7 @@ class AddyResponseGenerator
         $response = "**Budget Status:**\n\n";
         
         if (!empty($budgetHealth['overrun'])) {
-            $response .= "🔴 **Over Budget:**\n";
+            $response .= "**Over Budget:**\n";
             foreach ($budgetHealth['overrun'] as $budget) {
                 $percentage = number_format($budget['percentage'], 0);
                 $response .= "• {$budget['name']}: {$percentage}% spent\n";
@@ -370,7 +370,7 @@ class AddyResponseGenerator
         }
         
         if (!empty($budgetHealth['warning'])) {
-            $response .= "🟡 **Approaching Limit:**\n";
+            $response .= "**Approaching Limit:**\n";
             foreach ($budgetHealth['warning'] as $budget) {
                 $percentage = number_format($budget['percentage'], 0);
                 $response .= "• {$budget['name']}: {$percentage}% spent\n";
@@ -380,7 +380,7 @@ class AddyResponseGenerator
         
         if (!empty($budgetHealth['healthy'])) {
             $healthyCount = count($budgetHealth['healthy']);
-            $response .= "🟢 **Healthy:**\n";
+            $response .= "**Healthy:**\n";
             $response .= "• {$healthyCount} budget(s) in good standing\n";
         }
         
@@ -402,14 +402,14 @@ class AddyResponseGenerator
         $topExpenses = $data['top_expenses'];
         
         $response = "**Expense Overview:**\n\n";
-        $response .= "💸 **Monthly burn:** \${$burn}\n\n";
+        $response .= "**Monthly burn:** \${$burn}\n\n";
         
         if ($trends['trend'] === 'increasing') {
-            $response .= "📈 Spending is **up {$trends['change_percentage']}%** from last month.\n\n";
+            $response .= "Spending is **up {$trends['change_percentage']}%** from last month.\n\n";
         } elseif ($trends['trend'] === 'decreasing') {
-            $response .= "📉 Spending is **down " . abs($trends['change_percentage']) . "%** from last month.\n\n";
+            $response .= "Spending is **down " . abs($trends['change_percentage']) . "%** from last month.\n\n";
         } else {
-            $response .= "➡️ Spending is **stable** compared to last month.\n\n";
+            $response .= "Spending is **stable** compared to last month.\n\n";
         }
         
         if (!empty($topExpenses)) {
@@ -423,7 +423,7 @@ class AddyResponseGenerator
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '💸 View Transactions', 'url' => '/money/movements'],
+                ['label' => 'View Transactions', 'url' => '/money/movements'],
                 ['label' => '📊 View Report', 'url' => '/reports/expenses'],
             ],
         ];
@@ -440,19 +440,19 @@ class AddyResponseGenerator
         if ($type === 'overdue' || $type === 'all') {
             if ($invoiceHealth['overdue_count'] > 0) {
                 $amount = number_format($invoiceHealth['overdue_amount'], 2);
-                $response .= "🔴 **{$invoiceHealth['overdue_count']} overdue invoice(s)** totaling \${$amount}\n\n";
+                $response .= "**{$invoiceHealth['overdue_count']} overdue invoice(s)** totaling \${$amount}\n\n";
             }
         }
         
         if ($type === 'pending' || $type === 'all') {
             if ($invoiceHealth['pending_count'] > 0) {
                 $amount = number_format($invoiceHealth['pending_amount'], 2);
-                $response .= "🟡 **{$invoiceHealth['pending_count']} pending invoice(s)** totaling \${$amount}\n\n";
+                $response .= "**{$invoiceHealth['pending_count']} pending invoice(s)** totaling \${$amount}\n\n";
             }
         }
         
         if ($invoiceHealth['overdue_count'] === 0 && $invoiceHealth['pending_count'] === 0) {
-            $response .= "✅ All invoices are paid! Great work.\n";
+            $response .= "All invoices are paid! Great work.\n";
         }
         
         $quickActions = [
@@ -460,7 +460,7 @@ class AddyResponseGenerator
         ];
         
         if ($invoiceHealth['overdue_count'] > 0) {
-            $quickActions[] = ['label' => '📧 Send Reminders', 'command' => 'Draft payment reminder emails'];
+            $quickActions[] = ['label' => 'Send Reminders', 'command' => 'Draft payment reminder emails'];
         }
         
         return [
@@ -481,15 +481,15 @@ class AddyResponseGenerator
         $lastMonth = number_format($performance['last_month'], 2);
         
         $response = "**Sales Performance:**\n\n";
-        $response .= "💰 **This month:** \${$thisMonth}\n";
-        $response .= "📊 **Last month:** \${$lastMonth}\n\n";
+        $response .= "**This month:** \${$thisMonth}\n";
+        $response .= "**Last month:** \${$lastMonth}\n\n";
         
         if ($performance['trend'] === 'increasing') {
-            $response .= "📈 Sales are **up {$performance['change_percentage']}%**! Excellent work.\n\n";
+            $response .= "Sales are **up {$performance['change_percentage']}%**! Excellent work.\n\n";
         } elseif ($performance['trend'] === 'decreasing') {
-            $response .= "📉 Sales are **down " . abs($performance['change_percentage']) . "%**. Time to review strategy.\n\n";
+            $response .= "Sales are **down " . abs($performance['change_percentage']) . "%**. Time to review strategy.\n\n";
         } else {
-            $response .= "➡️ Sales are **stable**.\n\n";
+            $response .= "Sales are **stable**.\n\n";
         }
         
         $response .= "**Customer stats:**\n";
@@ -501,7 +501,7 @@ class AddyResponseGenerator
             'content' => $response,
             'quick_actions' => [
                 ['label' => '📊 Sales Report', 'url' => '/reports/sales'],
-                ['label' => '👥 View Customers', 'url' => '/customers'],
+                ['label' => 'View Customers', 'url' => '/customers'],
             ],
         ];
     }
@@ -515,23 +515,23 @@ class AddyResponseGenerator
         $leave = $data['leave_patterns'];
         
         $response = "**Team Overview:**\n\n";
-        $response .= "👥 **Total team members:** {$stats['total']}\n";
-        $response .= "✅ **Active:** {$stats['active']}\n";
-        $response .= "🏖️ **On leave:** {$stats['on_leave']}\n\n";
+        $response .= "**Total team members:** {$stats['total']}\n";
+        $response .= "**Active:** {$stats['active']}\n";
+        $response .= "**On leave:** {$stats['on_leave']}\n\n";
         
         if ($stats['new_this_month'] > 0) {
-            $response .= "🎉 Welcome to {$stats['new_this_month']} new team member(s) this month!\n\n";
+            $response .= "Welcome to {$stats['new_this_month']} new team member(s) this month!\n\n";
         }
         
         if ($leave['pending_requests'] > 0) {
-            $response .= "⏳ {$leave['pending_requests']} leave request(s) pending approval.\n";
+            $response .= "{$leave['pending_requests']} leave request(s) pending approval.\n";
         }
         
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '👥 View Team', 'url' => '/team'],
-                ['label' => '🏖️ Leave Requests', 'url' => '/leave/requests'],
+                ['label' => 'View Team', 'url' => '/team'],
+                ['label' => 'Leave Requests', 'url' => '/leave/requests'],
             ],
         ];
     }
@@ -549,11 +549,11 @@ class AddyResponseGenerator
             $amount = number_format($payroll['next_payroll_amount'], 2);
             $days = $payroll['days_until_payroll'];
             
-            $response .= "💰 **Next payroll:** \${$amount}\n";
-            $response .= "📅 **Due in:** {$days} day(s)\n\n";
+            $response .= "**Next payroll:** \${$amount}\n";
+            $response .= "**Due in:** {$days} day(s)\n\n";
             
             if ($days <= 7) {
-                $response .= "⚠️ Payroll is due soon. Make sure funds are available.\n";
+                $response .= "Payroll is due soon. Make sure funds are available.\n";
             }
         } else {
             $response .= "No upcoming payroll scheduled.\n";
@@ -562,7 +562,7 @@ class AddyResponseGenerator
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '💰 View Payroll', 'url' => '/payroll/runs'],
+                ['label' => 'View Payroll', 'url' => '/payroll/runs'],
             ],
         ];
     }
@@ -576,24 +576,24 @@ class AddyResponseGenerator
         $value = number_format($data['inventory_value'], 2);
         
         $response = "**Inventory Status:**\n\n";
-        $response .= "📦 **Total products:** {$levels['total_products']}\n";
-        $response .= "💵 **Total value:** \${$value}\n\n";
+        $response .= "**Total products:** {$levels['total_products']}\n";
+        $response .= "**Total value:** \${$value}\n\n";
         
         $response .= "**Stock levels:**\n";
-        $response .= "🟢 Healthy: {$levels['healthy']}\n";
+        $response .= "Healthy: {$levels['healthy']}\n";
         
         if ($levels['low_stock'] > 0) {
-            $response .= "🟡 Low stock: {$levels['low_stock']}\n";
+            $response .= "Low stock: {$levels['low_stock']}\n";
         }
         
         if ($levels['out_of_stock'] > 0) {
-            $response .= "🔴 Out of stock: {$levels['out_of_stock']}\n";
+            $response .= "Out of stock: {$levels['out_of_stock']}\n";
         }
         
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '📦 View Inventory', 'url' => '/stock'],
+                ['label' => 'View Inventory', 'url' => '/stock'],
                 ['label' => '🔄 Stock Movements', 'url' => '/stock/movements'],
             ],
         ];
@@ -605,8 +605,8 @@ class AddyResponseGenerator
         $thought = $this->core->getCurrentThought();
         
         $response = "**Your Focus Today:**\n\n";
-        $response .= "🎯 **Area:** {$state->focus_area}\n";
-        $response .= "📝 **Context:** {$state->context}\n\n";
+        $response .= "**Area:** {$state->focus_area}\n";
+        $response .= "**Context:** {$state->context}\n\n";
         
         if (!empty($state->priorities)) {
             $response .= "**Priorities:**\n";
@@ -618,7 +618,7 @@ class AddyResponseGenerator
         return [
             'content' => $response,
             'quick_actions' => [
-                ['label' => '💡 View Insights', 'command' => 'Show me all insights'],
+                ['label' => 'View Insights', 'command' => 'Show me all insights'],
             ],
         ];
     }
@@ -636,15 +636,7 @@ class AddyResponseGenerator
         $response = "**Active Insights ({$insights->count()}):**\n\n";
         
         foreach ($insights->take(3) as $insight) {
-            $emoji = match($insight->type) {
-                'alert' => '🔴',
-                'suggestion' => '💡',
-                'observation' => '📊',
-                'achievement' => '🎉',
-                default => '•',
-            };
-            
-            $response .= "{$emoji} **{$insight->title}**\n";
+            $response .= "**{$insight->title}**\n";
             $response .= "   {$insight->description}\n\n";
         }
         
@@ -691,9 +683,9 @@ class AddyResponseGenerator
 
             // Show warnings
             if (!empty($preview['warnings'])) {
-                $response .= "\n⚠️ **Warnings:**\n";
+                $response .= "\n**Warnings:**\n";
                 foreach ($preview['warnings'] as $warning) {
-                    $response .= "• {$warning}\n";
+                    $response .= "- {$warning}\n";
                 }
             }
 
@@ -705,9 +697,9 @@ class AddyResponseGenerator
                     'preview' => $preview,
                 ],
                 'quick_actions' => [
-                    ['label' => '✅ Confirm & Execute', 'action_id' => $action->id, 'type' => 'confirm'],
-                    ['label' => '✏️ Edit', 'action_id' => $action->id, 'type' => 'edit'],
-                    ['label' => '❌ Cancel', 'action_id' => $action->id, 'type' => 'cancel'],
+                    ['label' => 'Confirm & Execute', 'action_id' => $action->id, 'type' => 'confirm'],
+                    ['label' => 'Edit', 'action_id' => $action->id, 'type' => 'edit'],
+                    ['label' => 'Cancel', 'action_id' => $action->id, 'type' => 'cancel'],
                 ],
             ];
 
@@ -723,13 +715,13 @@ class AddyResponseGenerator
         // Format based on item type
         if (isset($item['customer'])) {
             // Invoice reminder
-            return "📧 **{$item['customer']}** - Invoice #{$item['invoice_number']} "
+            return "**{$item['customer']}** - Invoice #{$item['invoice_number']} "
                 . "(\${$item['amount']}, {$item['days_overdue']} days overdue)";
         }
 
         if (isset($item['type'])) {
             // Transaction
-            return "💰 **{$item['type']}** - \${$item['amount']} "
+            return "**{$item['type']}** - \${$item['amount']} "
                 . "({$item['category']}) - {$item['account']}";
         }
 
@@ -837,47 +829,47 @@ class AddyResponseGenerator
         $actions = [];
         
         // Default quick actions
-        $actions[] = ['label' => '💰 Cash Position', 'command' => 'What is my cash position?'];
-        $actions[] = ['label' => '📊 Top Expenses', 'command' => 'Show me top expenses'];
-        $actions[] = ['label' => '🎯 Daily Focus', 'command' => 'What should I focus on today?'];
+        $actions[] = ['label' => 'Cash Position', 'command' => 'What is my cash position?'];
+        $actions[] = ['label' => 'Top Expenses', 'command' => 'Show me top expenses'];
+        $actions[] = ['label' => 'Daily Focus', 'command' => 'What should I focus on today?'];
         
         // Context-specific actions
         if ($dataContext) {
             switch ($dataContext['type']) {
                 case 'cash':
                     $actions = [
-                        ['label' => '📊 View Accounts', 'url' => '/money/accounts'],
-                        ['label' => '💸 View Expenses', 'url' => '/money/movements'],
-                        ['label' => '📈 View Budgets', 'url' => '/money/budgets'],
+                        ['label' => 'View Accounts', 'url' => '/money/accounts'],
+                        ['label' => 'View Expenses', 'url' => '/money/movements'],
+                        ['label' => 'View Budgets', 'url' => '/money/budgets'],
                     ];
                     break;
                 
                 case 'budget':
                     $actions = [
-                        ['label' => '📊 View All Budgets', 'url' => '/money/budgets'],
+                        ['label' => 'View All Budgets', 'url' => '/money/budgets'],
                     ];
                     break;
                 
                 case 'expenses':
                     $actions = [
-                        ['label' => '💸 View Transactions', 'url' => '/money/movements'],
-                        ['label' => '📊 View Report', 'url' => '/reports/expenses'],
+                        ['label' => 'View Transactions', 'url' => '/money/movements'],
+                        ['label' => 'View Report', 'url' => '/reports/expenses'],
                     ];
                     break;
                 
                 case 'invoices':
                     $actions = [
-                        ['label' => '📄 View All Invoices', 'url' => '/invoices'],
+                        ['label' => 'View All Invoices', 'url' => '/invoices'],
                     ];
                     if (isset($dataContext['invoice_health']['overdue_count']) && $dataContext['invoice_health']['overdue_count'] > 0) {
-                        $actions[] = ['label' => '📧 Send Reminders', 'command' => 'Send invoice reminders'];
+                        $actions[] = ['label' => 'Send Reminders', 'command' => 'Send invoice reminders'];
                     }
                     break;
                 
                 case 'sales':
                     $actions = [
-                        ['label' => '📊 Sales Report', 'url' => '/reports/sales'],
-                        ['label' => '👥 View Customers', 'url' => '/customers'],
+                        ['label' => 'Sales Report', 'url' => '/reports/sales'],
+                        ['label' => 'View Customers', 'url' => '/customers'],
                     ];
                     break;
                 
@@ -905,7 +897,14 @@ class AddyResponseGenerator
         $message .= "- You use natural, conversational language - like talking to a trusted colleague\n";
         $message .= "- You're encouraging and supportive, celebrating wins and helping navigate challenges\n";
         $message .= "- You ask follow-up questions when helpful, showing genuine interest\n";
-        $message .= "- You use emojis sparingly but effectively to add warmth (💰 📊 🎯 ✅ ⚠️ 💡)\n\n";
+        $message .= "\n**FORMATTING RULES:**\n";
+        $message .= "- DO NOT use emojis in your responses unless the user explicitly uses them or asks about something emoji-related\n";
+        $message .= "- DO NOT use asterisks (*) for emphasis - use markdown formatting instead\n";
+        $message .= "- Use **bold** for important terms, numbers, or emphasis\n";
+        $message .= "- Use [link text](url) for clickable links when referencing pages or resources\n";
+        $message .= "- Use proper line breaks and spacing for readability\n";
+        $message .= "- Format numbers, dates, and amounts clearly\n";
+        $message .= "- Use bullet points (-) or numbered lists when presenting multiple items\n\n";
         
         // Tone-specific instructions
         switch ($tone) {
