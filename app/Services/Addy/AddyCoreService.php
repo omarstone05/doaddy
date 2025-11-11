@@ -350,15 +350,30 @@ class AddyCoreService
         $crossInsights = $this->generateCrossSectionInsights($perceptionData);
         $allInsights = array_merge($allInsights, $crossInsights);
 
-        // Create insight records
+        // Create or update insight records
+        $currentInsightTitles = [];
         foreach ($allInsights as $insightData) {
+            $currentInsightTitles[] = $insightData['title'];
+            
             $existing = AddyInsight::where('organization_id', $this->organization->id)
                 ->where('category', $insightData['category'])
                 ->where('title', $insightData['title'])
                 ->where('status', 'active')
                 ->first();
 
-            if (!$existing) {
+            if ($existing) {
+                // Update existing insight with latest data
+                $existing->update([
+                    'addy_state_id' => $this->state->id,
+                    'description' => $insightData['description'],
+                    'priority' => $insightData['priority'],
+                    'is_actionable' => $insightData['is_actionable'],
+                    'suggested_actions' => $insightData['suggested_actions'],
+                    'action_url' => $insightData['action_url'] ?? null,
+                    'updated_at' => now(),
+                ]);
+            } else {
+                // Create new insight
                 AddyInsight::create([
                     'organization_id' => $this->organization->id,
                     'addy_state_id' => $this->state->id,
@@ -369,11 +384,20 @@ class AddyCoreService
                     'priority' => $insightData['priority'],
                     'is_actionable' => $insightData['is_actionable'],
                     'suggested_actions' => $insightData['suggested_actions'],
-                    'action_url' => $insightData['action_url'],
+                    'action_url' => $insightData['action_url'] ?? null,
                     'status' => 'active',
                 ]);
             }
         }
+        
+        // Mark insights that are no longer relevant as expired (but don't delete them yet)
+        AddyInsight::where('organization_id', $this->organization->id)
+            ->where('status', 'active')
+            ->whereNotIn('title', $currentInsightTitles)
+            ->update([
+                'status' => 'expired',
+                'expires_at' => now(),
+            ]);
     }
 
     /**
@@ -528,6 +552,29 @@ class AddyCoreService
     public function getActiveInsights()
     {
         return AddyInsight::active($this->organization->id)->get();
+    }
+    
+    /**
+     * Regenerate insights immediately (useful when data changes)
+     */
+    public function regenerateInsights(): void
+    {
+        // Get fresh perception data
+        $perceptionData = $this->perceive();
+        
+        // Analyze context
+        $context = $this->analyzeContext($perceptionData);
+        
+        // Make decision
+        $decision = $this->makeDecision($context);
+        
+        // Generate insights with fresh data
+        $this->generateInsights($decision, $perceptionData);
+        
+        // Update state timestamp
+        $this->state->update([
+            'last_thought_cycle' => now(),
+        ]);
     }
 
     public function getCurrentThought(): array

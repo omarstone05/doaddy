@@ -9,12 +9,20 @@ use App\Models\BudgetLine;
 use App\Models\LeaveRequest;
 use App\Models\GoodsAndService;
 use App\Models\StockMovement;
+use App\Models\Quote;
+use App\Models\Payment;
+use App\Models\PayrollRun;
+use App\Models\MoneyAccount;
 use App\Observers\MoneyMovementObserver;
 use App\Observers\InvoiceObserver;
 use App\Observers\BudgetLineObserver;
 use App\Observers\LeaveRequestObserver;
 use App\Observers\GoodsAndServiceObserver;
 use App\Observers\StockMovementObserver;
+use App\Observers\QuoteObserver;
+use App\Observers\PaymentObserver;
+use App\Observers\PayrollRunObserver;
+use App\Observers\MoneyAccountObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -32,13 +40,17 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register observers for cache invalidation
+        // Register observers for cache invalidation and insight regeneration
         MoneyMovement::observe(MoneyMovementObserver::class);
         Invoice::observe(InvoiceObserver::class);
         BudgetLine::observe(BudgetLineObserver::class);
         LeaveRequest::observe(LeaveRequestObserver::class);
         GoodsAndService::observe(GoodsAndServiceObserver::class);
         StockMovement::observe(StockMovementObserver::class);
+        Quote::observe(QuoteObserver::class);
+        Payment::observe(PaymentObserver::class);
+        PayrollRun::observe(PayrollRunObserver::class);
+        MoneyAccount::observe(MoneyAccountObserver::class);
     }
 
     /**
