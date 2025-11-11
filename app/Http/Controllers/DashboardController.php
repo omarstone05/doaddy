@@ -124,7 +124,18 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $organizationId = Auth::user()->organization_id;
+        $user = Auth::user();
+        
+        // Check if user needs onboarding
+        if ($user && $user->organization) {
+            $org = $user->organization;
+            // If organization is missing key onboarding fields, redirect to onboarding
+            if (!$org->industry || !$org->currency || !$org->tone_preference) {
+                return redirect()->route('onboarding');
+            }
+        }
+        
+        $organizationId = $user->organization_id;
         $timeframe = $request->get('timeframe', 'today');
         $dateRange = $this->getDateRange($timeframe);
         $previousRange = $this->getPreviousRange($timeframe);
