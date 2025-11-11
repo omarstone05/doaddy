@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'lenco' => [
+        'base_url' => env('LENCO_BASE_URL', 'https://api.lenco.co/access/v2'),
+        'secret_key' => env('LENCO_SECRET_KEY'),
+        'public_key' => env('LENCO_PUBLIC_KEY'),
+        'api_name' => env('LENCO_API_NAME', 'Addy'),
+    ],
+
 ];

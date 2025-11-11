@@ -109,6 +109,16 @@ const onboardingSteps = [
                         }
                     }, 800);
                 }, 300);
+            } else if (step.type === 'complete') {
+                // Show complete message
+                setTimeout(() => {
+                    setIsTyping(true);
+                    setTimeout(() => {
+                        const message = step.addy.replace('{name}', formData.name || 'there');
+                        addMessage('addy', message);
+                        setIsTyping(false);
+                    }, 800);
+                }, 300);
             }
         }
     }, [currentStep]);
@@ -176,6 +186,7 @@ const onboardingSteps = [
     const showInput = currentStepData?.type === 'input' && !isTyping;
     const showSelect = currentStepData?.type === 'select' && !isTyping;
     const showButton = currentStepData?.type === 'message' && !isTyping;
+    const showComplete = currentStepData?.type === 'complete' && !isTyping;
     const canProceed = currentStepData?.type === 'input' ? formData[currentStepData.field] : true;
 
     return (
@@ -293,6 +304,20 @@ const onboardingSteps = [
                             >
                                 Let's get started!
                             </Button>
+                        )}
+
+                        {showComplete && (
+                            <div className="space-y-4">
+                                <Button
+                                    onClick={handleNext}
+                                    className="w-full bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700"
+                                >
+                                    Go to Dashboard 🚀
+                                </Button>
+                                <p className="text-center text-sm text-teal-600/70">
+                                    You can always chat with Addy from anywhere in the app!
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>

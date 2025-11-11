@@ -50,6 +50,10 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+// Lenco Webhooks (no auth required)
+Route::post('/lenco/webhook', [\App\Http\Controllers\LencoPaymentController::class, 'webhook'])->name('lenco.webhook');
+Route::post('/lenco/subscription-webhook', [\App\Http\Controllers\LencoSubscriptionWebhookController::class, 'handle'])->name('lenco.subscription-webhook');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
@@ -65,6 +69,11 @@ Route::middleware('auth')->group(function () {
     // Super Admin only routes - Platform management
     Route::prefix('admin')->middleware(['admin'])->name('admin.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
+        
+        // Profile Management
+        Route::get('/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'show'])->name('profile');
+        Route::put('/profile', [\App\Http\Controllers\Admin\AdminProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile/password', [\App\Http\Controllers\Admin\AdminProfileController::class, 'updatePassword'])->name('profile.password');
         
         // System Settings (AI, Platform Configuration)
         Route::get('/system-settings', [SystemSettingsController::class, 'index'])->name('system-settings');
@@ -221,6 +230,19 @@ Route::middleware('auth')->group(function () {
     // Payments
     Route::resource('payments', PaymentController::class);
     Route::post('/payments/{payment}/allocate', [PaymentController::class, 'allocate'])->name('payments.allocate');
+    
+    // Lenco Payment Gateway
+    Route::prefix('lenco')->name('lenco.')->group(function () {
+        Route::post('/initialize', [\App\Http\Controllers\LencoPaymentController::class, 'initialize'])->name('initialize');
+        Route::post('/verify', [\App\Http\Controllers\LencoPaymentController::class, 'verify'])->name('verify');
+        Route::get('/callback', [\App\Http\Controllers\LencoPaymentController::class, 'callback'])->name('callback');
+    });
+    
+    // Subscriptions
+    Route::get('/subscriptions', [\App\Http\Controllers\SubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::post('/subscriptions/subscribe', [\App\Http\Controllers\SubscriptionController::class, 'subscribe'])->name('subscriptions.subscribe');
+    Route::post('/subscriptions/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
+    Route::get('/subscriptions/callback', [\App\Http\Controllers\SubscriptionController::class, 'callback'])->name('subscriptions.callback');
     
     // Register Sessions
     Route::get('/register-sessions', [RegisterSessionController::class, 'index'])->name('register.index');

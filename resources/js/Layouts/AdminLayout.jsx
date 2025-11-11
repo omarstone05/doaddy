@@ -9,7 +9,8 @@ import {
     Mail,
     LogOut,
     Menu,
-    X
+    X,
+    User
 } from 'lucide-react';
 
 export default function AdminLayout({ children, title }) {
@@ -88,14 +89,23 @@ export default function AdminLayout({ children, title }) {
                                 </p>
                             </div>
                         </div>
-                        <Link
-                            href="/logout"
-                            method="post"
-                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            <span>Logout</span>
-                        </Link>
+                        <div className="space-y-1">
+                            <Link
+                                href="/admin/profile"
+                                className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <User className="w-4 h-4" />
+                                <span>Profile</span>
+                            </Link>
+                            <Link
+                                href="/logout"
+                                method="post"
+                                className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span>Logout</span>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </aside>
