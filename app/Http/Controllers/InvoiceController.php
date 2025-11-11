@@ -151,7 +151,7 @@ class InvoiceController extends Controller
     public function show($id)
     {
         $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
-            ->with(['customer', 'items.goodsService', 'payments.payment'])
+            ->with(['customer', 'items.goodsService', 'payments.payment', 'attachments.uploadedBy'])
             ->findOrFail($id);
 
         return Inertia::render('Invoices/Show', [

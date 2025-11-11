@@ -120,7 +120,7 @@ class QuoteController extends Controller
     public function show($id)
     {
         $quote = Quote::where('organization_id', Auth::user()->organization_id)
-            ->with(['customer', 'items.goodsService'])
+            ->with(['customer', 'items.goodsService', 'attachments.uploadedBy'])
             ->findOrFail($id);
 
         return Inertia::render('Quotes/Show', [

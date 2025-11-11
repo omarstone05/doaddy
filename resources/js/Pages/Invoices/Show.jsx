@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
+import FileUpload from '@/Components/FileUpload';
 import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Send, DollarSign } from 'lucide-react';
 
 export default function InvoicesShow({ invoice }) {
@@ -192,6 +193,16 @@ export default function InvoicesShow({ invoice }) {
                             <p className="text-gray-900">{invoice.terms}</p>
                         </div>
                     )}
+                </div>
+
+                {/* Attachments */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <FileUpload
+                        attachableType="App\Models\Invoice"
+                        attachableId={invoice.id}
+                        category="invoice"
+                        existingAttachments={invoice.attachments || []}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

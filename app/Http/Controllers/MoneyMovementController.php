@@ -119,7 +119,7 @@ class MoneyMovementController extends Controller
     public function show($id)
     {
         $movement = MoneyMovement::where('organization_id', Auth::user()->organization_id)
-            ->with(['fromAccount', 'toAccount', 'createdBy'])
+            ->with(['fromAccount', 'toAccount', 'createdBy', 'attachments.uploadedBy'])
             ->findOrFail($id);
 
         return Inertia::render('Money/Movements/Show', [

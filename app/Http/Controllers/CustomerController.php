@@ -66,6 +66,7 @@ class CustomerController extends Controller
     public function show($id)
     {
         $customer = Customer::where('organization_id', Auth::user()->organization_id)
+            ->with(['attachments.uploadedBy'])
             ->findOrFail($id);
 
         return Inertia::render('Customers/Show', [

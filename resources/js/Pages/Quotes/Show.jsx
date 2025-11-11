@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
+import FileUpload from '@/Components/FileUpload';
 import { ArrowLeft, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 export default function QuotesShow({ quote }) {
@@ -147,6 +148,16 @@ export default function QuotesShow({ quote }) {
                             <p className="text-gray-900">{quote.terms}</p>
                         </div>
                     )}
+                </div>
+
+                {/* Attachments */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <FileUpload
+                        attachableType="App\Models\Quote"
+                        attachableId={quote.id}
+                        category="quote"
+                        existingAttachments={quote.attachments || []}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

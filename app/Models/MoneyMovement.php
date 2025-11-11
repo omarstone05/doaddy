@@ -7,6 +7,7 @@ use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class MoneyMovement extends Model
 {
@@ -50,6 +51,11 @@ class MoneyMovement extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(\App\Models\Attachment::class, 'attachable');
     }
 
     protected static function booted(): void
