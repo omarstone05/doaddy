@@ -226,6 +226,7 @@ Route::middleware('auth')->group(function () {
     // Customers
     Route::resource('customers', CustomerController::class);
     Route::get('/customers/search', [CustomerController::class, 'search'])->name('customers.search');
+    Route::post('/api/customers/quick-create', [CustomerController::class, 'quickCreate'])->name('api.customers.quick-create');
     
     // Quotes
     Route::resource('quotes', QuoteController::class);
@@ -267,6 +268,7 @@ Route::middleware('auth')->group(function () {
     
     // Products
     Route::resource('products', ProductController::class);
+    Route::post('/api/products/quick-create', [ProductController::class, 'quickCreate'])->name('api.products.quick-create');
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');

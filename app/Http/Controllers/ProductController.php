@@ -159,5 +159,38 @@ class ProductController extends Controller
 
         return redirect()->route('products.index')->with('message', 'Product deleted successfully');
     }
+
+    /**
+     * Quick create product via API (for inline creation in forms)
+     */
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:product,service',
+            'description' => 'nullable|string',
+            'sku' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'current_stock' => 'nullable|numeric|min:0',
+            'minimum_stock' => 'nullable|numeric|min:0',
+            'unit' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
+            'track_stock' => 'boolean',
+        ]);
+
+        $product = GoodsAndService::create([
+            'id' => (string) Str::uuid(),
+            'organization_id' => Auth::user()->organization_id,
+            ...$validated,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'product' => $product,
+        ]);
+    }
 }
 

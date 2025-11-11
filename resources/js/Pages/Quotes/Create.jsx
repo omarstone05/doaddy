@@ -2,9 +2,16 @@ import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
+import QuickCreateCustomerModal from '@/Components/QuickCreateCustomerModal';
+import QuickCreateProductModal from '@/Components/QuickCreateProductModal';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
-export default function QuotesCreate({ customers, products }) {
+export default function QuotesCreate({ customers: initialCustomers, products: initialProducts }) {
+    const [customers, setCustomers] = useState(initialCustomers);
+    const [products, setProducts] = useState(initialProducts);
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
+    const [showProductModal, setShowProductModal] = useState(false);
+    const [currentProductModalIndex, setCurrentProductModalIndex] = useState(null);
     const [items, setItems] = useState([{ description: '', quantity: 1, unit_price: 0, goods_service_id: '' }]);
 
     const { data, setData, post, processing, errors } = useForm({
@@ -51,6 +58,19 @@ export default function QuotesCreate({ customers, products }) {
         return subtotal + tax - discount;
     };
 
+    const handleCustomerCreated = (newCustomer) => {
+        setCustomers([...customers, newCustomer]);
+        setData('customer_id', newCustomer.id);
+    };
+
+    const handleProductCreated = (newProduct) => {
+        setProducts([...products, newProduct]);
+        if (currentProductModalIndex !== null) {
+            updateItem(currentProductModalIndex, 'goods_service_id', newProduct.id);
+        }
+        setCurrentProductModalIndex(null);
+    };
+
     const submit = (e) => {
         e.preventDefault();
         
@@ -92,9 +112,18 @@ export default function QuotesCreate({ customers, products }) {
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="customer_id" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Customer *
-                                </label>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label htmlFor="customer_id" className="block text-sm font-medium text-gray-700">
+                                        Customer *
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCustomerModal(true)}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                    >
+                                        + Add New
+                                    </button>
+                                </div>
                                 <select
                                     id="customer_id"
                                     value={data.customer_id}
@@ -156,18 +185,31 @@ export default function QuotesCreate({ customers, products }) {
                                 {items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
                                         <div className="col-span-4">
-                                            <select
-                                                value={item.goods_service_id}
-                                                onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                                            >
-                                                <option value="">Select Product</option>
-                                                {products.map((product) => (
-                                                    <option key={product.id} value={product.id}>
-                                                        {product.name} - K{product.selling_price?.toFixed(2) || '0.00'}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <div className="flex gap-1">
+                                                <select
+                                                    value={item.goods_service_id}
+                                                    onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
+                                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                >
+                                                    <option value="">Select Product</option>
+                                                    {products.map((product) => (
+                                                        <option key={product.id} value={product.id}>
+                                                            {product.name} - K{product.selling_price?.toFixed(2) || '0.00'}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCurrentProductModalIndex(index);
+                                                        setShowProductModal(true);
+                                                    }}
+                                                    className="px-2 py-2 text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-teal-200 whitespace-nowrap"
+                                                    title="Add new product"
+                                                >
+                                                    + New
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="col-span-4">
                                             <input
@@ -301,6 +343,21 @@ export default function QuotesCreate({ customers, products }) {
                         </div>
                     </div>
                 </form>
+
+                <QuickCreateCustomerModal
+                    isOpen={showCustomerModal}
+                    onClose={() => setShowCustomerModal(false)}
+                    onSuccess={handleCustomerCreated}
+                />
+
+                <QuickCreateProductModal
+                    isOpen={showProductModal}
+                    onClose={() => {
+                        setShowProductModal(false);
+                        setCurrentProductModalIndex(null);
+                    }}
+                    onSuccess={handleProductCreated}
+                />
             </div>
         </AuthenticatedLayout>
     );

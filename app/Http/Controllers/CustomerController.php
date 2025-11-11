@@ -129,4 +129,35 @@ class CustomerController extends Controller
 
         return response()->json($customers);
     }
+
+    /**
+     * Quick create customer via API (for inline creation in forms)
+     */
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'tax_id' => 'nullable|string|max:255',
+        ]);
+
+        $customer = Customer::create([
+            'id' => (string) Str::uuid(),
+            'organization_id' => Auth::user()->organization_id,
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'company_name' => $validated['company_name'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'tax_id' => $validated['tax_id'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'customer' => $customer,
+        ]);
+    }
 }
