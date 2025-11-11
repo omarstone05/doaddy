@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,7 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('commission_rules', function (Blueprint $table) {
+        if (!Schema::hasTable('commission_rules')) {
+            Schema::create('commission_rules', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
             $table->string('name');
@@ -27,10 +29,26 @@ return new class extends Migration
             $table->timestamps();
             
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
-            $table->foreign('team_member_id')->references('id')->on('team_members')->onDelete('cascade');
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
+            // Foreign keys for team_member_id and department_id will be added after those tables exist
             $table->index(['organization_id', 'is_active']);
-        });
+            });
+            
+            // Add foreign keys after referenced tables exist
+            foreach (['team_members', 'departments'] as $refTable) {
+                if (Schema::hasTable($refTable)) {
+                    $column = match($refTable) {
+                        'team_members' => 'team_member_id',
+                        'departments' => 'department_id',
+                    };
+                    Schema::table('commission_rules', function (Blueprint $table) use ($refTable, $column) {
+                        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commission_rules' AND COLUMN_NAME = '{$column}' AND REFERENCED_TABLE_NAME IS NOT NULL");
+                        if (empty($foreignKeys)) {
+                            $table->foreign($column)->references('id')->on($refTable)->onDelete('cascade');
+                        }
+                    });
+                }
+            }
+        }
     }
 
     /**
