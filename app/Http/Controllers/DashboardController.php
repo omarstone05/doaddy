@@ -129,15 +129,25 @@ class DashboardController extends Controller
         $dateRange = $this->getDateRange($timeframe);
         $previousRange = $this->getPreviousRange($timeframe);
         
-        // Get all available cards
-        $availableCards = DashboardCard::where('is_active', true)->get();
+        // Get all available cards - handle missing tables gracefully
+        try {
+            $availableCards = DashboardCard::where('is_active', true)->get();
+        } catch (\Exception $e) {
+            \Log::warning('DashboardCard query failed - table may not exist', ['error' => $e->getMessage()]);
+            $availableCards = collect([]);
+        }
         
-        // Get organization's configured cards with layout
-        $orgCards = OrgDashboardCard::where('organization_id', $organizationId)
-            ->where('is_visible', true)
-            ->with('dashboardCard')
-            ->orderBy('display_order')
-            ->get();
+        // Get organization's configured cards with layout - handle missing tables gracefully
+        try {
+            $orgCards = OrgDashboardCard::where('organization_id', $organizationId)
+                ->where('is_visible', true)
+                ->with('dashboardCard')
+                ->orderBy('display_order')
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('OrgDashboardCard query failed - table may not exist', ['error' => $e->getMessage()]);
+            $orgCards = collect([]);
+        }
         
         // Calculate quick stats for the timeframe
         $totalAccounts = MoneyAccount::where('organization_id', $organizationId)
@@ -196,79 +206,109 @@ class DashboardController extends Controller
             ->whereBetween('transaction_date', [$previousRange['start'], $previousRange['end']])
             ->sum('amount');
         
-        // Top products (for the timeframe)
-        $topProducts = DB::table('sales')
-            ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('goods_and_services', 'sale_items.goods_service_id', '=', 'goods_and_services.id')
-            ->where('sales.organization_id', $organizationId)
-            ->whereBetween('sales.created_at', [$dateRange['start'], $dateRange['end']])
-            ->select(
-                'goods_and_services.name',
-                DB::raw('SUM(sale_items.quantity) as quantity'),
-                DB::raw('SUM(sale_items.total) as revenue')
-            )
-            ->groupBy('goods_and_services.id', 'goods_and_services.name')
-            ->orderByDesc('revenue')
-            ->limit(5)
-            ->get();
+        // Top products (for the timeframe) - handle missing tables gracefully
+        try {
+            $topProducts = DB::table('sales')
+                ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
+                ->join('goods_and_services', 'sale_items.goods_service_id', '=', 'goods_and_services.id')
+                ->where('sales.organization_id', $organizationId)
+                ->whereBetween('sales.created_at', [$dateRange['start'], $dateRange['end']])
+                ->select(
+                    'goods_and_services.name',
+                    DB::raw('SUM(sale_items.quantity) as quantity'),
+                    DB::raw('SUM(sale_items.total) as revenue')
+                )
+                ->groupBy('goods_and_services.id', 'goods_and_services.name')
+                ->orderByDesc('revenue')
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('Top products query failed - tables may not exist', ['error' => $e->getMessage()]);
+            $topProducts = collect([]);
+        }
         
-        // Top customers (for the timeframe)
-        $topCustomers = DB::table('sales')
-            ->join('customers', 'sales.customer_id', '=', 'customers.id')
-            ->where('sales.organization_id', $organizationId)
-            ->whereBetween('sales.created_at', [$dateRange['start'], $dateRange['end']])
-            ->select(
-                'customers.name',
-                DB::raw('COUNT(sales.id) as sales_count'),
-                DB::raw('SUM(sales.total_amount) as revenue')
-            )
-            ->groupBy('customers.id', 'customers.name')
-            ->orderByDesc('revenue')
-            ->limit(5)
-            ->get();
+        // Top customers (for the timeframe) - handle missing tables gracefully
+        try {
+            $topCustomers = DB::table('sales')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->where('sales.organization_id', $organizationId)
+                ->whereBetween('sales.created_at', [$dateRange['start'], $dateRange['end']])
+                ->select(
+                    'customers.name',
+                    DB::raw('COUNT(sales.id) as sales_count'),
+                    DB::raw('SUM(sales.total_amount) as revenue')
+                )
+                ->groupBy('customers.id', 'customers.name')
+                ->orderByDesc('revenue')
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('Top customers query failed - tables may not exist', ['error' => $e->getMessage()]);
+            $topCustomers = collect([]);
+        }
         
-        // Recent sales
-        $recentSales = Sale::where('organization_id', $organizationId)
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
-            ->with(['customer', 'cashier'])
-            ->latest()
-            ->limit(5)
-            ->get();
+        // Recent sales - handle missing tables gracefully
+        try {
+            $recentSales = Sale::where('organization_id', $organizationId)
+                ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+                ->with(['customer', 'cashier'])
+                ->latest()
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('Recent sales query failed - tables may not exist', ['error' => $e->getMessage()]);
+            $recentSales = collect([]);
+        }
         
-        // Pending invoices
-        $pendingInvoices = Invoice::where('organization_id', $organizationId)
-            ->where('status', '!=', 'paid')
-            ->whereRaw('total_amount > paid_amount')
-            ->with('customer')
-            ->latest()
-            ->limit(5)
-            ->get();
+        // Pending invoices - handle missing tables gracefully
+        try {
+            $pendingInvoices = Invoice::where('organization_id', $organizationId)
+                ->where('status', '!=', 'paid')
+                ->whereRaw('total_amount > paid_amount')
+                ->with('customer')
+                ->latest()
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('Pending invoices query failed - table may not exist', ['error' => $e->getMessage()]);
+            $pendingInvoices = collect([]);
+        }
         
-        // Low stock products
-        $lowStockProducts = GoodsAndService::where('organization_id', $organizationId)
-            ->where('type', 'product')
-            ->where('track_stock', true)
-            ->whereColumn('current_stock', '<=', 'minimum_stock')
-            ->orderBy('current_stock')
-            ->limit(5)
-            ->get();
+        // Low stock products - handle missing tables gracefully
+        try {
+            $lowStockProducts = GoodsAndService::where('organization_id', $organizationId)
+                ->where('type', 'product')
+                ->where('track_stock', true)
+                ->whereColumn('current_stock', '<=', 'minimum_stock')
+                ->orderBy('current_stock')
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::warning('Low stock products query failed - tables may not exist', ['error' => $e->getMessage()]);
+            $lowStockProducts = collect([]);
+        }
         
-        // Budget data
-        $budgets = \App\Models\BudgetLine::where('organization_id', $organizationId)
-            ->get()
-            ->map(function($budget) use ($dateRange) {
-                $spent = \App\Models\MoneyMovement::where('organization_id', $budget->organization_id)
-                    ->where('budget_line_id', $budget->id)
-                    ->where('flow_type', 'expense')
-                    ->where('status', 'approved')
-                    ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
-                    ->sum('amount');
-                return [
-                    'name' => $budget->name,
-                    'budget' => $budget->amount,
-                    'spent' => $spent,
-                ];
-            });
+        // Budget data - handle missing columns gracefully
+        try {
+            $budgets = \App\Models\BudgetLine::where('organization_id', $organizationId)
+                ->get()
+                ->map(function($budget) use ($dateRange) {
+                    $spent = \App\Models\MoneyMovement::where('organization_id', $budget->organization_id)
+                        ->where('budget_line_id', $budget->id)
+                        ->where('flow_type', 'expense')
+                        ->where('status', 'approved')
+                        ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
+                        ->sum('amount');
+                    return [
+                        'name' => $budget->name,
+                        'budget' => $budget->amount,
+                        'spent' => $spent,
+                    ];
+                });
+        } catch (\Exception $e) {
+            \Log::warning('Budget query failed - table/column may not exist', ['error' => $e->getMessage()]);
+            $budgets = collect([]);
+        }
         
         // Revenue by category (simplified - can be enhanced)
         $revenueByCategory = [
@@ -285,49 +325,71 @@ class DashboardController extends Controller
             ['name' => 'Other', 'amount' => $totalExpenses * 0.1],
         ];
         
-        // Customer growth data (last 6 months)
-        $customerGrowth = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-            $newCustomers = \App\Models\Customer::where('organization_id', $organizationId)
-                ->whereBetween('created_at', [$monthStart, $monthEnd])
+        // Customer growth data (last 6 months) - handle missing tables gracefully
+        try {
+            $customerGrowth = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
+                $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
+                $newCustomers = \App\Models\Customer::where('organization_id', $organizationId)
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->count();
+                $customerGrowth[] = [
+                    'name' => $monthStart->format('M'),
+                    'value' => $newCustomers,
+                ];
+            }
+            
+            // Total customers
+            $totalCustomers = \App\Models\Customer::where('organization_id', $organizationId)->count();
+            $previousMonthCustomers = \App\Models\Customer::where('organization_id', $organizationId)
+                ->where('created_at', '<', Carbon::now()->subMonth()->startOfMonth())
                 ->count();
-            $customerGrowth[] = [
-                'name' => $monthStart->format('M'),
-                'value' => $newCustomers,
-            ];
+            $customerGrowthRate = $previousMonthCustomers > 0 
+                ? round((($totalCustomers - $previousMonthCustomers) / $previousMonthCustomers) * 100, 1)
+                : 0;
+        } catch (\Exception $e) {
+            \Log::warning('Customer growth query failed - table may not exist', ['error' => $e->getMessage()]);
+            $customerGrowth = [];
+            $totalCustomers = 0;
+            $customerGrowthRate = 0;
         }
         
-        // Total customers
-        $totalCustomers = \App\Models\Customer::where('organization_id', $organizationId)->count();
-        $previousMonthCustomers = \App\Models\Customer::where('organization_id', $organizationId)
-            ->where('created_at', '<', Carbon::now()->subMonth()->startOfMonth())
-            ->count();
-        $customerGrowthRate = $previousMonthCustomers > 0 
-            ? round((($totalCustomers - $previousMonthCustomers) / $previousMonthCustomers) * 100, 1)
-            : 0;
+        // Projects data - handle missing tables gracefully
+        try {
+            $projects = \App\Models\Project::where('organization_id', $organizationId)
+                ->latest()
+                ->limit(5)
+                ->get()
+                ->map(function($project) {
+                    return [
+                        'id' => $project->id,
+                        'name' => $project->name,
+                        'status' => $project->status ?? 'in_progress',
+                    ];
+                });
+        } catch (\Exception $e) {
+            \Log::warning('Projects query failed - table may not exist', ['error' => $e->getMessage()]);
+            $projects = collect([]);
+        }
         
-        // Projects data
-        $projects = \App\Models\Project::where('organization_id', $organizationId)
-            ->latest()
-            ->limit(5)
-            ->get()
-            ->map(function($project) {
-                return [
-                    'id' => $project->id,
-                    'name' => $project->name,
-                    'status' => $project->status ?? 'in_progress',
-                ];
-            });
-        
-        // Team stats (simplified)
-        $teamStats = [
-            'totalMembers' => \App\Models\TeamMember::where('organization_id', $organizationId)->count(),
-            'goalsCompleted' => 0, // Can be enhanced with OKR data
-            'avgPerformance' => 85, // Placeholder
-            'topPerformers' => [], // Can be enhanced
-        ];
+        // Team stats (simplified) - handle missing tables gracefully
+        try {
+            $teamStats = [
+                'totalMembers' => \App\Models\TeamMember::where('organization_id', $organizationId)->count(),
+                'goalsCompleted' => 0, // Can be enhanced with OKR data
+                'avgPerformance' => 85, // Placeholder
+                'topPerformers' => [], // Can be enhanced
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Team stats query failed - table may not exist', ['error' => $e->getMessage()]);
+            $teamStats = [
+                'totalMembers' => 0,
+                'goalsCompleted' => 0,
+                'avgPerformance' => 0,
+                'topPerformers' => [],
+            ];
+        }
         
         return Inertia::render('Dashboard', [
             'user' => $request->user(),

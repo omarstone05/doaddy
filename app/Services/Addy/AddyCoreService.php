@@ -73,21 +73,41 @@ class AddyCoreService
     {
         $data = [];
 
-        // Money Agent
-        $moneyAgent = new MoneyAgent($this->organization);
-        $data['money'] = $moneyAgent->perceive();
+        try {
+            // Money Agent
+            $moneyAgent = new MoneyAgent($this->organization);
+            $data['money'] = $moneyAgent->perceive();
+        } catch (\Exception $e) {
+            \Log::warning('MoneyAgent perceive failed', ['error' => $e->getMessage()]);
+            $data['money'] = [];
+        }
 
-        // Sales Agent (NEW)
-        $salesAgent = new SalesAgent($this->organization);
-        $data['sales'] = $salesAgent->perceive();
+        try {
+            // Sales Agent (NEW)
+            $salesAgent = new SalesAgent($this->organization);
+            $data['sales'] = $salesAgent->perceive();
+        } catch (\Exception $e) {
+            \Log::warning('SalesAgent perceive failed', ['error' => $e->getMessage()]);
+            $data['sales'] = [];
+        }
 
-        // People Agent (NEW)
-        $peopleAgent = new PeopleAgent($this->organization);
-        $data['people'] = $peopleAgent->perceive();
+        try {
+            // People Agent (NEW)
+            $peopleAgent = new PeopleAgent($this->organization);
+            $data['people'] = $peopleAgent->perceive();
+        } catch (\Exception $e) {
+            \Log::warning('PeopleAgent perceive failed', ['error' => $e->getMessage()]);
+            $data['people'] = [];
+        }
 
-        // Inventory Agent (NEW)
-        $inventoryAgent = new InventoryAgent($this->organization);
-        $data['inventory'] = $inventoryAgent->perceive();
+        try {
+            // Inventory Agent (NEW)
+            $inventoryAgent = new InventoryAgent($this->organization);
+            $data['inventory'] = $inventoryAgent->perceive();
+        } catch (\Exception $e) {
+            \Log::warning('InventoryAgent perceive failed', ['error' => $e->getMessage()]);
+            $data['inventory'] = [];
+        }
 
         return $data;
     }
