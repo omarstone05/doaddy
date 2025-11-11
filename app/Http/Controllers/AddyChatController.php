@@ -78,7 +78,8 @@ class AddyChatController extends Controller
             $enhancedMessage .= "\n\nI've attached a document. Here's what I found:\n";
             foreach ($extractedData as $data) {
                 if (isset($data['type']) && isset($data['amount'])) {
-                    $enhancedMessage .= "- {$data['type']}: {$data['amount']} {$data['currency'] ?? 'ZMW'}";
+                    $currency = $data['currency'] ?? 'ZMW';
+                    $enhancedMessage .= "- {$data['type']}: {$data['amount']} {$currency}";
                     if (isset($data['description'])) {
                         $enhancedMessage .= " - {$data['description']}";
                     }
