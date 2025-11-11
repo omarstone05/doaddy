@@ -79,6 +79,11 @@ class Invoice extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(\App\Models\Attachment::class, 'attachable');
+    }
+
     public function getBalanceAttribute(): float
     {
         return $this->total_amount - $this->paid_amount;

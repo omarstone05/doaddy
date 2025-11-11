@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
 class Quote extends Model
@@ -54,6 +55,11 @@ class Quote extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(\App\Models\Attachment::class, 'attachable');
     }
 
     public function getNetAmountAttribute(): float

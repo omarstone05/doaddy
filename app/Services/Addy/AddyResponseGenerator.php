@@ -58,8 +58,40 @@ class AddyResponseGenerator
         // Use the first extracted data item
         $data = $extractedData[0] ?? [];
         
-        // Check if this is an invoice (outgoing invoice we need to create for a customer)
-        if (isset($data['type']) && ($data['type'] === 'invoice' || (isset($data['document_type']) && $data['document_type'] === 'invoice'))) {
+        // Check document type and create appropriate intent
+        $documentType = $data['document_type'] ?? $data['type'] ?? null;
+        
+        // Handle quotes
+        if ($documentType === 'quote' || (isset($data['quote_number']) && !empty($data['quote_number']))) {
+            return [
+                'intent' => 'action',
+                'action_type' => 'create_quote',
+                'parameters' => [
+                    'customer_id' => $data['customer_id'] ?? null,
+                    'customer_name' => $data['customer_name'] ?? $data['merchant'] ?? null,
+                    'quote_date' => $data['date'] ?? now()->toDateString(),
+                    'expiry_date' => $data['expiry_date'] ?? null,
+                    'quote_number' => $data['quote_number'] ?? null,
+                    'items' => $data['items'] ?? (isset($data['amount']) ? [[
+                        'description' => $data['description'] ?? 'Quote item',
+                        'quantity' => 1,
+                        'unit_price' => (float) $data['amount'],
+                    ]] : []),
+                    'total_amount' => (float) ($data['amount'] ?? 0),
+                    'notes' => $data['description'] ?? null,
+                ],
+            ];
+        }
+        
+        // Handle client lists
+        if ($documentType === 'client_list' && isset($data['clients']) && is_array($data['clients'])) {
+            // For now, return a conversational response to handle client import
+            // This could be expanded to create an import action later
+            return $currentIntent; // Let AI handle it conversationally
+        }
+        
+        // Handle invoices
+        if ($documentType === 'invoice' || ($data['type'] === 'invoice')) {
             // For invoices, we need customer_id, items, etc.
             // If we have customer info, use it; otherwise, we'll need to ask
             return [
@@ -807,12 +839,15 @@ class AddyResponseGenerator
         $state = $this->core->getState();
         $thought = $this->core->getCurrentThought();
         
+        // Get historical document context if relevant
+        $historicalContext = $this->getHistoricalDocumentContext($userMessage);
+        
         // Get cultural settings for personality
         $culturalEngine = new AddyCulturalEngine($this->organization, $this->user);
         $tone = $culturalEngine->getSettings()->tone ?? 'professional';
         
         // Build comprehensive system message with personality and data context
-        $systemMessage = $this->buildConversationalSystemMessage($state, $thought, $tone, $dataContext, $culturalEngine);
+        $systemMessage = $this->buildConversationalSystemMessage($state, $thought, $tone, $dataContext, $culturalEngine, $historicalContext);
         
         // Try to use AI service, but fallback to simple response if API key not configured
         try {
@@ -953,7 +988,7 @@ class AddyResponseGenerator
         return $actions;
     }
     
-    protected function buildConversationalSystemMessage($state, $thought, string $tone, ?array $dataContext, AddyCulturalEngine $culturalEngine): string
+    protected function buildConversationalSystemMessage($state, $thought, string $tone, ?array $dataContext, AddyCulturalEngine $culturalEngine, ?array $historicalContext = null): string
     {
         $message = "You are Addy, a friendly and intelligent business COO assistant. ";
         
@@ -1030,6 +1065,13 @@ class AddyResponseGenerator
             $message .= "\n**DATA PROVIDED BY SYSTEM (use this to answer the user's question conversationally):**\n";
             $message .= json_encode($dataContext, JSON_PRETTY_PRINT);
             $message .= "\n\nIMPORTANT: Present this data naturally in conversation. Don't just list numbers - explain what they mean, provide context, and make it conversational. Use the data to answer the user's question, but format it as a natural response.\n";
+        }
+        
+        // Historical document context
+        if ($historicalContext && !empty($historicalContext)) {
+            $message .= "\n**HISTORICAL DOCUMENT CONTEXT (use this to provide context from past documents):**\n";
+            $message .= json_encode($historicalContext, JSON_PRETTY_PRINT);
+            $message .= "\n\nYou can reference this historical information to provide better context and insights. For example, if the user asks about a customer, you can reference past invoices or quotes.\n";
         }
         
         // Action capabilities

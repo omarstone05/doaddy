@@ -6,6 +6,7 @@ use App\Models\AddyChatMessage;
 use App\Services\Addy\AddyCommandParser;
 use App\Services\Addy\AddyResponseGenerator;
 use App\Services\Addy\DocumentProcessorService;
+use App\Services\Document\DocumentStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,6 +33,7 @@ class AddyChatController extends Controller
         
         if ($request->hasFile('files')) {
             $processor = new DocumentProcessorService();
+            $storageService = new DocumentStorageService();
             
             foreach ($request->file('files') as $file) {
                 try {
@@ -71,6 +73,23 @@ class AddyChatController extends Controller
         ]);
         
         $chatMessageId = $userMessage->id;
+        
+        // Store attachments as proper Attachment records for historical context
+        if (!empty($attachments)) {
+            $storageService = new DocumentStorageService();
+            foreach ($attachments as $attachmentData) {
+                try {
+                    $storageService->storeFromChat(
+                        $attachmentData,
+                        $organization->id,
+                        $chatMessageId,
+                        $user->id
+                    );
+                } catch (\Exception $e) {
+                    \Log::error('Failed to store attachment record', ['error' => $e->getMessage()]);
+                }
+            }
+        }
 
         // Build enhanced message with extracted data
         $enhancedMessage = $request->message ?? '';

@@ -111,6 +111,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/chat/history', [AddyChatController::class, 'getHistory']);
         Route::delete('/chat/history', [AddyChatController::class, 'clearHistory']);
         
+        // Attachments (for entities like Customer, Invoice, Quote, etc.)
+        Route::prefix('attachments')->group(function () {
+            Route::post('/', [\App\Http\Controllers\AttachmentController::class, 'store']);
+            Route::get('/', [\App\Http\Controllers\AttachmentController::class, 'index']);
+            Route::delete('/{id}', [\App\Http\Controllers\AttachmentController::class, 'destroy']);
+            Route::get('/{id}/download', [\App\Http\Controllers\AttachmentController::class, 'download']);
+        });
+        
         // Addy Actions
         Route::post('/actions/{action}/confirm', [AddyActionController::class, 'confirm'])->name('addy.actions.confirm');
         Route::post('/actions/{action}/cancel', [AddyActionController::class, 'cancel'])->name('addy.actions.cancel');

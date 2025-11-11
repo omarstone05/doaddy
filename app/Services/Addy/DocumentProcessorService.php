@@ -215,26 +215,35 @@ class DocumentProcessorService
 
         try {
             $prompt = "Extract structured information from this document text. Focus on identifying:
-1. Document type: 'invoice' (outgoing invoice to create for a customer), 'receipt' (expense), 'income' (money received), or 'unknown'
+1. Document type: 'invoice' (outgoing invoice to create for a customer), 'receipt' (expense), 'income' (money received), 'quote' (quotation), 'client_list' (list of clients/customers), 'note' (written note/memo), 'contract' (contract/agreement), or 'unknown'
 2. Amount(s) and currency
-3. Date(s) including due_date if it's an invoice
-4. Customer/client name (if invoice) or merchant/vendor name (if receipt/expense)
+3. Date(s) including due_date if it's an invoice or quote
+4. Customer/client name (if invoice/quote) or merchant/vendor name (if receipt/expense)
 5. Description/items
 6. Category (if identifiable)
 7. Any other relevant business transaction details
+8. For client lists: extract all customer/client names, emails, phone numbers, company names
+9. For quotes: extract quote number, expiry date, line items
+10. For notes: extract key information, action items, dates mentioned
 
 Return the information in JSON format with these fields:
-- document_type: 'invoice', 'receipt', 'income', or 'unknown'
-- type: 'income' or 'expense' (for receipts/income) or 'invoice' (for invoices)
-- amount: numeric amount (total for invoice)
+- document_type: 'invoice', 'receipt', 'income', 'quote', 'client_list', 'note', 'contract', or 'unknown'
+- type: 'income' or 'expense' (for receipts/income) or 'invoice' (for invoices) or 'quote' (for quotations)
+- amount: numeric amount (total for invoice/quote)
 - currency: currency code (e.g., ZMW, USD)
 - date: date in YYYY-MM-DD format
 - due_date: due date in YYYY-MM-DD format (for invoices)
+- expiry_date: expiry date in YYYY-MM-DD format (for quotes)
 - description: transaction description
-- customer_name: customer/client name (for invoices)
+- customer_name: customer/client name (for invoices/quotes)
 - merchant: merchant/vendor name (for receipts/expenses)
 - category: expense/income category if identifiable
-- items: array of line items with description, quantity, unit_price (for invoices or multi-item receipts)
+- items: array of line items with description, quantity, unit_price (for invoices/quotes or multi-item receipts)
+- clients: array of client objects with name, email, phone, company (for client lists)
+- quote_number: quote number if it's a quote
+- key_points: array of key points or action items (for notes)
+- contract_parties: array of party names (for contracts)
+- contract_terms: key terms or conditions (for contracts)
 
 Document text:
 {$text}";
