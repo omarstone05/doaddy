@@ -177,14 +177,26 @@ class ProductController extends Controller
             'minimum_stock' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'category' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-            'track_stock' => 'boolean',
+            'is_active' => 'nullable|boolean',
+            'track_stock' => 'nullable|boolean',
         ]);
 
         $product = GoodsAndService::create([
             'id' => (string) Str::uuid(),
             'organization_id' => Auth::user()->organization_id,
-            ...$validated,
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'description' => $validated['description'] ?? null,
+            'sku' => $validated['sku'] ?? null,
+            'barcode' => $validated['barcode'] ?? null,
+            'cost_price' => $validated['cost_price'] ?? null,
+            'selling_price' => $validated['selling_price'] ?? null,
+            'current_stock' => $validated['current_stock'] ?? null,
+            'minimum_stock' => $validated['minimum_stock'] ?? null,
+            'unit' => $validated['unit'] ?? null,
+            'category' => $validated['category'] ?? null,
+            'is_active' => $validated['is_active'] ?? true,
+            'track_stock' => $validated['track_stock'] ?? false,
         ]);
 
         return response()->json([
