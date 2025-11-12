@@ -200,8 +200,8 @@
                 <tr>
                     <td>{{ $item->description }}</td>
                     <td class="text-right">{{ number_format($item->quantity, 2) }}</td>
-                    <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</td>
-                    <td class="text-right"><strong>{{ number_format($item->total, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</strong></td>
+                    <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $organization->currency ?? 'ZMW' }}</td>
+                    <td class="text-right"><strong>{{ number_format($item->total, 2) }} {{ $organization->currency ?? 'ZMW' }}</strong></td>
                 </tr>
             @endforeach
         </tbody>
@@ -210,28 +210,28 @@
     <div class="totals">
         <div class="totals-row">
             <span>Subtotal:</span>
-            <span>{{ number_format($invoice->subtotal, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+            <span>{{ number_format($invoice->subtotal, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
         </div>
         @if($invoice->tax_amount > 0)
             <div class="totals-row">
                 <span>Tax:</span>
-                <span>{{ number_format($invoice->tax_amount, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+                <span>{{ number_format($invoice->tax_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
         @if($invoice->discount_amount > 0)
             <div class="totals-row">
                 <span>Discount:</span>
-                <span>-{{ number_format($invoice->discount_amount, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+                <span>-{{ number_format($invoice->discount_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
         <div class="totals-row total">
             <span>Total:</span>
-            <span>{{ number_format($invoice->total_amount, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+            <span>{{ number_format($invoice->total_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
         </div>
         @if($invoice->paid_amount > 0)
             <div class="totals-row">
                 <span>Paid:</span>
-                <span style="color: #059669;">{{ number_format($invoice->paid_amount, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+                <span style="color: #059669;">{{ number_format($invoice->paid_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
         @php
@@ -240,7 +240,7 @@
         @if($outstanding > 0)
             <div class="totals-row outstanding">
                 <span>Outstanding:</span>
-                <span>{{ number_format($outstanding, 2) }} {{ $invoice->organization->currency ?? 'ZMW' }}</span>
+                <span>{{ number_format($outstanding, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
     </div>

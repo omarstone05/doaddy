@@ -196,8 +196,8 @@
                 <tr>
                     <td>{{ $item->description }}</td>
                     <td class="text-right">{{ number_format($item->quantity, 2) }}</td>
-                    <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</td>
-                    <td class="text-right"><strong>{{ number_format($item->total, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</strong></td>
+                    <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $organization->currency ?? 'ZMW' }}</td>
+                    <td class="text-right"><strong>{{ number_format($item->total, 2) }} {{ $organization->currency ?? 'ZMW' }}</strong></td>
                 </tr>
             @endforeach
         </tbody>
@@ -206,23 +206,23 @@
     <div class="totals">
         <div class="totals-row">
             <span>Subtotal:</span>
-            <span>{{ number_format($quote->subtotal, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</span>
+            <span>{{ number_format($quote->subtotal, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
         </div>
         @if($quote->tax_amount > 0)
             <div class="totals-row">
                 <span>Tax:</span>
-                <span>{{ number_format($quote->tax_amount, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</span>
+                <span>{{ number_format($quote->tax_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
         @if($quote->discount_amount > 0)
             <div class="totals-row">
                 <span>Discount:</span>
-                <span>-{{ number_format($quote->discount_amount, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</span>
+                <span>-{{ number_format($quote->discount_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
             </div>
         @endif
         <div class="totals-row total">
             <span>Total:</span>
-            <span>{{ number_format($quote->total_amount, 2) }} {{ $quote->organization->currency ?? 'ZMW' }}</span>
+            <span>{{ number_format($quote->total_amount, 2) }} {{ $organization->currency ?? 'ZMW' }}</span>
         </div>
     </div>
 
