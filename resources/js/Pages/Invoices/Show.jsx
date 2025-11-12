@@ -40,7 +40,8 @@ export default function InvoicesShow({ invoice }) {
     return (
         <AuthenticatedLayout>
             <Head title={`Invoice - ${invoice.invoice_number}`} />
-            <div className="max-w-4xl mx-auto ">
+            <div className="max-w-5xl mx-auto">
+                {/* Header */}
                 <div className="mb-6">
                     <Button
                         variant="ghost"
@@ -50,72 +51,100 @@ export default function InvoicesShow({ invoice }) {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back
                     </Button>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Invoice {invoice.invoice_number}</h1>
-                            <p className="text-gray-500 mt-1">{invoice.customer?.name}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            {getStatusBadge(invoice.status)}
-                            {invoice.status === 'draft' && (
-                                <Button onClick={handleSend}>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Send Invoice
-                                </Button>
-                            )}
-                            {outstandingAmount > 0 && (
-                                <Link href={`/payments/create?customer_id=${invoice.customer_id}`}>
-                                    <Button>
-                                        <DollarSign className="h-4 w-4 mr-2" />
-                                        Record Payment
-                                    </Button>
-                                </Link>
-                            )}
-                            {(invoice.status === 'draft' || invoice.status === 'sent' || invoice.status === 'overdue') && (!invoice.paid_amount || parseFloat(invoice.paid_amount || 0) === 0) && (
-                                <>
-                                    <Link href={`/invoices/${invoice.id}/edit`}>
-                                        <Button variant="secondary">
-                                            <Edit className="h-4 w-4 mr-2" />
-                                            Edit
+                    
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                        <div className="flex items-start justify-between mb-6">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <h1 className="text-3xl font-bold text-gray-900">Invoice {invoice.invoice_number}</h1>
+                                    {getStatusBadge(invoice.status)}
+                                </div>
+                                <p className="text-gray-500 text-lg">{invoice.customer?.name}</p>
+                            </div>
+                            
+                            {/* Action Buttons - Grouped */}
+                            <div className="flex flex-col gap-2 items-end">
+                                {/* Primary Actions */}
+                                <div className="flex gap-2">
+                                    {invoice.status === 'draft' && (
+                                        <Button onClick={handleSend}>
+                                            <Send className="h-4 w-4 mr-2" />
+                                            Send Invoice
                                         </Button>
-                                    </Link>
-                                    <Button
-                                        variant="secondary"
-                                        onClick={() => {
-                                            if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-                                                router.delete(`/invoices/${invoice.id}`);
-                                            }
-                                        }}
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
-                                    </Button>
-                                </>
-                            )}
+                                    )}
+                                    {outstandingAmount > 0 && (
+                                        <Link href={`/payments/create?customer_id=${invoice.customer_id}&invoice_id=${invoice.id}`}>
+                                            <Button>
+                                                <DollarSign className="h-4 w-4 mr-2" />
+                                                Record Payment
+                                            </Button>
+                                        </Link>
+                                    )}
+                                </div>
+                                
+                                {/* Secondary Actions */}
+                                {(invoice.status === 'draft' || invoice.status === 'sent' || invoice.status === 'overdue') && (!invoice.paid_amount || parseFloat(invoice.paid_amount || 0) === 0) && (
+                                    <div className="flex gap-2">
+                                        <Link href={`/invoices/${invoice.id}/edit`}>
+                                            <Button variant="secondary" size="sm">
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                Edit
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+                                                    router.delete(`/invoices/${invoice.id}`);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+                            <div>
+                                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Customer</h3>
+                                <p className="text-sm font-medium text-gray-900">{invoice.customer?.name}</p>
+                                {invoice.customer?.email && (
+                                    <p className="text-sm text-gray-600 mt-1">{invoice.customer.email}</p>
+                                )}
+                                {invoice.customer?.phone && (
+                                    <p className="text-sm text-gray-600">{invoice.customer.phone}</p>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Invoice Date</h3>
+                                <p className="text-sm font-medium text-gray-900">{new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                {invoice.due_date && (
+                                    <>
+                                        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 mt-3">Due Date</h3>
+                                        <p className="text-sm font-medium text-gray-900">{new Date(invoice.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                    </>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Amount</h3>
+                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(invoice.total_amount)}</p>
+                                {outstandingAmount > 0 && (
+                                    <p className="text-sm text-red-600 mt-1">Outstanding: {formatCurrency(outstandingAmount)}</p>
+                                )}
+                                {invoice.paid_amount > 0 && (
+                                    <p className="text-sm text-green-600 mt-1">Paid: {formatCurrency(invoice.paid_amount)}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                    <div className="grid grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-500 mb-2">Customer</h3>
-                            <p className="text-gray-900">{invoice.customer?.name}</p>
-                            {invoice.customer?.email && (
-                                <p className="text-sm text-gray-600">{invoice.customer.email}</p>
-                            )}
-                            {invoice.customer?.phone && (
-                                <p className="text-sm text-gray-600">{invoice.customer.phone}</p>
-                            )}
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-500 mb-2">Dates</h3>
-                            <p className="text-gray-900">Invoice Date: {new Date(invoice.invoice_date).toLocaleDateString()}</p>
-                            {invoice.due_date && (
-                                <p className="text-gray-900">Due Date: {new Date(invoice.due_date).toLocaleDateString()}</p>
-                            )}
-                        </div>
-                    </div>
 
                     {/* Items */}
                     <div className="mb-6">
@@ -141,40 +170,44 @@ export default function InvoicesShow({ invoice }) {
                         </table>
                     </div>
 
-                    {/* Totals */}
-                    <div className="border-t border-gray-200 pt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Subtotal:</span>
-                            <span className="text-gray-900">{formatCurrency(invoice.subtotal)}</span>
+                    {/* Totals - Right Aligned */}
+                    <div className="border-t border-gray-200 pt-4">
+                        <div className="flex justify-end">
+                            <div className="w-full max-w-xs space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Subtotal:</span>
+                                    <span className="text-gray-900 font-medium">{formatCurrency(invoice.subtotal)}</span>
+                                </div>
+                                {invoice.tax_amount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Tax:</span>
+                                        <span className="text-gray-900 font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                                    </div>
+                                )}
+                                {invoice.discount_amount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Discount:</span>
+                                        <span className="text-red-600 font-medium">-{formatCurrency(invoice.discount_amount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-lg font-bold pt-2 border-t-2 border-gray-300">
+                                    <span>Total:</span>
+                                    <span>{formatCurrency(invoice.total_amount)}</span>
+                                </div>
+                                {invoice.paid_amount > 0 && (
+                                    <div className="flex justify-between text-sm pt-2">
+                                        <span className="text-gray-600">Paid:</span>
+                                        <span className="text-green-600 font-medium">{formatCurrency(invoice.paid_amount)}</span>
+                                    </div>
+                                )}
+                                {outstandingAmount > 0 && (
+                                    <div className="flex justify-between text-lg font-bold pt-2 border-t-2 border-red-200">
+                                        <span className="text-red-600">Outstanding:</span>
+                                        <span className="text-red-600">{formatCurrency(outstandingAmount)}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        {invoice.tax_amount > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Tax:</span>
-                                <span className="text-gray-900">{formatCurrency(invoice.tax_amount)}</span>
-                            </div>
-                        )}
-                        {invoice.discount_amount > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Discount:</span>
-                                <span className="text-red-600">-{formatCurrency(invoice.discount_amount)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                            <span>Total:</span>
-                            <span>{formatCurrency(invoice.total_amount)}</span>
-                        </div>
-                        {invoice.paid_amount > 0 && (
-                            <div className="flex justify-between text-sm pt-2">
-                                <span className="text-gray-600">Paid:</span>
-                                <span className="text-green-600">{formatCurrency(invoice.paid_amount)}</span>
-                            </div>
-                        )}
-                        {outstandingAmount > 0 && (
-                            <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                                <span>Outstanding:</span>
-                                <span className="text-red-600">{formatCurrency(outstandingAmount)}</span>
-                            </div>
-                        )}
                     </div>
 
                     {/* Payments */}
