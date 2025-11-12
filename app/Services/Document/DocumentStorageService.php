@@ -70,7 +70,7 @@ class DocumentStorageService
         array $fileData,
         string $organizationId,
         int $chatMessageId,
-        ?int $uploadedById = null
+        $uploadedById = null
     ): Attachment {
         // File is already stored, just create attachment record
         $attachment = Attachment::create([

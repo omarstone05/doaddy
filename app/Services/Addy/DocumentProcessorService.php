@@ -195,18 +195,32 @@ class DocumentProcessorService
             $pdf = $parser->parseFile($file->getRealPath());
             $text = $pdf->getText();
             
-            if (!empty($text)) {
+            if (!empty($text) && strlen(trim($text)) > 50) {
                 return $text;
             }
             
             // If text extraction returns empty, the PDF might be image-based
             // Try using AI vision on the first page
-            \Log::info('PDF text extraction returned empty, trying AI vision');
+            \Log::info('PDF text extraction returned empty or too short, trying AI vision');
             return $this->extractTextFromPdfWithAI($file);
+        } catch (\Smalot\PdfParser\Exception\EncodingException $e) {
+            // Password-protected or secured PDF
+            \Log::warning('PDF is password-protected or secured', ['error' => $e->getMessage()]);
+            throw new \Exception('This PDF is password-protected or secured. Please remove the password protection and try again, or convert the PDF pages to images and upload those.');
         } catch (\Exception $e) {
-            \Log::warning('PDF text extraction failed, trying AI vision', ['error' => $e->getMessage()]);
-            // Fallback to AI vision for image-based PDFs or if parsing fails
-            return $this->extractTextFromPdfWithAI($file);
+            // Check if it's a secured PDF error
+            if (str_contains($e->getMessage(), 'Secured pdf') || str_contains($e->getMessage(), 'password')) {
+                \Log::warning('PDF is password-protected or secured', ['error' => $e->getMessage()]);
+                throw new \Exception('This PDF is password-protected or secured. Please remove the password protection and try again, or convert the PDF pages to images and upload those.');
+            }
+            
+            \Log::warning('PDF text extraction failed', ['error' => $e->getMessage()]);
+            // For other errors, try AI vision as fallback
+            try {
+                return $this->extractTextFromPdfWithAI($file);
+            } catch (\Exception $aiError) {
+                throw new \Exception('Unable to extract text from this PDF. The PDF may be password-protected, corrupted, or in an unsupported format. Please try: 1) Removing password protection, 2) Converting PDF pages to images, or 3) Copying the text manually.');
+            }
         }
     }
     
@@ -245,90 +259,38 @@ class DocumentProcessorService
     
     /**
      * Extract text from PDF using OpenAI
+     * Note: OpenAI vision API doesn't support PDFs directly - only images
+     * This method will attempt to use the file API or return an error
      */
     protected function extractTextFromPdfOpenAI(string $pdfData): string
     {
-        $apiKey = \App\Models\PlatformSetting::get('openai_api_key');
-        $model = \App\Models\PlatformSetting::get('openai_model', 'gpt-4o');
+        // OpenAI vision API doesn't support PDFs directly
+        // We need to convert PDF to images first, or use a different approach
+        // For now, return an informative error message
+        \Log::warning('OpenAI vision API does not support PDF files directly. PDF needs to be converted to images first.');
         
-        // OpenAI supports PDF files directly in some models
-        // For gpt-4o, we can send the PDF as base64
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type' => 'application/json',
-        ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
-            'model' => $model,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => 'Extract all text and information from this PDF document. This could be a bank statement, invoice, receipt, or other business document. Include all numbers, dates, amounts, descriptions, transaction details, and any other relevant information.',
-                        ],
-                        [
-                            'type' => 'image_url',
-                            'image_url' => [
-                                'url' => "data:application/pdf;base64,{$pdfData}",
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'max_tokens' => 4000,
-        ]);
-        
-        if (!$response->successful()) {
-            throw new \Exception('OpenAI API error: ' . $response->body());
-        }
-        
-        $data = $response->json();
-        return $data['choices'][0]['message']['content'] ?? '';
+        throw new \Exception('This PDF cannot be processed automatically. It may be password-protected or in a format that requires conversion. Please try: 1) Removing password protection from the PDF, 2) Converting the PDF pages to images and uploading those, or 3) Copying the text from the PDF and pasting it in the chat.');
     }
     
     /**
      * Extract text from PDF using Anthropic
+     * Note: Anthropic doesn't support PDFs directly, so we need to convert PDF to images first
      */
     protected function extractTextFromPdfAnthropic(string $pdfData): string
     {
-        $apiKey = \App\Models\PlatformSetting::get('anthropic_api_key');
-        $model = \App\Models\PlatformSetting::get('anthropic_model', 'claude-sonnet-4-20250514');
+        // Anthropic doesn't support PDFs directly - only images
+        // For now, return a message indicating the PDF needs to be converted to images
+        // In production, you'd use imagick or similar to convert PDF pages to images
+        \Log::warning('Anthropic API does not support PDF files directly. PDF needs to be converted to images first.');
         
-        // Anthropic supports PDF files directly
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'x-api-key' => $apiKey,
-            'anthropic-version' => '2023-06-01',
-            'Content-Type' => 'application/json',
-        ])->timeout(120)->post('https://api.anthropic.com/v1/messages', [
-            'model' => $model,
-            'max_tokens' => 4000,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'image',
-                            'source' => [
-                                'type' => 'base64',
-                                'media_type' => 'application/pdf',
-                                'data' => $pdfData,
-                            ],
-                        ],
-                        [
-                            'type' => 'text',
-                            'text' => 'Extract all text and information from this PDF document. This could be a bank statement, invoice, receipt, or other business document. Include all numbers, dates, amounts, descriptions, transaction details, and any other relevant information.',
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-        
-        if (!$response->successful()) {
-            throw new \Exception('Anthropic API error: ' . $response->body());
+        // Try OpenAI instead if available, as it might have better PDF support
+        $openaiKey = \App\Models\PlatformSetting::get('openai_api_key');
+        if ($openaiKey) {
+            \Log::info('Falling back to OpenAI for PDF processing');
+            return $this->extractTextFromPdfOpenAI($pdfData);
         }
         
-        $data = $response->json();
-        return $data['content'][0]['text'] ?? '';
+        throw new \Exception('PDF processing requires image conversion. Please upload the PDF as images or use OpenAI API which has better PDF support.');
     }
 
     /**
