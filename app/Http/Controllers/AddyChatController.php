@@ -47,9 +47,29 @@ class AddyChatController extends Controller
                     
                     if (!empty($processed['extracted_data'])) {
                         $extractedData[] = $processed['extracted_data'];
+                    } elseif (!empty($processed['extracted_text'])) {
+                        // If we have extracted text but no structured data, include it
+                        $extractedData[] = [
+                            'raw_text' => $processed['extracted_text'],
+                            'document_type' => 'unknown',
+                            'file_name' => $processed['file_name'],
+                        ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error('File processing error', ['error' => $e->getMessage()]);
+                    \Log::error('File processing error', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'file' => $file->getClientOriginalName(),
+                    ]);
+                    
+                    // Still save the file even if processing failed
+                    $attachments[] = [
+                        'file_path' => $file->store("chat-attachments/{$organization->id}", 'public'),
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                        'processing_error' => 'Failed to extract data: ' . $e->getMessage(),
+                    ];
                 }
             }
         }
