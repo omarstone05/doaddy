@@ -1,8 +1,10 @@
 import React from 'react';
 import { BackgroundGradientAnimation } from '../ui/BackgroundGradientAnimation';
 import { router } from '@inertiajs/react';
+import { useAddy } from '../../Contexts/AddyContext';
 
 export function SectionInsightCard({ sectionName, insights, sectionIcon }) {
+  const { openAddy } = useAddy();
   // Get the top insight for this section
   const topInsight = insights && insights.length > 0 
     ? insights[0] 
@@ -36,14 +38,23 @@ export function SectionInsightCard({ sectionName, insights, sectionIcon }) {
             {getSectionMessage()}
           </p>
           
-          {topInsight && topInsight.is_actionable && topInsight.action_url && (
+          <div className="flex flex-wrap gap-3">
+            {topInsight && topInsight.is_actionable && topInsight.action_url && (
+              <button
+                onClick={handleActionClick}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
+              >
+                Take Action →
+              </button>
+            )}
+
             <button
-              onClick={handleActionClick}
+              onClick={() => openAddy(topInsight ? 'insights' : 'chat')}
               className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
             >
-              Take Action →
+              Open Addy
             </button>
-          )}
+          </div>
 
           {insights && insights.length > 1 && (
             <p className="text-white/70 text-sm mt-4">
@@ -64,4 +75,3 @@ export function SectionInsightCard({ sectionName, insights, sectionIcon }) {
     </BackgroundGradientAnimation>
   );
 }
-

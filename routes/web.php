@@ -136,25 +136,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/cards/add', [DashboardCardController::class, 'addCard'])->name('dashboard.cards.add');
     Route::delete('/dashboard/cards/{id}', [DashboardCardController::class, 'removeCard'])->name('dashboard.cards.remove');
     
-    // Placeholder routes for future features
-    Route::get('/insights', function () {
-        return Inertia::render('Placeholder', [
-            'message' => 'Insights feature coming soon',
-        ]);
-    })->name('insights');
-    
-    Route::get('/ai-chat', function () {
-        return Inertia::render('Placeholder', [
-            'message' => 'AI Chat feature coming soon',
-        ]);
-    })->name('ai-chat');
-    
-    Route::get('/alerts', function () {
-        return Inertia::render('Placeholder', [
-            'message' => 'Alerts feature coming soon',
-        ]);
-    })->name('alerts');
-    
     Route::get('/people/hr', function () {
         return Inertia::render('Placeholder', [
             'message' => 'HR feature coming soon',

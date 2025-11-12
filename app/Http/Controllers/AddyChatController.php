@@ -43,6 +43,8 @@ class AddyChatController extends Controller
                         'file_name' => $processed['file_name'],
                         'file_size' => $processed['file_size'],
                         'mime_type' => $processed['mime_type'],
+                        'extracted_data' => $processed['extracted_data'] ?? null,
+                        'extracted_text' => $processed['extracted_text'] ?? null,
                     ];
                     
                 if (!empty($processed['extracted_data'])) {
@@ -79,6 +81,8 @@ class AddyChatController extends Controller
                         'file_size' => $file->getSize(),
                         'mime_type' => $file->getMimeType(),
                         'processing_error' => 'Failed to extract data: ' . $e->getMessage(),
+                        'extracted_data' => null,
+                        'extracted_text' => null,
                     ];
                 }
             }
@@ -245,4 +249,3 @@ class AddyChatController extends Controller
         return response()->json(['success' => true]);
     }
 }
-

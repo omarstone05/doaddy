@@ -16,7 +16,7 @@ export function InsightsCard({ userName, message }) {
     : `Hi, ${userName}`;
 
   const handleCardClick = () => {
-    openAddy();
+    openAddy(topInsight ? 'insights' : 'chat');
   };
 
   return (
@@ -34,24 +34,35 @@ export function InsightsCard({ userName, message }) {
           </p>
           
           {topInsight && topInsight.url && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (topInsight.url) {
-                  router.visit(topInsight.url);
-                }
-              }}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
-            >
-              Take Action →
-            </button>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (topInsight.url) {
+                    router.visit(topInsight.url);
+                  }
+                }}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
+              >
+                Take Action →
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAddy('insights');
+                }}
+                className="px-4 py-2 bg-white/20 hover:bg-white/40 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
+              >
+                View Insights
+              </button>
+            </div>
           )}
 
           {!topInsight && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                openAddy();
+                openAddy('chat');
               }}
               className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-colors backdrop-blur-sm"
             >
@@ -78,4 +89,3 @@ export function InsightsCard({ userName, message }) {
     </BackgroundGradientAnimation>
   );
 }
-

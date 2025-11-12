@@ -9,6 +9,7 @@ export function AddyProvider({ children }) {
     const page = usePage();
     const addyData = page?.props?.addy;
     const [isOpen, setIsOpen] = useState(false);
+    const [panelView, setPanelView] = useState('chat'); // chat | insights
     const [addy, setAddy] = useState(addyData || null);
 
     useEffect(() => {
@@ -19,9 +20,22 @@ export function AddyProvider({ children }) {
         }
     }, [addyData]);
 
-    const openAddy = () => setIsOpen(true);
+    const openAddy = (view = 'chat') => {
+        setPanelView(view);
+        setIsOpen(true);
+    };
     const closeAddy = () => setIsOpen(false);
-    const toggleAddy = () => setIsOpen(prev => !prev);
+    const toggleAddy = (view = 'chat') => {
+        setPanelView(view);
+        setIsOpen(prev => !prev);
+    };
+    const showChatView = () => setPanelView('chat');
+    const showInsightsView = () => {
+        setPanelView('insights');
+        if (!isOpen) {
+            setIsOpen(true);
+        }
+    };
 
     const dismissInsight = async (insightId) => {
         try {
@@ -48,9 +62,12 @@ export function AddyProvider({ children }) {
             value={{
                 addy,
                 isOpen,
+                panelView,
                 openAddy,
                 closeAddy,
                 toggleAddy,
+                showChatView,
+                showInsightsView,
                 dismissInsight,
                 completeInsight,
                 hasInsights: addy?.insights_count > 0,
@@ -72,4 +89,3 @@ export function useAddy() {
     
     return context;
 }
-

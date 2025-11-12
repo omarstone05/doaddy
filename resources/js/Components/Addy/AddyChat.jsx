@@ -6,12 +6,13 @@ import ActionConfirmation from './ActionConfirmation';
 import ReactMarkdown from 'react-markdown';
 
 export default function AddyChat() {
-    const { isOpen, closeAddy } = useAddy();
+    const { isOpen, closeAddy, showInsightsView } = useAddy();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(true);
     const [selectedFiles, setSelectedFiles] = useState([]);
+    const [quickActionLoading, setQuickActionLoading] = useState(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -129,13 +130,86 @@ export default function AddyChat() {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleQuickAction = (action) => {
+    const handleQuickAction = async (action, sourceMessage) => {
+        if (action?.type === 'confirm' && action.action_id) {
+            return await handleActionQuickConfirm(action, sourceMessage);
+        }
+
+        if (action?.type === 'cancel' && action.action_id) {
+            return await handleActionQuickCancel(action, sourceMessage);
+        }
+
         if (action.command) {
             sendMessage(action.command);
         } else if (action.url) {
             router.visit(action.url);
             closeAddy();
         }
+    };
+
+    const handleActionQuickConfirm = async (action, sourceMessage) => {
+        const loadingKey = `${action.action_id}-confirm`;
+        setQuickActionLoading(loadingKey);
+
+        try {
+            const response = await axios.post(`/api/addy/actions/${action.action_id}/confirm`);
+            appendAssistantMessage(response.data.message || 'Action completed successfully.');
+            markActionAsExecuted(sourceMessage?.id, response.data);
+        } catch (error) {
+            const message = error.response?.data?.message || 'Action failed. Please try again.';
+            appendAssistantMessage(`❌ **Action failed:** ${message}`);
+        } finally {
+            setQuickActionLoading(null);
+        }
+    };
+
+    const handleActionQuickCancel = async (action, sourceMessage) => {
+        const loadingKey = `${action.action_id}-cancel`;
+        setQuickActionLoading(loadingKey);
+
+        try {
+            await axios.post(`/api/addy/actions/${action.action_id}/cancel`);
+            appendAssistantMessage('✅ Action cancelled.');
+            markActionAsExecuted(sourceMessage?.id, {
+                success: true,
+                message: 'Action cancelled.',
+                result: null,
+            });
+        } catch (error) {
+            const message = error.response?.data?.message || 'Unable to cancel action.';
+            appendAssistantMessage(`❌ **Cancel failed:** ${message}`);
+        } finally {
+            setQuickActionLoading(null);
+        }
+    };
+
+    const appendAssistantMessage = (content) => {
+        setMessages(prev => [
+            ...prev,
+            {
+                id: Date.now(),
+                role: 'assistant',
+                content,
+                created_at: new Date().toISOString(),
+            },
+        ]);
+    };
+
+    const markActionAsExecuted = (messageId, payload) => {
+        if (!messageId) return;
+
+        setMessages(prev => prev.map(msg =>
+            msg.id === messageId
+                ? {
+                    ...msg,
+                    metadata: {
+                        ...(msg.metadata || {}),
+                        action_executed: true,
+                        action_result: payload,
+                    },
+                }
+                : msg
+        ));
     };
 
     const handleKeyPress = (e) => {
@@ -191,6 +265,13 @@ export default function AddyChat() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <button
+                                onClick={showInsightsView}
+                                className="px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-teal-600 border border-mint-200/60 text-sm font-semibold transition-all shadow-sm"
+                                title="View insights"
+                            >
+                                Insights
+                            </button>
                             <button
                                 onClick={clearHistory}
                                 className="p-2 rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-sm border border-mint-200/50 text-teal-600 hover:text-teal-700 transition-all shadow-sm"
@@ -418,21 +499,21 @@ export default function AddyChat() {
                                             {/* Quick actions - hide if action is executed */}
                                             {message.role === 'assistant' && message.metadata?.quick_actions && !message.metadata?.action_executed && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
-                                                    {message.metadata.quick_actions.map((action, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => {
-                                                                if (action.type === 'confirm' && action.action_id) {
-                                                                    // Handle action confirmation via ActionConfirmation component
-                                                                    return;
-                                                                }
-                                                                handleQuickAction(action);
-                                                            }}
-                                                            className="px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-full text-xs text-teal-700 hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm"
-                                                        >
-                                                            {action.label}
-                                                        </button>
-                                                    ))}
+                                                    {message.metadata.quick_actions.map((action, idx) => {
+                                                        const loadingKey = `${action.action_id}-${action.type}`;
+                                                        const isLoading = quickActionLoading === loadingKey;
+
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                disabled={isLoading}
+                                                                onClick={() => handleQuickAction(action, message)}
+                                                                className={`px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-full text-xs text-teal-700 hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                {isLoading ? 'Please wait…' : action.label}
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
@@ -555,4 +636,3 @@ export default function AddyChat() {
         </>
     );
 }
-

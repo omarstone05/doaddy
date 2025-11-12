@@ -28,9 +28,6 @@ export const navigation = [
         icon: LayoutDashboard,
         items: [
             { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-            { name: 'Insights', href: '/insights', icon: TrendingUp },
-            { name: 'AI Chat', href: '/ai-chat', icon: MessageSquare },
-            { name: 'Alerts', href: '/alerts', icon: Bell },
         ],
     },
     {
@@ -114,5 +111,4 @@ export const navigation = [
         ],
     },
 ];
-
 

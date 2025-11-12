@@ -81,6 +81,7 @@ class AddyCulturalEngine
         return match($tone) {
             'casual' => $this->makeCasual($message),
             'motivational' => $this->makeMotivational($message),
+            'sassy' => $this->makeSassy($message),
             default => $message, // professional - keep as is
         };
     }
@@ -108,6 +109,25 @@ class AddyCulturalEngine
         ];
 
         return $motivational[array_rand($motivational)] . $message;
+    }
+
+    protected function makeSassy(string $message): string
+    {
+        $prefixes = [
+            "Alright superstar, ",
+            "Real talk: ",
+            "Heads up, trailblazer—",
+            "Spilling the tea: ",
+        ];
+
+        $suffixes = [
+            " Keep the momentum going.",
+            " You knew that was coming, right?",
+            " Let's keep it classy and efficient.",
+            " Consider it handled.",
+        ];
+
+        return $prefixes[array_rand($prefixes)] . $message . $suffixes[array_rand($suffixes)];
     }
 
     /**
@@ -207,4 +227,3 @@ class AddyCulturalEngine
         return "Take your time and work at your own pace.";
     }
 }
-

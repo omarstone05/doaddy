@@ -3,7 +3,7 @@ import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
 export default function AddyInsights() {
-    const { isOpen, closeAddy, topInsight, state, addy } = useAddy();
+    const { isOpen, closeAddy, topInsight, state, addy, showChatView } = useAddy();
 
     if (!isOpen) return null;
 
@@ -46,7 +46,7 @@ export default function AddyInsights() {
                     
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 relative">
-                        {/* Close button - TOP RIGHT */}
+                        {/* Controls */}
                         <button
                             onClick={closeAddy}
                             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
@@ -55,6 +55,13 @@ export default function AddyInsights() {
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
+                        </button>
+                        <button
+                            onClick={showChatView}
+                            className="absolute top-4 right-16 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-colors"
+                            title="Back to chat"
+                        >
+                            Chat
                         </button>
 
                         <div className="flex items-center gap-4">
@@ -198,4 +205,3 @@ export default function AddyInsights() {
         </>
     );
 }
-

@@ -53,6 +53,7 @@ export default function AddySettings({ settings, userPattern }) {
                                             <option value="professional">Professional</option>
                                             <option value="casual">Casual</option>
                                             <option value="motivational">Motivational</option>
+                                            <option value="sassy">Sassy</option>
                                         </select>
                                     </div>
 
@@ -173,4 +174,3 @@ export default function AddySettings({ settings, userPattern }) {
         </SectionLayout>
     );
 }
-

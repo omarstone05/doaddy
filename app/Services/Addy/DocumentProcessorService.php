@@ -11,9 +11,9 @@ class DocumentProcessorService
 {
     protected AIService $aiService;
 
-    public function __construct()
+    public function __construct(?AIService $aiService = null)
     {
-        $this->aiService = new AIService();
+        $this->aiService = $aiService ?? new AIService();
     }
 
     /**
@@ -196,7 +196,7 @@ class DocumentProcessorService
         if ($this->commandExists('pdftotext')) {
             try {
                 $text = $this->extractTextWithPdftotext($filePath);
-                if (!empty($text) && strlen(trim($text)) > 50) {
+                if (!empty($text) && strlen(trim($text)) > 10) {
                     \Log::info('PDF text extracted successfully using pdftotext');
                     return $text;
                 }
@@ -214,7 +214,7 @@ class DocumentProcessorService
                     if ($this->commandExists('pdftotext')) {
                         $text = $this->extractTextWithPdftotext($decryptedPath);
                         @unlink($decryptedPath); // Clean up temp file
-                        if (!empty($text) && strlen(trim($text)) > 50) {
+                        if (!empty($text) && strlen(trim($text)) > 10) {
                             \Log::info('PDF text extracted successfully after decryption with qpdf');
                             return $text;
                         }
@@ -225,7 +225,7 @@ class DocumentProcessorService
                         $pdf = $parser->parseFile($decryptedPath);
                         $text = $pdf->getText();
                         @unlink($decryptedPath); // Clean up temp file
-                        if (!empty($text) && strlen(trim($text)) > 50) {
+                        if (!empty($text) && strlen(trim($text)) > 10) {
                             \Log::info('PDF text extracted successfully using PHP parser after decryption');
                             return $text;
                         }
@@ -244,7 +244,7 @@ class DocumentProcessorService
             $pdf = $parser->parseFile($filePath);
             $text = $pdf->getText();
             
-            if (!empty($text) && strlen(trim($text)) > 50) {
+            if (!empty($text) && strlen(trim($text)) > 5) {
                 \Log::info('PDF text extracted successfully using PHP parser');
                 return $text;
             }
@@ -512,4 +512,3 @@ Document text:
         }
     }
 }
-
