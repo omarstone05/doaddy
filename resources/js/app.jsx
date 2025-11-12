@@ -7,7 +7,7 @@ import { AddyProvider } from './Contexts/AddyContext';
 import AddyBubble from './Components/Addy/AddyBubble';
 import AddyPanel from './Components/Addy/AddyPanel';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Addy Business 2.0';
+const appName = import.meta.env.VITE_APP_NAME || 'Addy';
 
 createInertiaApp({
     title: (title) => title ? `${title} - ${appName}` : appName,
