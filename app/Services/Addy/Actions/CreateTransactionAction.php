@@ -91,13 +91,27 @@ class CreateTransactionAction extends BaseAction
     public function execute(): array
     {
         // Ensure account_id is set (use default if not provided)
-        if (!isset($this->parameters['account_id'])) {
+        if (!isset($this->parameters['account_id']) || empty($this->parameters['account_id'])) {
+            \Log::info('No account_id provided, attempting to get/create default account', [
+                'organization_id' => $this->organization->id,
+                'user_id' => $this->user->id ?? null,
+            ]);
             $this->parameters['account_id'] = $this->getDefaultAccountId();
         }
         
         if (!$this->parameters['account_id']) {
+            \Log::error('Failed to get or create default account', [
+                'organization_id' => $this->organization->id,
+                'user_id' => $this->user->id ?? null,
+                'parameters' => $this->parameters,
+            ]);
             throw new \Exception('No account specified and no default account available. Please specify an account.');
         }
+        
+        \Log::info('Using account for transaction', [
+            'account_id' => $this->parameters['account_id'],
+            'organization_id' => $this->organization->id,
+        ]);
         
         $transaction = MoneyMovement::create([
             'organization_id' => $this->organization->id,
