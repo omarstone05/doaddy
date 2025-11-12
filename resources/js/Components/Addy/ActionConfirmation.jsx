@@ -87,6 +87,19 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
                         Transaction recorded successfully!
                     </div>
                 )}
+                
+                {result?.success && result.result?.imported_count !== undefined && (
+                    <div className="mt-2 text-sm text-green-700">
+                        <div className="font-medium">Import Summary:</div>
+                        <div>✅ Imported: {result.result.imported_count} transaction(s)</div>
+                        {result.result.skipped_count > 0 && (
+                            <div>⏭️ Skipped: {result.result.skipped_count} duplicate(s)</div>
+                        )}
+                        {result.result.error_count > 0 && (
+                            <div>❌ Errors: {result.result.error_count} transaction(s)</div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
@@ -105,34 +118,82 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
             {/* Preview Items */}
             {preview.items && preview.items.length > 0 && (
                 <div className="mb-3 space-y-2">
-                    {preview.items.slice(0, 3).map((item, index) => (
-                        <div key={index} className="bg-white rounded p-2 text-sm">
+                    {preview.items.slice(0, 5).map((item, index) => (
+                        <div key={index} className="bg-white rounded p-2 text-sm border border-gray-200">
                             {item.customer && (
                                 <div>
                                     <span className="font-medium">{item.customer}</span>
                                     <span className="text-gray-600 ml-2">
                                         Invoice #{item.invoice_number} - ${item.amount}
                                     </span>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        {item.days_overdue} days overdue
-                                    </div>
+                                    {item.days_overdue && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            {item.days_overdue} days overdue
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            {item.type && (
+                            {item.type && !item.flow_type && (
                                 <div>
                                     <span className="font-medium">{item.type}</span>
                                     <span className="text-gray-600 ml-2">
-                                        ${item.amount} - {item.category}
+                                        ${item.amount} - {item.category || 'Uncategorized'}
                                     </span>
+                                </div>
+                            )}
+                            {/* Bank statement transaction */}
+                            {(item.flow_type || (item.description && item.amount)) && (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <div className="font-medium text-xs text-gray-500">{item.date || 'Unknown date'}</div>
+                                        <div className="text-sm">{item.description || 'No description'}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`font-semibold ${item.flow_type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {item.flow_type === 'income' ? '+' : '-'}${item.amount?.toFixed(2) || '0.00'}
+                                        </div>
+                                        <div className="text-xs text-gray-500">{item.flow_type || 'expense'}</div>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     ))}
-                    {preview.items.length > 3 && (
+                    {preview.items.length > 5 && (
                         <div className="text-sm text-teal-600">
-                            + {preview.items.length - 3} more
+                            + {preview.items.length - 5} more transaction(s)
                         </div>
                     )}
+                </div>
+            )}
+            
+            {/* Summary for bank statements */}
+            {preview.summary && (
+                <div className="mb-3 p-3 bg-white rounded border border-gray-200">
+                    <div className="text-sm font-semibold text-teal-900 mb-2">Import Summary</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span className="text-gray-600">Total:</span>
+                            <span className="font-medium ml-1">{preview.summary.total_transactions}</span>
+                        </div>
+                        <div>
+                            <span className="text-gray-600">Income:</span>
+                            <span className="font-medium text-green-600 ml-1">
+                                {preview.summary.income_count} (${preview.summary.total_income?.toFixed(2) || '0.00'})
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-gray-600">Expenses:</span>
+                            <span className="font-medium text-red-600 ml-1">
+                                {preview.summary.expense_count} (${preview.summary.total_expenses?.toFixed(2) || '0.00'})
+                            </span>
+                        </div>
+                        {preview.summary.duplicate_count > 0 && (
+                            <div>
+                                <span className="text-gray-600">Duplicates:</span>
+                                <span className="font-medium text-yellow-600 ml-1">{preview.summary.duplicate_count}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
