@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Send, DollarSign } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Send, DollarSign, Edit, Trash2 } from 'lucide-react';
 
 export default function InvoicesShow({ invoice }) {
     const formatCurrency = (amount) => {
@@ -70,6 +70,27 @@ export default function InvoicesShow({ invoice }) {
                                         Record Payment
                                     </Button>
                                 </Link>
+                            )}
+                            {invoice.status !== 'paid' && (!invoice.paid_amount || invoice.paid_amount === 0) && (
+                                <>
+                                    <Link href={`/invoices/${invoice.id}/edit`}>
+                                        <Button variant="secondary">
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                        </Button>
+                                    </Link>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+                                                router.delete(`/invoices/${invoice.id}`);
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                    </Button>
+                                </>
                             )}
                         </div>
                     </div>

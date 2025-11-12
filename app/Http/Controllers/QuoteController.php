@@ -25,6 +25,13 @@ class QuoteController extends Controller
         }
 
         $quotes = $query->paginate(20);
+        
+        // Add invoice_id to each quote if it has been converted
+        $quotes->getCollection()->transform(function ($quote) {
+            $invoice = \App\Models\Invoice::where('quote_id', $quote->id)->first();
+            $quote->invoice_id = $invoice ? $invoice->id : null;
+            return $quote;
+        });
 
         return Inertia::render('Quotes/Index', [
             'quotes' => $quotes,
@@ -122,6 +129,10 @@ class QuoteController extends Controller
         $quote = Quote::where('organization_id', Auth::user()->organization_id)
             ->with(['customer', 'items.goodsService', 'attachments.uploadedBy'])
             ->findOrFail($id);
+        
+        // Check if quote has been converted to an invoice
+        $invoice = \App\Models\Invoice::where('quote_id', $quote->id)->first();
+        $quote->invoice_id = $invoice ? $invoice->id : null;
 
         return Inertia::render('Quotes/Show', [
             'quote' => $quote,
@@ -133,6 +144,12 @@ class QuoteController extends Controller
         $quote = Quote::where('organization_id', Auth::user()->organization_id)
             ->with(['items', 'customer'])
             ->findOrFail($id);
+        
+        // Check if quote has been converted to an invoice
+        $hasInvoice = \App\Models\Invoice::where('quote_id', $quote->id)->exists();
+        if ($hasInvoice) {
+            return back()->withErrors(['error' => 'Cannot edit a quote that has been converted to an invoice']);
+        }
 
         $customers = Customer::where('organization_id', Auth::user()->organization_id)
             ->orderBy('name')
@@ -154,6 +171,12 @@ class QuoteController extends Controller
     {
         $quote = Quote::where('organization_id', Auth::user()->organization_id)
             ->findOrFail($id);
+        
+        // Prevent editing if quote has been converted to an invoice
+        $hasInvoice = \App\Models\Invoice::where('quote_id', $quote->id)->exists();
+        if ($hasInvoice) {
+            return back()->withErrors(['error' => 'Cannot edit a quote that has been converted to an invoice']);
+        }
 
         $validated = $request->validate([
             'customer_id' => 'required|uuid|exists:customers,id',
@@ -218,6 +241,39 @@ class QuoteController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to update quote: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        // Prevent deletion if quote has been converted to an invoice
+        $hasInvoice = \App\Models\Invoice::where('quote_id', $quote->id)->exists();
+        if ($hasInvoice) {
+            return back()->withErrors(['error' => 'Cannot delete a quote that has been converted to an invoice']);
+        }
+        
+        // Also prevent deletion if quote is accepted (should be converted first)
+        if ($quote->status === 'accepted') {
+            return back()->withErrors(['error' => 'Cannot delete an accepted quote. Convert it to an invoice first.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Delete quote items
+            $quote->items()->delete();
+            
+            // Delete quote
+            $quote->delete();
+
+            DB::commit();
+
+            return redirect()->route('quotes.index')->with('message', 'Quote deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to delete quote: ' . $e->getMessage()]);
         }
     }
 

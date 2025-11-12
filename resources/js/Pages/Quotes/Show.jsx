@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2 } from 'lucide-react';
 
 export default function QuotesShow({ quote }) {
     const formatCurrency = (amount) => {
@@ -57,10 +57,31 @@ export default function QuotesShow({ quote }) {
                         </div>
                         <div className="flex gap-2">
                             {getStatusBadge(quote.status)}
-                            {quote.status === 'accepted' && (
+                            {quote.status === 'accepted' && !quote.invoice_id && (
                                 <Button onClick={handleConvert}>
                                     Convert to Invoice
                                 </Button>
+                            )}
+                            {!quote.invoice_id && (
+                                <>
+                                    <Link href={`/quotes/${quote.id}/edit`}>
+                                        <Button variant="secondary">
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                        </Button>
+                                    </Link>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to delete this quote? This action cannot be undone.')) {
+                                                router.delete(`/quotes/${quote.id}`);
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                    </Button>
+                                </>
                             )}
                         </div>
                     </div>

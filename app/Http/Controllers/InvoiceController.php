@@ -166,6 +166,162 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function edit($id)
+    {
+        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+            ->with(['items', 'customer'])
+            ->findOrFail($id);
+
+        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+            ->orderBy('name')
+            ->get();
+
+        $products = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Invoices/Edit', [
+            'invoice' => $invoice,
+            'customers' => $customers,
+            'products' => $products,
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        // Prevent editing if invoice is paid or has payments
+        if ($invoice->status === 'paid' || ($invoice->paid_amount && $invoice->paid_amount > 0)) {
+            return back()->withErrors(['error' => 'Cannot edit an invoice that has been paid or has payments']);
+        }
+
+        $validated = $request->validate([
+            'customer_id' => 'required|uuid|exists:customers,id',
+            'invoice_date' => 'required|date',
+            'due_date' => 'nullable|date|after:invoice_date',
+            'items' => 'required|array|min:1',
+            'items.*.description' => 'required|string|max:255',
+            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.goods_service_id' => 'nullable|uuid|exists:goods_and_services,id',
+            'tax_amount' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
+            'terms' => 'nullable|string',
+            'is_recurring' => 'boolean',
+            'recurrence_frequency' => 'nullable|in:weekly,monthly,quarterly,annually',
+            'recurrence_day' => 'nullable|integer|min:1|max:31',
+            'recurrence_end_date' => 'nullable|date',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($validated['items'] as $item) {
+                $subtotal += $item['quantity'] * $item['unit_price'];
+            }
+
+            $taxAmount = $validated['tax_amount'] ?? 0;
+            $discountAmount = $validated['discount_amount'] ?? 0;
+            $totalAmount = $subtotal + $taxAmount - $discountAmount;
+
+            // Calculate next invoice date if recurring
+            $nextInvoiceDate = null;
+            if ($validated['is_recurring'] ?? false) {
+                $nextInvoiceDate = $this->calculateNextInvoiceDate(
+                    $validated['invoice_date'],
+                    $validated['recurrence_frequency'],
+                    $validated['recurrence_day'] ?? null
+                );
+            }
+
+            // Update invoice
+            $invoice->update([
+                'customer_id' => $validated['customer_id'],
+                'invoice_date' => $validated['invoice_date'],
+                'due_date' => $validated['due_date'] ?? now()->addDays(30)->toDateString(),
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'discount_amount' => $discountAmount,
+                'total_amount' => $totalAmount,
+                'notes' => $validated['notes'] ?? null,
+                'terms' => $validated['terms'] ?? null,
+                'is_recurring' => $validated['is_recurring'] ?? false,
+                'recurrence_frequency' => $validated['recurrence_frequency'] ?? null,
+                'recurrence_day' => $validated['recurrence_day'] ?? null,
+                'next_invoice_date' => $nextInvoiceDate,
+                'recurrence_end_date' => $validated['recurrence_end_date'] ?? null,
+            ]);
+
+            // Delete old items
+            $invoice->items()->delete();
+
+            // Create new items
+            foreach ($validated['items'] as $index => $item) {
+                InvoiceItem::create([
+                    'id' => (string) Str::uuid(),
+                    'invoice_id' => $invoice->id,
+                    'goods_service_id' => $item['goods_service_id'] ?? null,
+                    'description' => $item['description'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'total' => $item['quantity'] * $item['unit_price'],
+                    'display_order' => $index,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('invoices.show', $invoice->id)->with('message', 'Invoice updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update invoice', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'invoice_id' => $id,
+                'user_id' => Auth::id(),
+            ]);
+            return back()->withErrors(['error' => 'Failed to update invoice: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        // Prevent deletion if invoice is paid or has payments
+        if ($invoice->status === 'paid' || ($invoice->paid_amount && $invoice->paid_amount > 0)) {
+            return back()->withErrors(['error' => 'Cannot delete an invoice that has been paid or has payments']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Delete invoice items
+            $invoice->items()->delete();
+            
+            // Delete invoice
+            $invoice->delete();
+
+            DB::commit();
+
+            return redirect()->route('invoices.index')->with('message', 'Invoice deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to delete invoice', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'invoice_id' => $id,
+                'user_id' => Auth::id(),
+            ]);
+            return back()->withErrors(['error' => 'Failed to delete invoice: ' . $e->getMessage()]);
+        }
+    }
+
     public function send($id)
     {
         $invoice = Invoice::where('organization_id', Auth::user()->organization_id)

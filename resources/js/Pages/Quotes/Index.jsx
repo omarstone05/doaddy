@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { Plus, Eye, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Eye, FileText, CheckCircle, XCircle, Clock, Edit, Trash2 } from 'lucide-react';
 
 export default function QuotesIndex({ quotes, filters }) {
     const formatCurrency = (amount) => {
@@ -114,13 +114,38 @@ export default function QuotesIndex({ quotes, filters }) {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
                                             {formatCurrency(quote.total_amount)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <Link
-                                                href={`/quotes/${quote.id}`}
-                                                className="text-teal-500 hover:text-teal-600"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Link>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Link
+                                                    href={`/quotes/${quote.id}`}
+                                                    className="text-teal-500 hover:text-teal-600"
+                                                    title="View"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Link>
+                                                {!quote.invoice_id && (
+                                                    <>
+                                                        <Link
+                                                            href={`/quotes/${quote.id}/edit`}
+                                                            className="text-blue-500 hover:text-blue-600"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Are you sure you want to delete this quote?')) {
+                                                                    router.delete(`/quotes/${quote.id}`);
+                                                                }
+                                                            }}
+                                                            className="text-red-500 hover:text-red-600"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
