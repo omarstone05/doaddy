@@ -343,21 +343,80 @@ export default function AddyChat() {
                                             </div>
 
                                             {/* Action Confirmation */}
-                                            {message.role === 'assistant' && message.metadata?.action && (
+                                            {message.role === 'assistant' && message.metadata?.action && !message.metadata?.action_executed && (
                                                 <ActionConfirmation
                                                     action={message.metadata.action}
+                                                    messageId={message.id}
                                                     onConfirm={(result) => {
-                                                        // Reload messages to show result
-                                                        loadHistory();
+                                                        // Add success message to chat
+                                                        const successMessage = {
+                                                            id: Date.now(),
+                                                            role: 'assistant',
+                                                            content: result.success 
+                                                                ? `✅ **${result.message || 'Action completed successfully!'}**\n\n${result.result?.invoice_id ? `[View Invoice](/invoices/${result.result.invoice_id})` : ''}`
+                                                                : `❌ **Action failed:** ${result.message}`,
+                                                            created_at: new Date().toISOString(),
+                                                        };
+                                                        setMessages(prev => [...prev, successMessage]);
+                                                        
+                                                        // Update the original message to mark action as executed
+                                                        setMessages(prev => prev.map(msg => 
+                                                            msg.id === message.id 
+                                                                ? { ...msg, metadata: { ...msg.metadata, action_executed: true, action_result: result } }
+                                                                : msg
+                                                        ));
+                                                        
+                                                        // Reload history to get updated state
+                                                        setTimeout(() => loadHistory(), 500);
+                                                    }}
+                                                    onUpdateMessage={(msgId, updates) => {
+                                                        setMessages(prev => prev.map(msg => 
+                                                            msg.id === msgId 
+                                                                ? { ...msg, metadata: { ...msg.metadata, ...updates } }
+                                                                : msg
+                                                        ));
                                                     }}
                                                     onCancel={() => {
                                                         // Optionally reload
                                                     }}
                                                 />
                                             )}
+                                            
+                                            {/* Show executed action status */}
+                                            {message.role === 'assistant' && message.metadata?.action_executed && message.metadata?.action_result && (
+                                                <div className={`p-4 rounded-lg mt-3 ${message.metadata.action_result.success ? 'bg-green-50/80 backdrop-blur-sm border border-green-300/50' : 'bg-red-50/80 backdrop-blur-sm border border-red-300/50'}`}>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        {message.metadata.action_result.success ? (
+                                                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        )}
+                                                        <span className={`font-semibold ${message.metadata.action_result.success ? 'text-green-800' : 'text-red-800'}`}>
+                                                            {message.metadata.action_result.success ? 'Action Completed!' : 'Action Failed'}
+                                                        </span>
+                                                    </div>
+                                                    <p className={message.metadata.action_result.success ? 'text-green-700' : 'text-red-700'}>
+                                                        {message.metadata.action_result.message || 'Action completed successfully!'}
+                                                    </p>
+                                                    {message.metadata.action_result.success && message.metadata.action_result.result?.invoice_id && (
+                                                        <div className="mt-2">
+                                                            <a 
+                                                                href={`/invoices/${message.metadata.action_result.result.invoice_id}`}
+                                                                className="text-sm text-green-700 underline font-medium hover:text-green-800"
+                                                            >
+                                                                View Invoice →
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                            {/* Quick actions */}
-                                            {message.role === 'assistant' && message.metadata?.quick_actions && (
+                                            {/* Quick actions - hide if action is executed */}
+                                            {message.role === 'assistant' && message.metadata?.quick_actions && !message.metadata?.action_executed && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     {message.metadata.quick_actions.map((action, idx) => (
                                                         <button

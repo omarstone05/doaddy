@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-export default function ActionConfirmation({ action, onConfirm, onCancel }) {
+export default function ActionConfirmation({ action, onConfirm, onCancel, messageId, onUpdateMessage }) {
     const [confirming, setConfirming] = useState(false);
     const [result, setResult] = useState(null);
+    const [executed, setExecuted] = useState(false);
     const preview = action.preview;
 
     const handleConfirm = async () => {
@@ -12,7 +13,17 @@ export default function ActionConfirmation({ action, onConfirm, onCancel }) {
         try {
             const response = await axios.post(`/api/addy/actions/${action.action_id}/confirm`);
             setResult(response.data);
+            setExecuted(true);
             
+            // Update the message to mark action as executed
+            if (onUpdateMessage && messageId) {
+                onUpdateMessage(messageId, {
+                    action_executed: true,
+                    action_result: response.data,
+                });
+            }
+            
+            // Add success message to chat
             if (onConfirm) {
                 onConfirm(response.data);
             }
@@ -38,11 +49,11 @@ export default function ActionConfirmation({ action, onConfirm, onCancel }) {
         }
     };
 
-    if (result) {
+    if (result || executed) {
         return (
-            <div className={`p-4 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+            <div className={`p-4 rounded-lg mt-3 ${result?.success ? 'bg-green-50/80 backdrop-blur-sm border border-green-300/50' : 'bg-red-50/80 backdrop-blur-sm border border-red-300/50'}`}>
                 <div className="flex items-center gap-2 mb-2">
-                    {result.success ? (
+                    {result?.success ? (
                         <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -51,17 +62,29 @@ export default function ActionConfirmation({ action, onConfirm, onCancel }) {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     )}
-                    <span className={`font-semibold ${result.success ? 'text-green-800' : 'text-red-800'}`}>
-                        {result.success ? 'Action Completed!' : 'Action Failed'}
+                    <span className={`font-semibold ${result?.success ? 'text-green-800' : 'text-red-800'}`}>
+                        {result?.success ? 'Action Completed!' : 'Action Failed'}
                     </span>
                 </div>
-                <p className={result.success ? 'text-green-700' : 'text-red-700'}>
-                    {result.message}
+                <p className={result?.success ? 'text-green-700' : 'text-red-700'}>
+                    {result?.message || 'Action completed successfully!'}
                 </p>
 
-                {result.success && result.result?.sent && (
+                {result?.success && result.result?.sent && (
                     <div className="mt-2 text-sm text-green-700">
                         Successfully sent {result.result.sent} email(s)
+                    </div>
+                )}
+                
+                {result?.success && result.result?.invoice_id && (
+                    <div className="mt-2 text-sm text-green-700">
+                        Invoice created successfully! <a href={`/invoices/${result.result.invoice_id}`} className="underline font-medium">View Invoice</a>
+                    </div>
+                )}
+                
+                {result?.success && result.result?.transaction_id && (
+                    <div className="mt-2 text-sm text-green-700">
+                        Transaction recorded successfully!
                     </div>
                 )}
             </div>
@@ -129,13 +152,20 @@ export default function ActionConfirmation({ action, onConfirm, onCancel }) {
             <div className="flex gap-2">
                 <button
                     onClick={handleConfirm}
-                    disabled={confirming}
-                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                    disabled={confirming || executed}
+                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                     {confirming ? (
                         <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                             <span>Executing...</span>
+                        </>
+                    ) : executed ? (
+                        <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Completed</span>
                         </>
                     ) : (
                         <>
@@ -149,8 +179,8 @@ export default function ActionConfirmation({ action, onConfirm, onCancel }) {
 
                 <button
                     onClick={handleCancel}
-                    disabled={confirming}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                    disabled={confirming || executed}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     Cancel
                 </button>
