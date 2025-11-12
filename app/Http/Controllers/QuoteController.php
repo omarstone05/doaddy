@@ -147,8 +147,9 @@ class QuoteController extends Controller
 
         $organization = $quote->organization;
         $logoUrl = null;
-        if ($organization->logo) {
-            $logoUrl = asset(\Storage::url($organization->logo));
+        if ($organization->logo && \Storage::exists($organization->logo)) {
+            // Use absolute URL for PDF rendering
+            $logoUrl = url(\Storage::url($organization->logo));
         }
 
         $pdfService = new \App\Services\PDF\PdfService();
