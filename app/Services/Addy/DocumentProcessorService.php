@@ -118,7 +118,7 @@ class DocumentProcessorService
                     'content' => [
                         [
                             'type' => 'text',
-                            'text' => 'Extract all text and information from this image. Include any numbers, dates, amounts, descriptions, and details that could be used for business transactions like receipts, invoices, or expense records.',
+                            'text' => 'Extract ALL text and information from this image. This may be a bank statement, invoice, receipt, or other financial document. Include ALL numbers, dates, amounts, descriptions, account numbers, transaction details, balances, and any other information that could be used for business transactions. For bank statements, extract ALL transactions with dates, amounts, descriptions, and transaction types (debit/credit). Be thorough and extract everything visible.',
                         ],
                         [
                             'type' => 'image_url',
@@ -129,7 +129,7 @@ class DocumentProcessorService
                     ],
                 ],
             ],
-            'max_tokens' => 2000,
+            'max_tokens' => 4000, // Increased for bank statements which can have many transactions
         ]);
 
         if (!$response->successful()) {
@@ -154,7 +154,7 @@ class DocumentProcessorService
             'Content-Type' => 'application/json',
         ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
             'model' => $model,
-            'max_tokens' => 2000,
+            'max_tokens' => 4000, // Increased for bank statements which can have many transactions
             'messages' => [
                 [
                     'role' => 'user',
@@ -169,7 +169,7 @@ class DocumentProcessorService
                         ],
                         [
                             'type' => 'text',
-                            'text' => 'Extract all text and information from this image. Include any numbers, dates, amounts, descriptions, and details that could be used for business transactions like receipts, invoices, or expense records.',
+                            'text' => 'Extract ALL text and information from this image. This may be a bank statement, invoice, receipt, or other financial document. Include ALL numbers, dates, amounts, descriptions, account numbers, transaction details, balances, and any other information that could be used for business transactions. For bank statements, extract ALL transactions with dates, amounts, descriptions, and transaction types (debit/credit). Be thorough and extract everything visible.',
                         ],
                     ],
                 ],
@@ -186,42 +186,153 @@ class DocumentProcessorService
 
     /**
      * Extract text from PDF
+     * Tries multiple methods: command-line tools (pdftotext), PHP parser, then AI vision
      */
     protected function extractTextFromPdf(UploadedFile $file): string
     {
+        $filePath = $file->getRealPath();
+        
+        // Method 1: Try pdftotext (command-line tool) - best for password-protected PDFs
+        if ($this->commandExists('pdftotext')) {
+            try {
+                $text = $this->extractTextWithPdftotext($filePath);
+                if (!empty($text) && strlen(trim($text)) > 50) {
+                    \Log::info('PDF text extracted successfully using pdftotext');
+                    return $text;
+                }
+            } catch (\Exception $e) {
+                \Log::warning('pdftotext extraction failed', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // Method 2: Try qpdf to decrypt if password-protected, then extract
+        if ($this->commandExists('qpdf')) {
+            try {
+                $decryptedPath = $this->decryptPdfWithQpdf($filePath);
+                if ($decryptedPath && $decryptedPath !== $filePath) {
+                    // Try pdftotext on decrypted PDF
+                    if ($this->commandExists('pdftotext')) {
+                        $text = $this->extractTextWithPdftotext($decryptedPath);
+                        @unlink($decryptedPath); // Clean up temp file
+                        if (!empty($text) && strlen(trim($text)) > 50) {
+                            \Log::info('PDF text extracted successfully after decryption with qpdf');
+                            return $text;
+                        }
+                    }
+                    // Try PHP parser on decrypted PDF
+                    try {
+                        $parser = new \Smalot\PdfParser\Parser();
+                        $pdf = $parser->parseFile($decryptedPath);
+                        $text = $pdf->getText();
+                        @unlink($decryptedPath); // Clean up temp file
+                        if (!empty($text) && strlen(trim($text)) > 50) {
+                            \Log::info('PDF text extracted successfully using PHP parser after decryption');
+                            return $text;
+                        }
+                    } catch (\Exception $e) {
+                        @unlink($decryptedPath); // Clean up temp file
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('qpdf decryption failed', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // Method 3: Try PHP PDF Parser
         try {
-            // Use Smalot PDF Parser for text-based PDFs
             $parser = new \Smalot\PdfParser\Parser();
-            $pdf = $parser->parseFile($file->getRealPath());
+            $pdf = $parser->parseFile($filePath);
             $text = $pdf->getText();
             
             if (!empty($text) && strlen(trim($text)) > 50) {
+                \Log::info('PDF text extracted successfully using PHP parser');
                 return $text;
             }
-            
-            // If text extraction returns empty, the PDF might be image-based
-            // Try using AI vision on the first page
-            \Log::info('PDF text extraction returned empty or too short, trying AI vision');
-            return $this->extractTextFromPdfWithAI($file);
         } catch (\Smalot\PdfParser\Exception\EncodingException $e) {
-            // Password-protected or secured PDF
-            \Log::warning('PDF is password-protected or secured', ['error' => $e->getMessage()]);
-            throw new \Exception('This PDF is password-protected or secured. Please remove the password protection and try again, or convert the PDF pages to images and upload those.');
+            \Log::warning('PDF is password-protected (PHP parser)', ['error' => $e->getMessage()]);
         } catch (\Exception $e) {
-            // Check if it's a secured PDF error
-            if (str_contains($e->getMessage(), 'Secured pdf') || str_contains($e->getMessage(), 'password')) {
-                \Log::warning('PDF is password-protected or secured', ['error' => $e->getMessage()]);
-                throw new \Exception('This PDF is password-protected or secured. Please remove the password protection and try again, or convert the PDF pages to images and upload those.');
-            }
-            
-            \Log::warning('PDF text extraction failed', ['error' => $e->getMessage()]);
-            // For other errors, try AI vision as fallback
-            try {
-                return $this->extractTextFromPdfWithAI($file);
-            } catch (\Exception $aiError) {
-                throw new \Exception('Unable to extract text from this PDF. The PDF may be password-protected, corrupted, or in an unsupported format. Please try: 1) Removing password protection, 2) Converting PDF pages to images, or 3) Copying the text manually.');
-            }
+            \Log::warning('PHP PDF parser failed', ['error' => $e->getMessage()]);
         }
+        
+        // Method 4: If all else fails, try AI vision (for image-based PDFs)
+        \Log::info('All PDF text extraction methods failed, trying AI vision as last resort');
+        try {
+            return $this->extractTextFromPdfWithAI($file);
+        } catch (\Exception $e) {
+            \Log::error('All PDF extraction methods failed', ['error' => $e->getMessage()]);
+            throw new \Exception('Unable to extract text from this PDF. The PDF may be password-protected, corrupted, or in an unsupported format. Please try: 1) Removing password protection, 2) Converting PDF pages to images and uploading those, or 3) Copying the text manually.');
+        }
+    }
+    
+    /**
+     * Check if a command-line tool exists
+     */
+    protected function commandExists(string $command): bool
+    {
+        $whereIsCommand = (PHP_OS == 'WINNT') ? 'where' : 'which';
+        $process = proc_open(
+            "$whereIsCommand $command",
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes
+        );
+        
+        if ($process !== false) {
+            $stdout = stream_get_contents($pipes[1]);
+            proc_close($process);
+            return !empty($stdout);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Extract text using pdftotext command-line tool
+     */
+    protected function extractTextWithPdftotext(string $filePath): string
+    {
+        $tempOutput = tempnam(sys_get_temp_dir(), 'pdf_text_');
+        
+        // Run pdftotext command
+        $command = escapeshellarg($filePath) . ' ' . escapeshellarg($tempOutput) . ' 2>&1';
+        exec("pdftotext $command", $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            @unlink($tempOutput);
+            throw new \Exception('pdftotext failed: ' . implode("\n", $output));
+        }
+        
+        if (!file_exists($tempOutput)) {
+            throw new \Exception('pdftotext output file not created');
+        }
+        
+        $text = file_get_contents($tempOutput);
+        @unlink($tempOutput);
+        
+        return $text ?: '';
+    }
+    
+    /**
+     * Decrypt PDF using qpdf command-line tool
+     */
+    protected function decryptPdfWithQpdf(string $filePath): ?string
+    {
+        $decryptedPath = tempnam(sys_get_temp_dir(), 'pdf_decrypted_') . '.pdf';
+        
+        // Try to decrypt (qpdf will create output even if not encrypted)
+        $command = escapeshellarg($filePath) . ' ' . escapeshellarg($decryptedPath) . ' 2>&1';
+        exec("qpdf --decrypt $command", $output, $returnCode);
+        
+        if ($returnCode !== 0 || !file_exists($decryptedPath)) {
+            @unlink($decryptedPath);
+            return null;
+        }
+        
+        // Check if decryption actually happened (file sizes might differ)
+        return $decryptedPath;
     }
     
     /**
