@@ -8,6 +8,7 @@ use App\Services\Addy\Agents\SalesAgent;
 use App\Services\Addy\Agents\PeopleAgent;
 use App\Services\Addy\Agents\InventoryAgent;
 use App\Services\AI\AIService;
+use App\Services\Document\DocumentContextService;
 
 class AddyResponseGenerator
 {
@@ -986,6 +987,45 @@ class AddyResponseGenerator
         }
         
         return $actions;
+    }
+    
+    /**
+     * Get historical document context for the user's message
+     */
+    protected function getHistoricalDocumentContext(string $userMessage): ?array
+    {
+        try {
+            $contextService = new DocumentContextService();
+            
+            // Extract potential customer name or keywords from message
+            $customerName = null;
+            $documentType = null;
+            
+            // Simple extraction - could be enhanced with NLP
+            if (preg_match('/\b(customer|client|for|to)\s+([A-Z][a-zA-Z\s]+)/i', $userMessage, $matches)) {
+                $customerName = trim($matches[2] ?? '');
+            }
+            
+            // Check for document type keywords
+            if (preg_match('/\b(invoice|quote|receipt|document|contract)\b/i', $userMessage, $matches)) {
+                $documentType = strtolower($matches[1] ?? '');
+            }
+            
+            $context = $contextService->getHistoricalContext(
+                $this->organization->id,
+                $customerName ?: null,
+                $documentType ?: null,
+                5 // Limit to 5 most recent relevant documents
+            );
+            
+            return !empty($context) ? $context : null;
+        } catch (\Exception $e) {
+            \Log::warning('Failed to get historical document context', [
+                'error' => $e->getMessage(),
+                'organization_id' => $this->organization->id,
+            ]);
+            return null;
+        }
     }
     
     protected function buildConversationalSystemMessage($state, $thought, string $tone, ?array $dataContext, AddyCulturalEngine $culturalEngine, ?array $historicalContext = null): string
