@@ -293,6 +293,14 @@ class AddyResponseGenerator
                     'top_expenses' => $data['top_expenses'],
                 ];
             
+            case 'query_transactions':
+                $agent = new MoneyAgent($this->organization);
+                $data = $agent->perceive();
+                return [
+                    'type' => 'transactions',
+                    'latest_transactions' => $data['latest_transactions'] ?? [],
+                ];
+            
             case 'query_invoices':
                 $agent = new SalesAgent($this->organization);
                 $data = $agent->perceive();
@@ -914,6 +922,24 @@ class AddyResponseGenerator
                 return "I can help you with budget information. Check the Money section for detailed budget status.";
             case 'query_expenses':
                 return "I can help you track expenses. View your expense breakdown in the Money section.";
+            case 'query_transactions':
+                if ($dataContext && isset($dataContext['latest_transactions'])) {
+                    $transactions = $dataContext['latest_transactions'];
+                    if (empty($transactions)) {
+                        return "You don't have any transactions yet. You can add transactions in the Money section.";
+                    }
+                    $response = "Here are your latest transactions:\n\n";
+                    foreach (array_slice($transactions, 0, 5) as $tx) {
+                        $type = $tx['type'] === 'income' ? 'Income' : 'Expense';
+                        $amount = number_format($tx['amount'], 2);
+                        $response .= "• {$type}: \${$amount} - {$tx['category']} ({$tx['formatted_date']})\n";
+                        if (!empty($tx['description'])) {
+                            $response .= "  {$tx['description']}\n";
+                        }
+                    }
+                    return $response;
+                }
+                return "I can help you view transactions. Check the Money section for your transaction history.";
             case 'query_invoices':
                 return "I can help you with invoices. Check the Sales section for invoice details.";
             case 'query_sales':
@@ -958,6 +984,13 @@ class AddyResponseGenerator
                     $actions = [
                         ['label' => 'View Transactions', 'url' => '/money/movements'],
                         ['label' => 'View Report', 'url' => '/reports/expenses'],
+                    ];
+                    break;
+                
+                case 'transactions':
+                    $actions = [
+                        ['label' => 'View All Transactions', 'url' => '/money/movements'],
+                        ['label' => 'Add Transaction', 'url' => '/money/movements/create'],
                     ];
                     break;
                 
@@ -1104,7 +1137,18 @@ class AddyResponseGenerator
         if ($dataContext) {
             $message .= "\n**DATA PROVIDED BY SYSTEM (use this to answer the user's question conversationally):**\n";
             $message .= json_encode($dataContext, JSON_PRETTY_PRINT);
-            $message .= "\n\nIMPORTANT: Present this data naturally in conversation. Don't just list numbers - explain what they mean, provide context, and make it conversational. Use the data to answer the user's question, but format it as a natural response.\n";
+            $message .= "\n\n**CRITICAL RULES FOR USING DATA:**\n";
+            $message .= "- ONLY use the data provided above. NEVER invent, make up, or hallucinate data.\n";
+            $message .= "- If the data is empty or missing, say so clearly (e.g., 'You don't have any transactions yet' or 'I don't have that information available').\n";
+            $message .= "- If asked 'Where did you get this data from?', explain that it comes from the user's actual business records in the system.\n";
+            $message .= "- NEVER create hypothetical examples or sample data - only use real data from the system.\n";
+            $message .= "- If the user questions the data, acknowledge it and suggest they check the relevant section of the app.\n";
+            $message .= "- Present this data naturally in conversation. Don't just list numbers - explain what they mean, provide context, and make it conversational. Use the data to answer the user's question, but format it as a natural response.\n";
+        } else {
+            $message .= "\n**IMPORTANT: NO DATA CONTEXT PROVIDED**\n";
+            $message .= "- If the user asks about specific data (transactions, cash, expenses, etc.), you MUST tell them that you don't have access to that data right now.\n";
+            $message .= "- DO NOT invent or make up data. Be honest that you need to query the system first.\n";
+            $message .= "- Suggest they check the relevant section of the app or ask a more specific question.\n";
         }
         
         // Historical document context

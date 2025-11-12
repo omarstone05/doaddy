@@ -56,6 +56,14 @@ class AddyCommandParser
             ];
         }
         
+        // Transaction queries (latest, recent transactions)
+        if ($this->isTransactionQuery($message)) {
+            return [
+                'intent' => 'query_transactions',
+                'confidence' => 0.9,
+            ];
+        }
+        
         // Invoice queries
         if ($this->isInvoiceQuery($message)) {
             return [
@@ -146,6 +154,12 @@ class AddyCommandParser
     protected function isExpenseQuery(string $message): bool
     {
         $keywords = ['expense', 'expenses', 'spending', 'spent', 'costs'];
+        return $this->containsAny($message, $keywords);
+    }
+    
+    protected function isTransactionQuery(string $message): bool
+    {
+        $keywords = ['transaction', 'transactions', 'latest transaction', 'recent transaction', 'recent transactions', 'latest transactions', 'where did you get', 'show me transactions'];
         return $this->containsAny($message, $keywords);
     }
     

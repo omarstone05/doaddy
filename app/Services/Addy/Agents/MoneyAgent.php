@@ -42,6 +42,7 @@ class MoneyAgent
             'top_expenses' => $this->getTopExpenses(),
             'monthly_burn' => $this->getMonthlyBurn(),
             'trends' => $this->getTrends(),
+            'latest_transactions' => $this->getLatestTransactions(),
         ];
     }
 
@@ -54,8 +55,22 @@ class MoneyAgent
 
     protected function getBudgetHealth(): array
     {
-        $budgets = BudgetLine::where('organization_id', $this->organization->id)
-            ->get();
+        try {
+            $budgets = BudgetLine::where('organization_id', $this->organization->id)
+                ->get();
+        } catch (\Exception $e) {
+            // Handle case where organization_id column doesn't exist
+            \Log::warning('Budget query failed - organization_id column may not exist', [
+                'error' => $e->getMessage(),
+                'organization_id' => $this->organization->id,
+            ]);
+            return [
+                'overrun' => [],
+                'warning' => [],
+                'healthy' => [],
+                'total_budgets' => 0,
+            ];
+        }
 
         $overrun = [];
         $healthy = [];
@@ -283,6 +298,31 @@ class MoneyAgent
             $lines[] = "• {$expense['category']}: " . number_format($expense['amount'], 2);
         }
         return implode("\n", $lines);
+    }
+
+    /**
+     * Get latest transactions for the organization
+     */
+    public function getLatestTransactions(int $limit = 10): array
+    {
+        return MoneyMovement::where('organization_id', $this->organization->id)
+            ->where('status', 'approved')
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($movement) {
+                return [
+                    'id' => $movement->id,
+                    'type' => $movement->flow_type,
+                    'amount' => (float) $movement->amount,
+                    'category' => $movement->category ?? 'Uncategorized',
+                    'description' => $movement->description ?? '',
+                    'date' => $movement->transaction_date->format('Y-m-d'),
+                    'formatted_date' => $movement->transaction_date->format('M d, Y'),
+                ];
+            })
+            ->toArray();
     }
 }
 
