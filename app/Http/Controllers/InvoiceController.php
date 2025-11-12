@@ -172,12 +172,19 @@ class InvoiceController extends Controller
             ->with(['customer', 'items', 'organization'])
             ->findOrFail($id);
 
+        $organization = $invoice->organization;
+        $logoUrl = null;
+        if ($organization->logo) {
+            $logoUrl = asset(\Storage::url($organization->logo));
+        }
+
         $pdfService = new \App\Services\PDF\PdfService();
         $filename = 'Invoice-' . $invoice->invoice_number . '.pdf';
 
         return $pdfService->download('pdf.invoice', [
             'invoice' => $invoice,
-            'organization' => $invoice->organization,
+            'organization' => $organization,
+            'logoUrl' => $logoUrl,
         ], $filename);
     }
 

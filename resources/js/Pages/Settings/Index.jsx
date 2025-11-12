@@ -1,9 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { Save, Building2 } from 'lucide-react';
+import { Save, Building2, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 export default function SettingsIndex({ organization }) {
+    const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
+    const fileInputRef = useRef(null);
+
     const { data, setData, put, processing, errors } = useForm({
         name: organization.name || '',
         slug: organization.slug || '',
@@ -12,11 +16,36 @@ export default function SettingsIndex({ organization }) {
         tone_preference: organization.tone_preference || '',
         currency: organization.currency || 'ZMW',
         timezone: organization.timezone || 'Africa/Lusaka',
+        logo: null,
     });
+
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData('logo', file);
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveLogo = () => {
+        setData('logo', null);
+        setLogoPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        put('/settings');
+        put('/settings', {
+            forceFormData: true,
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -32,7 +61,60 @@ export default function SettingsIndex({ organization }) {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
+                        {/* Logo Upload Section */}
+                        <div className="mb-6 pb-6 border-b border-gray-200">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Organization Logo
+                            </label>
+                            <div className="flex items-start gap-6">
+                                <div className="flex-shrink-0">
+                                    {logoPreview ? (
+                                        <div className="relative">
+                                            <img
+                                                src={logoPreview}
+                                                alt="Organization logo"
+                                                className="h-24 w-24 object-contain border border-gray-300 rounded-lg bg-white p-2"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveLogo}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                title="Remove logo"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="h-24 w-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleLogoChange}
+                                        className="hidden"
+                                        id="logo-upload"
+                                    />
+                                    <label
+                                        htmlFor="logo-upload"
+                                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                                    >
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                                    </label>
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        Recommended: Square image, max 2MB. Formats: JPG, PNG, GIF, SVG
+                                    </p>
+                                    {errors.logo && <p className="mt-1 text-sm text-red-600">{errors.logo}</p>}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">

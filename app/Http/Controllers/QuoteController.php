@@ -145,12 +145,19 @@ class QuoteController extends Controller
             ->with(['customer', 'items', 'organization'])
             ->findOrFail($id);
 
+        $organization = $quote->organization;
+        $logoUrl = null;
+        if ($organization->logo) {
+            $logoUrl = asset(\Storage::url($organization->logo));
+        }
+
         $pdfService = new \App\Services\PDF\PdfService();
         $filename = 'Quote-' . $quote->quote_number . '.pdf';
 
         return $pdfService->download('pdf.quote', [
             'quote' => $quote,
-            'organization' => $quote->organization,
+            'organization' => $organization,
+            'logoUrl' => $logoUrl,
         ], $filename);
     }
 

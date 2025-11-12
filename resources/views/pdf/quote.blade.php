@@ -148,7 +148,11 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <h1>QUOTE</h1>
+            @if(isset($logoUrl) && $logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $organization->name ?? 'Logo' }}" style="max-height: 60px; max-width: 200px; margin-bottom: 10px; object-fit: contain;" />
+            @else
+                <h1>QUOTE</h1>
+            @endif
             <p>{{ $organization->name ?? 'Addy Business' }}</p>
         </div>
         <div class="header-right">
