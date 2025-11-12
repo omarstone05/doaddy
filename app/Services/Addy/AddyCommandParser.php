@@ -9,7 +9,21 @@ class AddyCommandParser
      */
     public function parse(string $message): array
     {
+        $originalMessage = $message; // Keep original for bank statement detection
         $message = strtolower(trim($message));
+        
+        // Check if message looks like bank statement data (before lowercasing)
+        if ($this->looksLikeBankStatement($originalMessage)) {
+            return [
+                'intent' => 'action',
+                'action_type' => 'create_transaction',
+                'parameters' => [
+                    'is_bank_statement_text' => true,
+                    'raw_text' => $originalMessage,
+                ],
+                'confidence' => 0.95,
+            ];
+        }
         
         // Check for action requests FIRST
         if ($this->isActionRequest($message)) {
@@ -373,6 +387,42 @@ class AddyCommandParser
         if (str_contains($message, 'budget')) return 'budget';
         
         return 'general';
+    }
+    
+    /**
+     * Check if message looks like bank statement data
+     */
+    protected function looksLikeBankStatement(string $message): bool
+    {
+        // Check for common bank statement patterns
+        $patterns = [
+            // Date patterns (Sep 23, Sep 24, etc.)
+            '/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\b/i',
+            // Transaction patterns (POS Purchase, Bank To Wallet, FNB OB Pmt, etc.)
+            '/\b(POS|Purchase|Bank|Wallet|Payment|Transfer|Withdrawal|Deposit|Credit|Debit|FNB|OB|Pmt)\b/i',
+            // Balance patterns (Cr, Dr, or numbers with commas)
+            '/\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:Cr|Dr|Balance)?\b/i',
+            // Amount patterns (multiple amounts in sequence)
+            '/\d+\.\d{2}/',
+        ];
+        
+        $matchCount = 0;
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                $matchCount++;
+            }
+        }
+        
+        // If we have multiple date patterns and transaction patterns, it's likely a bank statement
+        $hasMultipleDates = preg_match_all('/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\b/i', $message) >= 3;
+        $hasTransactionKeywords = preg_match('/\b(POS|Purchase|Bank|Wallet|Payment|Transfer|Withdrawal|Deposit|FNB|OB|Pmt)\b/i', $message);
+        $hasAmounts = preg_match_all('/\d+\.\d{2}/', $message) >= 3;
+        
+        // Also check for common bank statement headers
+        $hasHeaders = preg_match('/\b(Description|Amount|Balance|Date|Transaction)\b/i', $message);
+        
+        return ($hasMultipleDates && $hasTransactionKeywords && $hasAmounts) || 
+               ($hasHeaders && $hasAmounts && $hasTransactionKeywords);
     }
 }
 

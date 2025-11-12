@@ -29,6 +29,21 @@ class AddyResponseGenerator
      */
     public function generateResponse(array $intent, string $userMessage, array $chatHistory = [], array $extractedData = []): array
     {
+        // Check if user pasted bank statement text directly
+        if ($intent['intent'] === 'action' && 
+            $intent['action_type'] === 'create_transaction' && 
+            isset($intent['parameters']['is_bank_statement_text']) && 
+            $intent['parameters']['is_bank_statement_text'] === true) {
+            
+            // Process the pasted text as if it were extracted from a document
+            $rawText = $intent['parameters']['raw_text'] ?? $userMessage;
+            $extractedData = $this->processBankStatementText($rawText);
+            
+            if (!empty($extractedData)) {
+                $intent = $this->createIntentFromExtractedData($extractedData, $intent);
+            }
+        }
+        
         // If we have extracted data from files, try to create transaction action
         if (!empty($extractedData)) {
             $intent = $this->createIntentFromExtractedData($extractedData, $intent);
@@ -54,6 +69,96 @@ class AddyResponseGenerator
         $dataContext = $this->getDataContext($intent);
         
         return $this->handleConversationalQuery($userMessage, $chatHistory, $intent, $dataContext);
+    }
+    
+    /**
+     * Process pasted bank statement text
+     */
+    protected function processBankStatementText(string $text): array
+    {
+        try {
+            // Use the same structured data extraction as documents
+            $processor = new \App\Services\Addy\DocumentProcessorService();
+            $reflection = new \ReflectionClass($processor);
+            $method = $reflection->getMethod('extractStructuredData');
+            $method->setAccessible(true);
+            
+            $extractedData = $method->invoke($processor, $text, 'text/plain');
+            
+            if (!empty($extractedData) && isset($extractedData['document_type']) && $extractedData['document_type'] === 'bank_statement') {
+                return [$extractedData];
+            }
+            
+            // If AI didn't recognize it as bank_statement, try to parse it manually
+            return [$this->parseBankStatementTextManually($text)];
+        } catch (\Exception $e) {
+            \Log::error('Failed to process bank statement text', ['error' => $e->getMessage()]);
+            // Fallback to manual parsing
+            return [$this->parseBankStatementTextManually($text)];
+        }
+    }
+    
+    /**
+     * Manually parse bank statement text
+     */
+    protected function parseBankStatementTextManually(string $text): array
+    {
+        $transactions = [];
+        $lines = explode("\n", $text);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || preg_match('/^(Date|Description|Amount|Balance|Sep|Description Amount Balance)$/i', $line)) {
+                continue; // Skip headers
+            }
+            
+            // Try to extract transaction data
+            // Pattern: Date Date Date Description Amount Balance
+            if (preg_match('/(\w+\s+\d{1,2})\s+(\w+\s+\d{1,2})?\s*(\w+\s+\d{1,2})?\s+(.+?)\s+(\d+(?:[.,]\d{2})?)\s+(\d+(?:[.,]\d{3})*(?:\.\d{2})?)?\s*(Cr|Dr)?/i', $line, $matches)) {
+                $date = $matches[1] ?? null;
+                $description = trim($matches[4] ?? '');
+                $amount = str_replace(',', '', $matches[5] ?? '0');
+                $balance = isset($matches[6]) ? str_replace(',', '', $matches[6]) : null;
+                $type = isset($matches[7]) && strtolower($matches[7]) === 'cr' ? 'credit' : 'debit';
+                
+                // Determine if it's income or expense based on description
+                $flowType = 'expense';
+                if (preg_match('/\b(payment|credit|deposit|income|received|FNB OB Pmt)\b/i', $description)) {
+                    $flowType = 'income';
+                }
+                
+                if (is_numeric($amount) && $amount > 0) {
+                    $transactions[] = [
+                        'date' => $date,
+                        'amount' => (float) $amount,
+                        'description' => $description,
+                        'type' => $type,
+                        'flow_type' => $flowType,
+                        'balance' => $balance ? (float) $balance : null,
+                    ];
+                }
+            }
+        }
+        
+        if (empty($transactions)) {
+            // Fallback: use AI to extract
+            try {
+                $processor = new \App\Services\Addy\DocumentProcessorService();
+                $reflection = new \ReflectionClass($processor);
+                $method = $reflection->getMethod('extractStructuredData');
+                $method->setAccessible(true);
+                return $method->invoke($processor, $text, 'text/plain');
+            } catch (\Exception $e) {
+                \Log::error('Failed to extract bank statement data', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        return [
+            'document_type' => 'bank_statement',
+            'type' => 'bank_statement',
+            'transactions' => $transactions,
+            'raw_text' => $text,
+        ];
     }
     
     /**
