@@ -91,14 +91,20 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
             return;
         }
 
-        setData('items', validItems.map(item => ({
+        const formattedItems = validItems.map(item => ({
             description: item.description,
             quantity: parseFloat(item.quantity),
             unit_price: parseFloat(item.unit_price),
             goods_service_id: item.goods_service_id || null,
-        })));
+        }));
 
-        post('/invoices');
+        post('/invoices', {
+            data: {
+                ...data,
+                items: formattedItems,
+            },
+            preserveScroll: true,
+        });
     };
 
     return (

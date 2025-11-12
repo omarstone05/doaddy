@@ -144,6 +144,12 @@ class InvoiceController extends Controller
             return redirect()->route('invoices.show', $invoice->id)->with('message', 'Invoice created successfully');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Failed to create invoice', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'user_id' => Auth::id(),
+            ]);
             return back()->withErrors(['error' => 'Failed to create invoice: ' . $e->getMessage()]);
         }
     }
