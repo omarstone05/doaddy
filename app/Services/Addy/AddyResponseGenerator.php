@@ -1091,9 +1091,16 @@ class AddyResponseGenerator
     {
         // Format based on item type
         if (isset($item['customer'])) {
-            // Invoice reminder
-            return "**{$item['customer']}** - Invoice #{$item['invoice_number']} "
-                . "(\${$item['amount']}, {$item['days_overdue']} days overdue)";
+            // Invoice preview or reminder
+            if (isset($item['invoice_number'])) {
+                // Invoice reminder (has invoice_number)
+                return "**{$item['customer']}** - Invoice #{$item['invoice_number']} "
+                    . "(\${$item['amount']}, {$item['days_overdue']} days overdue)";
+            } else {
+                // Invoice preview (no invoice_number yet)
+                $date = isset($item['date']) ? " on {$item['date']}" : '';
+                return "**{$item['customer']}** - \${$item['amount']}{$date}";
+            }
         }
 
         if (isset($item['type'])) {
