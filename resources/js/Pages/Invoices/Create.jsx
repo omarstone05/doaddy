@@ -187,45 +187,45 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
 
                         {/* Items */}
                         <div>
-                            <div className="flex items-center gap-4 mb-4">
-                                <Button type="button" variant="secondary" size="sm" onClick={addItem}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Item
-                                </Button>
+                            <div className="flex items-center justify-between mb-4">
                                 <label className="block text-sm font-medium text-gray-700">
                                     Items *
                                 </label>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCurrentProductModalIndex(null);
+                                            setShowProductModal(true);
+                                        }}
+                                        className="px-3 py-1.5 text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-teal-200 whitespace-nowrap"
+                                        title="Add new product"
+                                    >
+                                        + New Product
+                                    </button>
+                                    <Button type="button" variant="secondary" size="sm" onClick={addItem}>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Item
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="space-y-3">
                                 {items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
                                         <div className="col-span-4">
-                                            <div className="flex gap-1">
-                                                <select
-                                                    value={item.goods_service_id}
-                                                    onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
-                                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                                                >
-                                                    <option value="">Select Product</option>
-                                                    {products.map((product) => (
-                                                        <option key={product.id} value={product.id}>
-                                                            {product.name} - K{(parseFloat(product.selling_price) || 0).toFixed(2)}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setCurrentProductModalIndex(index);
-                                                        setShowProductModal(true);
-                                                    }}
-                                                    className="px-2 py-2 text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-teal-200 whitespace-nowrap"
-                                                    title="Add new product"
-                                                >
-                                                    + New
-                                                </button>
-                                            </div>
+                                            <select
+                                                value={item.goods_service_id}
+                                                onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                            >
+                                                <option value="">Select Product</option>
+                                                {products.map((product) => (
+                                                    <option key={product.id} value={product.id}>
+                                                        {product.name} - K{(parseFloat(product.selling_price) || 0).toFixed(2)}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div className="col-span-4">
                                             <input
