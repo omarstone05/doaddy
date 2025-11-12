@@ -426,13 +426,27 @@ class DocumentProcessorService
         try {
             $prompt = "Extract structured information from this document text. Focus on identifying:
 1. Document type: 'invoice' (outgoing invoice to create for a customer), 'receipt' (expense), 'income' (money received), 'quote' (quotation), 'bank_statement' (bank statement with multiple transactions), 'client_list' (list of clients/customers), 'note' (written note/memo), 'contract' (contract/agreement), or 'unknown'
-2. Amount(s) and currency - for bank statements, extract ALL transactions with dates, amounts, descriptions, and types (debit/credit)
-3. Date(s) including due_date if it's an invoice or quote, statement period for bank statements
-4. Customer/client name (if invoice/quote) or merchant/vendor name (if receipt/expense)
-5. Description/items - for bank statements, include transaction descriptions
-6. Category (if identifiable)
-7. Any other relevant business transaction details
-8. For bank statements: extract account number, statement period, opening balance, closing balance, and all transactions with dates, amounts, descriptions, and transaction types
+
+2. For BANK STATEMENTS specifically:
+   - Extract account number, account name, bank name
+   - Extract statement period (start and end dates)
+   - Extract opening balance and closing balance
+   - Extract ALL transactions - this is critical! Each transaction must have:
+     * date: in format like 'Sep 23' or 'Sep 23 2025' or '2025-09-23'
+     * amount: numeric value (positive number)
+     * description: full transaction description/merchant name
+     * type: 'debit' or 'credit' (or 'expense'/'income')
+     * flow_type: 'expense' for debits/withdrawals, 'income' for credits/deposits
+     * balance: running balance after transaction (if available)
+   - Common transaction types: POS Purchase, Bank To Wallet, FNB OB Pmt, Wallet To Bank, Cell Cash Withdrawal, etc.
+   - For Zambian banks (FNB, etc.), recognize patterns like 'FNB OB Pmt' (income), 'POS Purchase' (expense), etc.
+
+3. Amount(s) and currency - for bank statements, extract ALL transactions with dates, amounts, descriptions, and types (debit/credit)
+4. Date(s) including due_date if it's an invoice or quote, statement period for bank statements
+5. Customer/client name (if invoice/quote) or merchant/vendor name (if receipt/expense)
+6. Description/items - for bank statements, include transaction descriptions
+7. Category (if identifiable)
+8. Any other relevant business transaction details
 9. For client lists: extract all customer/client names, emails, phone numbers, company names
 10. For quotes: extract quote number, expiry date, line items
 11. For notes: extract key information, action items, dates mentioned
@@ -450,10 +464,12 @@ Return the information in JSON format with these fields:
 - merchant: merchant/vendor name (for receipts/expenses)
 - category: expense/income category if identifiable
 - items: array of line items with description, quantity, unit_price (for invoices/quotes or multi-item receipts)
-- transactions: array of transaction objects for bank statements, each with: date, amount, description, type (debit/credit), balance
+- transactions: array of transaction objects for bank statements, each with: date (original format), amount (numeric), description (string), type ('debit'/'credit'), flow_type ('expense'/'income'), balance (numeric, optional)
 - account_number: account number (for bank statements)
-- statement_period_start: start date of statement period (for bank statements)
-- statement_period_end: end date of statement period (for bank statements)
+- account_name: account name (for bank statements)
+- bank_name: bank name (for bank statements)
+- statement_period_start: start date of statement period in YYYY-MM-DD format (for bank statements)
+- statement_period_end: end date of statement period in YYYY-MM-DD format (for bank statements)
 - opening_balance: opening balance (for bank statements)
 - closing_balance: closing balance (for bank statements)
 - clients: array of client objects with name, email, phone, company (for client lists)
@@ -461,6 +477,8 @@ Return the information in JSON format with these fields:
 - key_points: array of key points or action items (for notes)
 - contract_parties: array of party names (for contracts)
 - contract_terms: key terms or conditions (for contracts)
+
+IMPORTANT for bank statements: Extract EVERY transaction, even if there are many. Do not skip any transactions. Include all details for each transaction.
 
 Document text:
 {$text}";

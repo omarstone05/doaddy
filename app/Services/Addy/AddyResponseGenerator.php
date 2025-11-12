@@ -1105,8 +1105,19 @@ class AddyResponseGenerator
 
         if (isset($item['type'])) {
             // Transaction
+            $category = $item['category'] ?? 'Uncategorized';
+            $account = $item['account'] ?? 'No account';
             return "**{$item['type']}** - \${$item['amount']} "
-                . "({$item['category']}) - {$item['account']}";
+                . "({$category}) - {$account}";
+        }
+        
+        // Bank statement transaction item
+        if (isset($item['flow_type']) || isset($item['description'])) {
+            $flowType = $item['flow_type'] ?? ($item['type'] === 'credit' ? 'income' : 'expense');
+            $amount = number_format($item['amount'] ?? 0, 2);
+            $date = $item['date'] ?? 'Unknown date';
+            $description = substr($item['description'] ?? 'No description', 0, 50);
+            return "**{$date}** - {$flowType} \${$amount} - {$description}";
         }
 
         // Generic
@@ -1130,43 +1141,93 @@ class AddyResponseGenerator
             ];
         }
         
-        $transactionCount = count($transactions);
-        $response = "I found a **bank statement** with **{$transactionCount} transaction(s)**.\n\n";
+        // Create import action for bank statement
+        $executionService = new \App\Services\Addy\ActionExecutionService(
+            $this->organization,
+            $this->user
+        );
         
-        if ($accountNumber) {
-            $response .= "**Account:** {$accountNumber}\n";
+        try {
+            // Prepare the import action
+            $action = $executionService->prepareAction(
+                'import_bank_statement',
+                [
+                    'transactions' => $transactions,
+                    'account_number' => $accountNumber,
+                    'statement_period_start' => $intent['parameters']['statement_period_start'] ?? null,
+                    'statement_period_end' => $intent['parameters']['statement_period_end'] ?? null,
+                    'opening_balance' => $intent['parameters']['opening_balance'] ?? null,
+                    'closing_balance' => $intent['parameters']['closing_balance'] ?? null,
+                ]
+            );
+            
+            $preview = $action->preview_data;
+            $summary = $preview['summary'] ?? [];
+            
+            $transactionCount = count($transactions);
+            $response = "I found a **bank statement** with **{$transactionCount} transaction(s)**.\n\n";
+            
+            if ($summary['account_number']) {
+                $response .= "**Account:** {$summary['account_number']}\n";
+            }
+            if ($summary['statement_period']) {
+                $response .= "**Period:** {$summary['statement_period']}\n";
+            }
+            
+            $response .= "\n**Summary:**\n";
+            $response .= "• **Income:** {$summary['income_count']} transaction(s) - \${$summary['total_income']}\n";
+            $response .= "• **Expenses:** {$summary['expense_count']} transaction(s) - \${$summary['total_expenses']}\n";
+            
+            if ($summary['duplicate_count'] > 0) {
+                $response .= "• **Duplicates:** {$summary['duplicate_count']} transaction(s) will be skipped\n";
+            }
+            
+            $response .= "\n**Sample transactions (first 5):**\n";
+            foreach (array_slice($transactions, 0, 5) as $tx) {
+                $flowType = $tx['flow_type'] ?? ($tx['type'] === 'credit' ? 'income' : 'expense');
+                $amount = number_format($tx['amount'] ?? 0, 2);
+                $date = $tx['date'] ?? 'Unknown date';
+                $description = substr($tx['description'] ?? 'No description', 0, 40);
+                $response .= "• {$date}: **{$flowType}** \${$amount} - {$description}\n";
+            }
+            
+            if ($transactionCount > 5) {
+                $more = $transactionCount - 5;
+                $response .= "\n_+ {$more} more transaction(s)_\n";
+            }
+            
+            if (!empty($preview['warnings'])) {
+                $response .= "\n**⚠️ Warnings:**\n";
+                foreach ($preview['warnings'] as $warning) {
+                    $response .= "• {$warning}\n";
+                }
+            }
+            
+            return [
+                'content' => $response,
+                'action' => [
+                    'action_id' => $action->id,
+                    'requires_confirmation' => true,
+                    'preview' => $preview,
+                ],
+                'quick_actions' => [
+                    ['label' => 'Import All Transactions', 'action_id' => $action->id, 'type' => 'confirm'],
+                    ['label' => 'Cancel', 'action_id' => $action->id, 'type' => 'cancel'],
+                ],
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to prepare bank statement import', [
+                'error' => $e->getMessage(),
+                'transactions_count' => count($transactions),
+            ]);
+            
+            // Fallback to simple response
+            $transactionCount = count($transactions);
+            return [
+                'content' => "I found a **bank statement** with **{$transactionCount} transaction(s)**, but couldn't prepare the import. Please try again or contact support.",
+            ];
         }
-        if ($statementPeriod) {
-            $response .= "**Period:** {$statementPeriod}\n";
-        }
-        
-        $response .= "\n**Transactions found:**\n";
-        foreach (array_slice($transactions, 0, 10) as $tx) {
-            $type = $tx['type'] ?? 'unknown';
-            $amount = number_format($tx['amount'] ?? 0, 2);
-            $date = $tx['date'] ?? 'Unknown date';
-            $description = $tx['description'] ?? 'No description';
-            $response .= "• {$date}: {$type} \${$amount} - {$description}\n";
-        }
-        
-        if ($transactionCount > 10) {
-            $more = $transactionCount - 10;
-            $response .= "\n_+ {$more} more transaction(s)_\n";
-        }
-        
-        $response .= "\nI can help you import these transactions. Would you like me to:\n";
-        $response .= "1. Create all transactions automatically\n";
-        $response .= "2. Review and confirm each transaction\n";
-        $response .= "3. Create transactions in batches\n\n";
-        $response .= "Just let me know how you'd like to proceed!";
-        
-        return [
-            'content' => $response,
-            'quick_actions' => [
-                ['label' => 'Import All Transactions', 'command' => 'Import all transactions from this bank statement'],
-                ['label' => 'Review First', 'command' => 'Show me the first 5 transactions to review'],
-            ],
-        ];
     }
 
     /**

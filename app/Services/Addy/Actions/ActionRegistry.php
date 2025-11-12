@@ -27,6 +27,13 @@ class ActionRegistry
                 'description' => 'Record a new income or expense transaction',
                 'requires_confirmation' => true,
             ],
+            'import_bank_statement' => [
+                'class' => ImportBankStatementAction::class,
+                'category' => 'money',
+                'label' => 'Import Bank Statement',
+                'description' => 'Import multiple transactions from a bank statement',
+                'requires_confirmation' => true,
+            ],
             'adjust_budget' => [
                 'class' => AdjustBudgetAction::class,
                 'category' => 'money',
