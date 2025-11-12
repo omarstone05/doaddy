@@ -129,7 +129,7 @@ export default function InvoicesIndex({ invoices, filters }) {
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
-                                                {invoice.status !== 'paid' && (!invoice.paid_amount || invoice.paid_amount === 0) && (
+                                                {(invoice.status === 'draft' || invoice.status === 'sent' || invoice.status === 'overdue') && (!invoice.paid_amount || parseFloat(invoice.paid_amount || 0) === 0) && (
                                                     <>
                                                         <Link
                                                             href={`/invoices/${invoice.id}/edit`}
