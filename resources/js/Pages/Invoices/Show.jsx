@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Send, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Send, DollarSign, Edit, Trash2, Download } from 'lucide-react';
 
 export default function InvoicesShow({ invoice }) {
     const formatCurrency = (amount) => {
@@ -66,6 +66,16 @@ export default function InvoicesShow({ invoice }) {
                             <div className="flex flex-col gap-2 items-end">
                                 {/* Primary Actions */}
                                 <div className="flex gap-2">
+                                    <a
+                                        href={`/invoices/${invoice.id}/download`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Button variant="secondary">
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Download PDF
+                                        </Button>
+                                    </a>
                                     {invoice.status === 'draft' && (
                                         <Button onClick={handleSend}>
                                             <Send className="h-4 w-4 mr-2" />

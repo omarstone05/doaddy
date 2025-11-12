@@ -231,10 +231,12 @@ Route::middleware('auth')->group(function () {
     // Quotes
     Route::resource('quotes', QuoteController::class);
     Route::post('/quotes/{quote}/convert', [QuoteController::class, 'convert'])->name('quotes.convert');
+    Route::get('/quotes/{quote}/download', [QuoteController::class, 'downloadPdf'])->name('quotes.download');
     
     // Invoices
     Route::resource('invoices', InvoiceController::class);
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+    Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'downloadPdf'])->name('invoices.download');
     
     // Payments
     Route::resource('payments', PaymentController::class);

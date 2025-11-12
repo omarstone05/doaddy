@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2, Download } from 'lucide-react';
 
 export default function QuotesShow({ quote }) {
     const formatCurrency = (amount) => {
@@ -65,11 +65,23 @@ export default function QuotesShow({ quote }) {
                             {/* Action Buttons - Grouped */}
                             <div className="flex flex-col gap-2 items-end">
                                 {/* Primary Actions */}
-                                {quote.status === 'accepted' && !quote.invoice_id && (
-                                    <Button onClick={handleConvert}>
-                                        Convert to Invoice
-                                    </Button>
-                                )}
+                                <div className="flex gap-2">
+                                    <a
+                                        href={`/quotes/${quote.id}/download`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Button variant="secondary">
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Download PDF
+                                        </Button>
+                                    </a>
+                                    {quote.status === 'accepted' && !quote.invoice_id && (
+                                        <Button onClick={handleConvert}>
+                                            Convert to Invoice
+                                        </Button>
+                                    )}
+                                </div>
                                 
                                 {/* Secondary Actions */}
                                 {!quote.invoice_id && (

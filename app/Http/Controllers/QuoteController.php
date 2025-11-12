@@ -139,6 +139,21 @@ class QuoteController extends Controller
         ]);
     }
 
+    public function downloadPdf($id)
+    {
+        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+            ->with(['customer', 'items', 'organization'])
+            ->findOrFail($id);
+
+        $pdfService = new \App\Services\PDF\PdfService();
+        $filename = 'Quote-' . $quote->quote_number . '.pdf';
+
+        return $pdfService->download('pdf.quote', [
+            'quote' => $quote,
+            'organization' => $quote->organization,
+        ], $filename);
+    }
+
     public function edit($id)
     {
         $quote = Quote::where('organization_id', Auth::user()->organization_id)

@@ -166,6 +166,21 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function downloadPdf($id)
+    {
+        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+            ->with(['customer', 'items', 'organization'])
+            ->findOrFail($id);
+
+        $pdfService = new \App\Services\PDF\PdfService();
+        $filename = 'Invoice-' . $invoice->invoice_number . '.pdf';
+
+        return $pdfService->download('pdf.invoice', [
+            'invoice' => $invoice,
+            'organization' => $invoice->organization,
+        ], $filename);
+    }
+
     public function edit($id)
     {
         $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
