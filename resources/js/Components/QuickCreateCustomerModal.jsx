@@ -21,7 +21,13 @@ export default function QuickCreateCustomerModal({ isOpen, onClose, onSuccess })
         setSaving(true);
 
         try {
-            const response = await axios.post('/api/customers/quick-create', formData);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const response = await axios.post('/api/customers/quick-create', formData, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            });
             if (response.data.success) {
                 onSuccess(response.data.customer);
                 handleClose();

@@ -35,7 +35,13 @@ export default function QuickCreateProductModal({ isOpen, onClose, onSuccess }) 
                 current_stock: formData.current_stock ? parseFloat(formData.current_stock) : null,
                 minimum_stock: formData.minimum_stock ? parseFloat(formData.minimum_stock) : null,
             };
-            const response = await axios.post('/api/products/quick-create', payload);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const response = await axios.post('/api/products/quick-create', payload, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            });
             if (response.data.success) {
                 onSuccess(response.data.product);
                 handleClose();
