@@ -861,6 +861,62 @@ class AddyResponseGenerator
         // Generic
         return "• " . json_encode($item);
     }
+    
+    /**
+     * Handle bank statement with multiple transactions
+     */
+    protected function handleBankStatementTransactions(array $intent, string $userMessage, array $extractedData): array
+    {
+        $transactions = $intent['parameters']['transactions'] ?? [];
+        $accountNumber = $intent['parameters']['account_number'] ?? null;
+        $statementPeriod = $intent['parameters']['statement_period_start'] ?? null 
+            ? "{$intent['parameters']['statement_period_start']} to {$intent['parameters']['statement_period_end']}"
+            : null;
+        
+        if (empty($transactions)) {
+            return [
+                'content' => "I found a bank statement, but couldn't extract any transactions from it. Please check the document and try again.",
+            ];
+        }
+        
+        $transactionCount = count($transactions);
+        $response = "I found a **bank statement** with **{$transactionCount} transaction(s)**.\n\n";
+        
+        if ($accountNumber) {
+            $response .= "**Account:** {$accountNumber}\n";
+        }
+        if ($statementPeriod) {
+            $response .= "**Period:** {$statementPeriod}\n";
+        }
+        
+        $response .= "\n**Transactions found:**\n";
+        foreach (array_slice($transactions, 0, 10) as $tx) {
+            $type = $tx['type'] ?? 'unknown';
+            $amount = number_format($tx['amount'] ?? 0, 2);
+            $date = $tx['date'] ?? 'Unknown date';
+            $description = $tx['description'] ?? 'No description';
+            $response .= "• {$date}: {$type} \${$amount} - {$description}\n";
+        }
+        
+        if ($transactionCount > 10) {
+            $more = $transactionCount - 10;
+            $response .= "\n_+ {$more} more transaction(s)_\n";
+        }
+        
+        $response .= "\nI can help you import these transactions. Would you like me to:\n";
+        $response .= "1. Create all transactions automatically\n";
+        $response .= "2. Review and confirm each transaction\n";
+        $response .= "3. Create transactions in batches\n\n";
+        $response .= "Just let me know how you'd like to proceed!";
+        
+        return [
+            'content' => $response,
+            'quick_actions' => [
+                ['label' => 'Import All Transactions', 'command' => 'Import all transactions from this bank statement'],
+                ['label' => 'Review First', 'command' => 'Show me the first 5 transactions to review'],
+            ],
+        ];
+    }
 
     /**
      * Handle all conversational queries through OpenAI with cultural context
