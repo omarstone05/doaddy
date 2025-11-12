@@ -331,22 +331,51 @@ class AddyCommandParser
     {
         $params = [];
         
-        // Extract customer name
-        if (preg_match('/(?:for|to)\s+([a-z\s]+?)(?:\s|$|,|\.|for|invoice)/i', $message, $matches)) {
+        // Extract customer name - handle "for [name]" or "to [name]"
+        // Pattern: "for brave brands" or "to brave brands" or "for brave brands from"
+        if (preg_match('/(?:for|to)\s+([a-z\s]+?)(?:\s+(?:from|on|dated|invoice)|$|,|\.)/i', $message, $matches)) {
             $params['customer_name'] = trim($matches[1]);
         }
         
-        // Extract amount
-        if (preg_match('/\$?(\d+(?:\.\d{2})?)/', $message, $matches)) {
-            $params['total_amount'] = (float) $matches[1];
+        // Extract amount - handle formats like "10 000", "10,000", "10000", "$10000"
+        // Pattern: number with optional spaces, commas, or decimal
+        if (preg_match('/\$?\s*(\d{1,3}(?:\s+\d{3})*(?:\.\d{2})?|\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/', $message, $matches)) {
+            $amount = str_replace([' ', ','], '', $matches[1]);
+            $params['total_amount'] = (float) $amount;
         }
         
-        // Extract date
-        if (preg_match('/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/', $message, $matches)) {
+        // Extract date - handle formats like "23 july 2025", "23/07/2025", "2025-07-23"
+        // Pattern: day month year or date formats
+        if (preg_match('/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{4})/i', $message, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $month = $this->monthToNumber($matches[2]);
+            $year = $matches[3];
+            $params['invoice_date'] = "{$year}-{$month}-{$day}";
+        } elseif (preg_match('/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/', $message, $matches)) {
             $params['invoice_date'] = $matches[0];
         }
         
         return $params;
+    }
+    
+    protected function monthToNumber(string $month): string
+    {
+        $months = [
+            'january' => '01', 'jan' => '01',
+            'february' => '02', 'feb' => '02',
+            'march' => '03', 'mar' => '03',
+            'april' => '04', 'apr' => '04',
+            'may' => '05',
+            'june' => '06', 'jun' => '06',
+            'july' => '07', 'jul' => '07',
+            'august' => '08', 'aug' => '08',
+            'september' => '09', 'sep' => '09',
+            'october' => '10', 'oct' => '10',
+            'november' => '11', 'nov' => '11',
+            'december' => '12', 'dec' => '12',
+        ];
+        
+        return $months[strtolower($month)] ?? '01';
     }
 
     /**

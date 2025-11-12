@@ -258,6 +258,8 @@ class AddyResponseGenerator
         if ($documentType === 'invoice' || ($data['type'] === 'invoice')) {
             // For invoices, we need customer_id, items, etc.
             // If we have customer info, use it; otherwise, we'll need to ask
+            $totalAmount = (float) ($data['amount'] ?? $data['total_amount'] ?? 0);
+            
             return [
                 'intent' => 'action',
                 'action_type' => 'create_invoice',
@@ -266,12 +268,12 @@ class AddyResponseGenerator
                     'customer_name' => $data['customer_name'] ?? $data['merchant'] ?? null,
                     'invoice_date' => $data['date'] ?? now()->toDateString(),
                     'due_date' => $data['due_date'] ?? null,
-                    'items' => $data['items'] ?? (isset($data['amount']) ? [[
+                    'items' => $data['items'] ?? ($totalAmount > 0 ? [[
                         'description' => $data['description'] ?? 'Invoice item',
                         'quantity' => 1,
-                        'unit_price' => (float) $data['amount'],
+                        'unit_price' => $totalAmount,
                     ]] : []),
-                    'total_amount' => (float) ($data['amount'] ?? 0),
+                    'total_amount' => $totalAmount,
                     'notes' => $data['description'] ?? null,
                 ],
             ];
@@ -343,6 +345,26 @@ class AddyResponseGenerator
         return $currentIntent;
     }
     
+    protected function monthToNumber(string $month): string
+    {
+        $months = [
+            'january' => '01', 'jan' => '01',
+            'february' => '02', 'feb' => '02',
+            'march' => '03', 'mar' => '03',
+            'april' => '04', 'apr' => '04',
+            'may' => '05',
+            'june' => '06', 'jun' => '06',
+            'july' => '07', 'jul' => '07',
+            'august' => '08', 'aug' => '08',
+            'september' => '09', 'sep' => '09',
+            'october' => '10', 'oct' => '10',
+            'november' => '11', 'nov' => '11',
+            'december' => '12', 'dec' => '12',
+        ];
+        
+        return $months[strtolower($month)] ?? '01';
+    }
+    
     /**
      * Enrich action parameters from chat history
      */
@@ -359,14 +381,50 @@ class AddyResponseGenerator
                 if (isset($data['items']) && empty($intent['parameters']['items'])) {
                     $intent['parameters']['items'] = $data['items'];
                 }
-                if (isset($data['amount']) && !isset($intent['parameters']['total_amount'])) {
-                    $intent['parameters']['total_amount'] = (float) $data['amount'];
+                $amount = $data['amount'] ?? $data['total_amount'] ?? null;
+                if ($amount && !isset($intent['parameters']['total_amount'])) {
+                    $intent['parameters']['total_amount'] = (float) $amount;
                 }
                 if (isset($data['date']) && !isset($intent['parameters']['invoice_date'])) {
                     $intent['parameters']['invoice_date'] = $data['date'];
                 }
                 if (isset($data['due_date']) && !isset($intent['parameters']['due_date'])) {
                     $intent['parameters']['due_date'] = $data['due_date'];
+                }
+            }
+            
+            // Also extract from the current message if not already set
+            $fullContext = $currentMessage;
+            foreach ($chatHistory as $msg) {
+                if ($msg['role'] === 'user') {
+                    $fullContext .= ' ' . $msg['content'];
+                }
+            }
+            
+            // Extract customer name from message if not set
+            if (!isset($intent['parameters']['customer_id']) && !isset($intent['parameters']['customer_name'])) {
+                if (preg_match('/(?:for|to)\s+([a-z\s]+?)(?:\s+(?:from|on|dated|invoice)|$|,|\.)/i', $fullContext, $matches)) {
+                    $intent['parameters']['customer_name'] = trim($matches[1]);
+                }
+            }
+            
+            // Extract amount from message if not set
+            if (!isset($intent['parameters']['total_amount'])) {
+                if (preg_match('/\$?\s*(\d{1,3}(?:\s+\d{3})*(?:\.\d{2})?|\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/', $fullContext, $matches)) {
+                    $amount = str_replace([' ', ','], '', $matches[1]);
+                    $intent['parameters']['total_amount'] = (float) $amount;
+                }
+            }
+            
+            // Extract date from message if not set
+            if (!isset($intent['parameters']['invoice_date'])) {
+                if (preg_match('/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{4})/i', $fullContext, $matches)) {
+                    $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                    $month = $this->monthToNumber($matches[2]);
+                    $year = $matches[3];
+                    $intent['parameters']['invoice_date'] = "{$year}-{$month}-{$day}";
+                } elseif (preg_match('/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/', $fullContext, $matches)) {
+                    $intent['parameters']['invoice_date'] = $matches[0];
                 }
             }
             
