@@ -139,20 +139,67 @@ class AddyResponseGenerator
         }
         
         // Otherwise, treat as transaction (income/expense)
-        if (isset($data['type']) && isset($data['amount'])) {
+        // Try multiple ways to find amount
+        $amount = $data['amount'] ?? $data['total_amount'] ?? $data['total'] ?? null;
+        
+        // If we have an amount, create transaction intent
+        if ($amount !== null && is_numeric($amount)) {
+            // Determine flow type
+            $flowType = 'expense'; // Default
+            if (isset($data['type'])) {
+                $flowType = $data['type'] === 'income' ? 'income' : 'expense';
+            } elseif (isset($data['document_type'])) {
+                if ($data['document_type'] === 'income' || $data['document_type'] === 'receipt') {
+                    $flowType = 'expense'; // Receipts are expenses
+                } elseif ($data['document_type'] === 'income') {
+                    $flowType = 'income';
+                }
+            }
+            
             return [
                 'intent' => 'action',
                 'action_type' => 'create_transaction',
                 'parameters' => [
-                    'amount' => (float) $data['amount'],
-                    'flow_type' => $data['type'] === 'income' ? 'income' : 'expense',
+                    'amount' => (float) $amount,
+                    'flow_type' => $flowType,
                     'currency' => $data['currency'] ?? 'ZMW',
-                    'description' => $data['description'] ?? ($data['merchant'] ?? 'Transaction from document'),
+                    'description' => $data['description'] ?? $data['merchant'] ?? 'Transaction from document',
                     'category' => $data['category'] ?? null,
                     'date' => $data['date'] ?? null,
                 ],
             ];
         }
+        
+        // If we have extracted text but no structured amount, try to extract from text
+        if (isset($data['raw_text']) || isset($data['raw_extraction'])) {
+            $rawText = $data['raw_text'] ?? $data['raw_extraction'] ?? '';
+            // Try to find amount in text using regex
+            if (preg_match('/\$\s*(\d+(?:[.,]\d{2})?)|(\d+(?:[.,]\d{2})?)\s*(?:ZMW|USD|EUR|GBP)/i', $rawText, $matches)) {
+                $amount = str_replace(',', '', $matches[1] ?? $matches[2] ?? '0');
+                if (is_numeric($amount) && $amount > 0) {
+                    return [
+                        'intent' => 'action',
+                        'action_type' => 'create_transaction',
+                        'parameters' => [
+                            'amount' => (float) $amount,
+                            'flow_type' => 'expense', // Default to expense
+                            'currency' => $data['currency'] ?? 'ZMW',
+                            'description' => 'Transaction from uploaded document',
+                            'category' => null,
+                            'date' => null,
+                        ],
+                    ];
+                }
+            }
+        }
+        
+        // Log what we got for debugging
+        \Log::warning('Could not extract amount from document data', [
+            'data_keys' => array_keys($data),
+            'document_type' => $data['document_type'] ?? null,
+            'has_amount' => isset($data['amount']),
+            'has_total' => isset($data['total_amount']),
+        ]);
         
         return $currentIntent;
     }

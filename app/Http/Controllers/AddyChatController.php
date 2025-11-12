@@ -45,16 +45,26 @@ class AddyChatController extends Controller
                         'mime_type' => $processed['mime_type'],
                     ];
                     
-                    if (!empty($processed['extracted_data'])) {
-                        $extractedData[] = $processed['extracted_data'];
-                    } elseif (!empty($processed['extracted_text'])) {
-                        // If we have extracted text but no structured data, include it
-                        $extractedData[] = [
-                            'raw_text' => $processed['extracted_text'],
-                            'document_type' => 'unknown',
-                            'file_name' => $processed['file_name'],
-                        ];
-                    }
+                if (!empty($processed['extracted_data'])) {
+                    $extractedData[] = $processed['extracted_data'];
+                    \Log::info('Extracted structured data from file', [
+                        'file_name' => $processed['file_name'],
+                        'document_type' => $processed['extracted_data']['document_type'] ?? 'unknown',
+                        'has_amount' => isset($processed['extracted_data']['amount']),
+                        'amount' => $processed['extracted_data']['amount'] ?? null,
+                    ]);
+                } elseif (!empty($processed['extracted_text'])) {
+                    // If we have extracted text but no structured data, include it
+                    $extractedData[] = [
+                        'raw_text' => $processed['extracted_text'],
+                        'document_type' => 'unknown',
+                        'file_name' => $processed['file_name'],
+                    ];
+                    \Log::info('Using raw text extraction (no structured data)', [
+                        'file_name' => $processed['file_name'],
+                        'text_length' => strlen($processed['extracted_text']),
+                    ]);
+                }
                 } catch (\Exception $e) {
                     \Log::error('File processing error', [
                         'error' => $e->getMessage(),
