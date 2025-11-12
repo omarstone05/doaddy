@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 
 export default function AddySettings({ settings, userPattern }) {
-    const { data, setData, post, processing } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         // Cultural settings
         tone: settings?.tone || 'professional',
         enable_predictions: settings?.enable_predictions ?? true,
@@ -23,7 +23,10 @@ export default function AddySettings({ settings, userPattern }) {
         post('/settings/addy', {
             preserveScroll: true,
             onSuccess: () => {
-                // Show success message
+                // Success message is handled by Inertia flash messages
+            },
+            onError: (errors) => {
+                console.error('Settings update errors:', errors);
             },
         });
     };
@@ -36,6 +39,17 @@ export default function AddySettings({ settings, userPattern }) {
                 <div className="max-w-4xl mx-auto px-4">
                     <div className="bg-white rounded-lg shadow p-6">
                         <h2 className="text-2xl font-bold mb-6">Addy Preferences</h2>
+                        
+                        {errors && Object.keys(errors).length > 0 && (
+                            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                                <p className="text-red-800 font-semibold">Please fix the following errors:</p>
+                                <ul className="list-disc list-inside mt-2 text-red-700">
+                                    {Object.entries(errors).map(([key, message]) => (
+                                        <li key={key}>{message}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit} className="space-y-8">
                             {/* Communication Style */}

@@ -25,8 +25,8 @@ class AddyCulturalSetting extends Model
         'blocked_times' => 'array',
         'enable_predictions' => 'boolean',
         'enable_proactive_suggestions' => 'boolean',
-        'quiet_hours_start' => 'datetime:H:i',
-        'quiet_hours_end' => 'datetime:H:i',
+        'quiet_hours_start' => 'string',
+        'quiet_hours_end' => 'string',
     ];
 
     public function organization(): BelongsTo
@@ -59,8 +59,8 @@ class AddyCulturalSetting extends Model
         }
 
         $now = now($this->timezone)->format('H:i');
-        $start = $this->quiet_hours_start->format('H:i');
-        $end = $this->quiet_hours_end->format('H:i');
+        $start = is_string($this->quiet_hours_start) ? $this->quiet_hours_start : $this->quiet_hours_start->format('H:i');
+        $end = is_string($this->quiet_hours_end) ? $this->quiet_hours_end : $this->quiet_hours_end->format('H:i');
 
         if ($start < $end) {
             return $now >= $start && $now <= $end;

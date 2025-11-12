@@ -12,7 +12,6 @@ export default function AddyChat() {
     const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(true);
     const [selectedFiles, setSelectedFiles] = useState([]);
-    const [quickActionLoading, setQuickActionLoading] = useState(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -130,86 +129,13 @@ export default function AddyChat() {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleQuickAction = async (action, sourceMessage) => {
-        if (action?.type === 'confirm' && action.action_id) {
-            return await handleActionQuickConfirm(action, sourceMessage);
-        }
-
-        if (action?.type === 'cancel' && action.action_id) {
-            return await handleActionQuickCancel(action, sourceMessage);
-        }
-
+    const handleQuickAction = (action) => {
         if (action.command) {
             sendMessage(action.command);
         } else if (action.url) {
             router.visit(action.url);
             closeAddy();
         }
-    };
-
-    const handleActionQuickConfirm = async (action, sourceMessage) => {
-        const loadingKey = `${action.action_id}-confirm`;
-        setQuickActionLoading(loadingKey);
-
-        try {
-            const response = await axios.post(`/api/addy/actions/${action.action_id}/confirm`);
-            appendAssistantMessage(response.data.message || 'Action completed successfully.');
-            markActionAsExecuted(sourceMessage?.id, response.data);
-        } catch (error) {
-            const message = error.response?.data?.message || 'Action failed. Please try again.';
-            appendAssistantMessage(`❌ **Action failed:** ${message}`);
-        } finally {
-            setQuickActionLoading(null);
-        }
-    };
-
-    const handleActionQuickCancel = async (action, sourceMessage) => {
-        const loadingKey = `${action.action_id}-cancel`;
-        setQuickActionLoading(loadingKey);
-
-        try {
-            await axios.post(`/api/addy/actions/${action.action_id}/cancel`);
-            appendAssistantMessage('✅ Action cancelled.');
-            markActionAsExecuted(sourceMessage?.id, {
-                success: true,
-                message: 'Action cancelled.',
-                result: null,
-            });
-        } catch (error) {
-            const message = error.response?.data?.message || 'Unable to cancel action.';
-            appendAssistantMessage(`❌ **Cancel failed:** ${message}`);
-        } finally {
-            setQuickActionLoading(null);
-        }
-    };
-
-    const appendAssistantMessage = (content) => {
-        setMessages(prev => [
-            ...prev,
-            {
-                id: Date.now(),
-                role: 'assistant',
-                content,
-                created_at: new Date().toISOString(),
-            },
-        ]);
-    };
-
-    const markActionAsExecuted = (messageId, payload) => {
-        if (!messageId) return;
-
-        setMessages(prev => prev.map(msg =>
-            msg.id === messageId
-                ? {
-                    ...msg,
-                    metadata: {
-                        ...(msg.metadata || {}),
-                        action_executed: true,
-                        action_result: payload,
-                    },
-                }
-                : msg
-        ));
     };
 
     const handleKeyPress = (e) => {
@@ -424,96 +350,26 @@ export default function AddyChat() {
                                             </div>
 
                                             {/* Action Confirmation */}
-                                            {message.role === 'assistant' && message.metadata?.action && !message.metadata?.action_executed && (
+                                            {message.role === 'assistant' && message.metadata?.action && (
                                                 <ActionConfirmation
                                                     action={message.metadata.action}
-                                                    messageId={message.id}
-                                                    onConfirm={(result) => {
-                                                        // Add success message to chat
-                                                        const successMessage = {
-                                                            id: Date.now(),
-                                                            role: 'assistant',
-                                                            content: result.success 
-                                                                ? `✅ **${result.message || 'Action completed successfully!'}**\n\n${result.result?.invoice_id ? `[View Invoice](/invoices/${result.result.invoice_id})` : ''}`
-                                                                : `❌ **Action failed:** ${result.message}`,
-                                                            created_at: new Date().toISOString(),
-                                                        };
-                                                        setMessages(prev => [...prev, successMessage]);
-                                                        
-                                                        // Update the original message to mark action as executed
-                                                        setMessages(prev => prev.map(msg => 
-                                                            msg.id === message.id 
-                                                                ? { ...msg, metadata: { ...msg.metadata, action_executed: true, action_result: result } }
-                                                                : msg
-                                                        ));
-                                                        
-                                                        // Reload history to get updated state
-                                                        setTimeout(() => loadHistory(), 500);
-                                                    }}
-                                                    onUpdateMessage={(msgId, updates) => {
-                                                        setMessages(prev => prev.map(msg => 
-                                                            msg.id === msgId 
-                                                                ? { ...msg, metadata: { ...msg.metadata, ...updates } }
-                                                                : msg
-                                                        ));
-                                                    }}
-                                                    onCancel={() => {
-                                                        // Optionally reload
-                                                    }}
+                                                    onConfirm={() => loadHistory()}
+                                                    onCancel={() => loadHistory()}
                                                 />
                                             )}
                                             
-                                            {/* Show executed action status */}
-                                            {message.role === 'assistant' && message.metadata?.action_executed && message.metadata?.action_result && (
-                                                <div className={`p-4 rounded-lg mt-3 ${message.metadata.action_result.success ? 'bg-green-50/80 backdrop-blur-sm border border-green-300/50' : 'bg-red-50/80 backdrop-blur-sm border border-red-300/50'}`}>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        {message.metadata.action_result.success ? (
-                                                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                        )}
-                                                        <span className={`font-semibold ${message.metadata.action_result.success ? 'text-green-800' : 'text-red-800'}`}>
-                                                            {message.metadata.action_result.success ? 'Action Completed!' : 'Action Failed'}
-                                                        </span>
-                                                    </div>
-                                                    <p className={message.metadata.action_result.success ? 'text-green-700' : 'text-red-700'}>
-                                                        {message.metadata.action_result.message || 'Action completed successfully!'}
-                                                    </p>
-                                                    {message.metadata.action_result.success && message.metadata.action_result.result?.invoice_id && (
-                                                        <div className="mt-2">
-                                                            <a 
-                                                                href={`/invoices/${message.metadata.action_result.result.invoice_id}`}
-                                                                className="text-sm text-green-700 underline font-medium hover:text-green-800"
-                                                            >
-                                                                View Invoice →
-                                                            </a>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* Quick actions - hide if action is executed */}
-                                            {message.role === 'assistant' && message.metadata?.quick_actions && !message.metadata?.action_executed && (
+                                            {/* Quick actions */}
+                                            {message.role === 'assistant' && message.metadata?.quick_actions && (
                                                 <div className="flex flex-wrap gap-2 mt-2">
-                                                    {message.metadata.quick_actions.map((action, idx) => {
-                                                        const loadingKey = `${action.action_id}-${action.type}`;
-                                                        const isLoading = quickActionLoading === loadingKey;
-
-                                                        return (
-                                                            <button
-                                                                key={idx}
-                                                                disabled={isLoading}
-                                                                onClick={() => handleQuickAction(action, message)}
-                                                                className={`px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-full text-xs text-teal-700 hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                            >
-                                                                {isLoading ? 'Please wait…' : action.label}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                    {message.metadata.quick_actions.map((action, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => handleQuickAction(action)}
+                                                            className="px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-full text-xs text-teal-700 hover:bg-mint-50/80 hover:border-mint-300/70 transition-all shadow-sm"
+                                                        >
+                                                            {action.label}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
