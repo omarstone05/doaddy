@@ -86,7 +86,7 @@ export default function ProductsShow({ product }) {
                                     <p className="text-gray-900">
                                         <span className="font-medium">Profit Margin:</span>{' '}
                                         {formatCurrency(product.selling_price - product.cost_price)} (
-                                        {((product.selling_price - product.cost_price) / product.cost_price * 100).toFixed(1)}%)
+                                        {((parseFloat(product.selling_price) - parseFloat(product.cost_price)) / parseFloat(product.cost_price) * 100).toFixed(1)}%)
                                     </p>
                                 )}
                             </div>

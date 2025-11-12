@@ -53,7 +53,7 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
             const product = products.find(p => p.id === value);
             if (product) {
                 newItems[index].description = product.name;
-                newItems[index].unit_price = product.selling_price || 0;
+                newItems[index].unit_price = parseFloat(product.selling_price) || 0;
             }
         }
         
@@ -204,7 +204,7 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
                                                     <option value="">Select Product</option>
                                                     {products.map((product) => (
                                                         <option key={product.id} value={product.id}>
-                                                            {product.name} - K{product.selling_price?.toFixed(2) || '0.00'}
+                                                            {product.name} - K{(parseFloat(product.selling_price) || 0).toFixed(2)}
                                                         </option>
                                                     ))}
                                                 </select>

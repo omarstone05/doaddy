@@ -263,7 +263,7 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
                                                 </div>
                                             </div>
                                             <div className="text-lg font-semibold text-gray-900">
-                                                K{product.selling_price?.toFixed(2) || '0.00'}
+                                                K{(parseFloat(product.selling_price) || 0).toFixed(2)}
                                             </div>
                                         </div>
                                     ))}
@@ -284,7 +284,7 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
                                                 {product.current_stock} {product.unit || ''} in stock
                                             </div>
                                             <div className="text-lg font-bold text-gray-900">
-                                                K{product.selling_price?.toFixed(2) || '0.00'}
+                                                K{(parseFloat(product.selling_price) || 0).toFixed(2)}
                                             </div>
                                         </div>
                                     ))}
