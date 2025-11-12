@@ -108,28 +108,62 @@ class AddyResponseGenerator
         
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line) || preg_match('/^(Date|Description|Amount|Balance|Sep|Description Amount Balance)$/i', $line)) {
+            if (empty($line) || preg_match('/^(Date|Description|Amount|Balance|Sep|Description Amount Balance|Accrued)$/i', $line)) {
                 continue; // Skip headers
             }
             
-            // Try to extract transaction data
-            // Pattern: Date Date Date Description Amount Balance
-            if (preg_match('/(\w+\s+\d{1,2})\s+(\w+\s+\d{1,2})?\s*(\w+\s+\d{1,2})?\s+(.+?)\s+(\d+(?:[.,]\d{2})?)\s+(\d+(?:[.,]\d{3})*(?:\.\d{2})?)?\s*(Cr|Dr)?/i', $line, $matches)) {
-                $date = $matches[1] ?? null;
-                $description = trim($matches[4] ?? '');
-                $amount = str_replace(',', '', $matches[5] ?? '0');
-                $balance = isset($matches[6]) ? str_replace(',', '', $matches[6]) : null;
-                $type = isset($matches[7]) && strtolower($matches[7]) === 'cr' ? 'credit' : 'debit';
+            // Pattern 1: Multiple dates at start, then description, amount, balance
+            // Example: "Sep 23 Sep 23 Sep 24 POS Purchase Cremosa Investment 426094*6476 17 Sep 200.00 2,709.57Cr"
+            if (preg_match('/^((?:\w+\s+\d{1,2}\s+)+)(.+?)\s+(\d+(?:[.,]\d{2})?)\s+(\d+(?:[.,]\d{3})*(?:\.\d{2})?)?\s*(Cr|Dr)?/i', $line, $matches)) {
+                $dates = trim($matches[1]);
+                $description = trim($matches[2]);
+                $amount = str_replace(',', '', $matches[3] ?? '0');
+                $balance = isset($matches[4]) ? str_replace(',', '', $matches[4]) : null;
+                $type = isset($matches[5]) && strtolower($matches[5]) === 'cr' ? 'credit' : 'debit';
+                
+                // Get the last date from the dates string
+                if (preg_match('/(\w+\s+\d{1,2})\s*$/', $dates, $dateMatch)) {
+                    $date = $dateMatch[1];
+                } else {
+                    $date = trim(explode(' ', $dates)[0] ?? '');
+                }
                 
                 // Determine if it's income or expense based on description
                 $flowType = 'expense';
-                if (preg_match('/\b(payment|credit|deposit|income|received|FNB OB Pmt)\b/i', $description)) {
+                if (preg_match('/\b(payment|credit|deposit|income|received|FNB OB Pmt|Magtape Credit|Wallet To Bank)\b/i', $description)) {
                     $flowType = 'income';
                 }
                 
                 if (is_numeric($amount) && $amount > 0) {
                     $transactions[] = [
                         'date' => $date,
+                        'amount' => (float) $amount,
+                        'description' => $description,
+                        'type' => $type,
+                        'flow_type' => $flowType,
+                        'balance' => $balance ? (float) $balance : null,
+                    ];
+                }
+                continue;
+            }
+            
+            // Pattern 2: Description, amount, balance (no dates at start)
+            // Example: "Bank Charges 10.00"
+            if (preg_match('/^([A-Z][^0-9]+?)\s+(\d+(?:[.,]\d{2})?)\s+(\d+(?:[.,]\d{3})*(?:\.\d{2})?)?\s*(Cr|Dr)?/i', $line, $matches)) {
+                $description = trim($matches[1]);
+                $amount = str_replace(',', '', $matches[2] ?? '0');
+                $balance = isset($matches[3]) ? str_replace(',', '', $matches[3]) : null;
+                $type = isset($matches[4]) && strtolower($matches[4]) === 'cr' ? 'credit' : 'debit';
+                
+                // Determine flow type
+                $flowType = 'expense';
+                if (preg_match('/\b(payment|credit|deposit|income|received|FNB OB Pmt|Magtape Credit|Wallet To Bank)\b/i', $description)) {
+                    $flowType = 'income';
+                }
+                
+                if (is_numeric($amount) && $amount > 0) {
+                    $transactions[] = [
+                        'date' => null,
                         'amount' => (float) $amount,
                         'description' => $description,
                         'type' => $type,
