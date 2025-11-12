@@ -171,14 +171,14 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
 
                         {/* Items */}
                         <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Items *
-                                </label>
+                            <div className="flex items-center gap-4 mb-4">
                                 <Button type="button" variant="secondary" size="sm" onClick={addItem}>
                                     <Plus className="h-4 w-4 mr-2" />
                                     Add Item
                                 </Button>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Items *
+                                </label>
                             </div>
 
                             <div className="space-y-3">
