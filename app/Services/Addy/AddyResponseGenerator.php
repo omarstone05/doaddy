@@ -36,8 +36,13 @@ class AddyResponseGenerator
         
         // Actions are handled by code (create transaction, send invoice, etc.)
         if ($intent['intent'] === 'action') {
+            // Handle bank statements with multiple transactions differently
+            if ($intent['action_type'] === 'create_transaction' && isset($intent['parameters']['transactions']) && is_array($intent['parameters']['transactions'])) {
+                return $this->handleBankStatementTransactions($intent, $userMessage, $extractedData);
+            }
+            
             // If parameters are missing, try to extract from chat history or extracted data
-            if (empty($intent['parameters']) || !isset($intent['parameters']['amount'])) {
+            if (empty($intent['parameters']) || (!isset($intent['parameters']['amount']) && !isset($intent['parameters']['transactions']))) {
                 $intent = $this->enrichActionFromHistory($intent, $chatHistory, $userMessage, $extractedData);
             }
             return $this->handleActionRequest($intent, $userMessage);
@@ -80,6 +85,25 @@ class AddyResponseGenerator
                     ]] : []),
                     'total_amount' => (float) ($data['amount'] ?? 0),
                     'notes' => $data['description'] ?? null,
+                ],
+            ];
+        }
+        
+        // Handle bank statements - these have multiple transactions
+        if ($documentType === 'bank_statement' && isset($data['transactions']) && is_array($data['transactions']) && count($data['transactions']) > 0) {
+            // For bank statements, we'll let the AI handle it conversationally
+            // and create transactions one by one or in bulk
+            // The AI will process the transactions array and create them
+            return [
+                'intent' => 'action',
+                'action_type' => 'create_transaction',
+                'parameters' => [
+                    'transactions' => $data['transactions'], // Array of transactions
+                    'account_number' => $data['account_number'] ?? null,
+                    'statement_period_start' => $data['statement_period_start'] ?? null,
+                    'statement_period_end' => $data['statement_period_end'] ?? null,
+                    'opening_balance' => $data['opening_balance'] ?? null,
+                    'closing_balance' => $data['closing_balance'] ?? null,
                 ],
             ];
         }

@@ -60,6 +60,20 @@ class CreateTransactionAction extends BaseAction
         $account = MoneyAccount::where('organization_id', $this->organization->id)
             ->where('is_active', true)
             ->first();
+        
+        // If no account exists, create a default one
+        if (!$account) {
+            $account = MoneyAccount::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'organization_id' => $this->organization->id,
+                'name' => 'Default Account',
+                'type' => 'bank',
+                'currency' => $this->organization->currency ?? 'ZMW',
+                'current_balance' => 0,
+                'is_active' => true,
+            ]);
+            \Log::info('Created default account for organization', ['organization_id' => $this->organization->id, 'account_id' => $account->id]);
+        }
             
         return $account?->id;
     }

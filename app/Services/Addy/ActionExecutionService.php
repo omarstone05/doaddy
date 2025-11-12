@@ -36,7 +36,19 @@ class ActionExecutionService
 
         // Validate
         if (!$handler->validate()) {
-            throw new \Exception("Invalid parameters for action: {$actionType}");
+            // Get more detailed validation error if possible
+            $missingParams = [];
+            if ($actionType === 'create_transaction') {
+                if (!isset($parameters['amount'])) $missingParams[] = 'amount';
+                if (!isset($parameters['flow_type'])) $missingParams[] = 'flow_type';
+            }
+            
+            $errorMsg = "Invalid parameters for action: {$actionType}";
+            if (!empty($missingParams)) {
+                $errorMsg .= ". Missing required parameters: " . implode(', ', $missingParams);
+            }
+            
+            throw new \Exception($errorMsg);
         }
 
         // Check permissions
