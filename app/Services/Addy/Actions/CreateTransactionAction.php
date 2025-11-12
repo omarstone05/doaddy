@@ -63,16 +63,26 @@ class CreateTransactionAction extends BaseAction
         
         // If no account exists, create a default one
         if (!$account) {
-            $account = MoneyAccount::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'organization_id' => $this->organization->id,
-                'name' => 'Default Account',
-                'type' => 'bank',
-                'currency' => $this->organization->currency ?? 'ZMW',
-                'current_balance' => 0,
-                'is_active' => true,
-            ]);
-            \Log::info('Created default account for organization', ['organization_id' => $this->organization->id, 'account_id' => $account->id]);
+            try {
+                $account = MoneyAccount::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'organization_id' => $this->organization->id,
+                    'name' => 'Default Account',
+                    'type' => 'bank',
+                    'currency' => $this->organization->currency ?? 'ZMW',
+                    'opening_balance' => 0,
+                    'current_balance' => 0,
+                    'is_active' => true,
+                ]);
+                \Log::info('Created default account for organization', ['organization_id' => $this->organization->id, 'account_id' => $account->id]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create default account', [
+                    'error' => $e->getMessage(),
+                    'organization_id' => $this->organization->id,
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw new \Exception('Unable to create a default account. Please create an account manually in the Money section first.');
+            }
         }
             
         return $account?->id;
