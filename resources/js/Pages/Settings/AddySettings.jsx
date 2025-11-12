@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import SectionLayout from '@/Layouts/SectionLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 
 export default function AddySettings({ settings, userPattern }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { flash } = usePage().props;
+    const { data, setData, post, processing, errors, reset } = useForm({
         // Cultural settings
         tone: settings?.tone || 'professional',
         enable_predictions: settings?.enable_predictions ?? true,
@@ -18,12 +19,31 @@ export default function AddySettings({ settings, userPattern }) {
         preferred_task_chunk_size: userPattern?.preferred_task_chunk_size || 3,
     });
 
+    // Update form data when props change (after successful save)
+    useEffect(() => {
+        if (settings) {
+            reset({
+                tone: settings.tone || 'professional',
+                enable_predictions: settings.enable_predictions ?? true,
+                enable_proactive_suggestions: settings.enable_proactive_suggestions ?? true,
+                max_daily_suggestions: settings.max_daily_suggestions || 5,
+                quiet_hours_start: settings.quiet_hours_start || '',
+                quiet_hours_end: settings.quiet_hours_end || '',
+                work_style: userPattern?.work_style || 'balanced',
+                adhd_mode: userPattern?.adhd_mode || false,
+                preferred_task_chunk_size: userPattern?.preferred_task_chunk_size || 3,
+            });
+        }
+    }, [settings, userPattern]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        console.log('Submitting settings:', data);
         post('/settings/addy', {
             preserveScroll: true,
-            onSuccess: () => {
-                // Success message is handled by Inertia flash messages
+            onSuccess: (page) => {
+                console.log('Settings saved successfully', page.props);
+                // Form will be reset with new data from useEffect
             },
             onError: (errors) => {
                 console.error('Settings update errors:', errors);
@@ -39,6 +59,12 @@ export default function AddySettings({ settings, userPattern }) {
                 <div className="max-w-4xl mx-auto px-4">
                     <div className="bg-white rounded-lg shadow p-6">
                         <h2 className="text-2xl font-bold mb-6">Addy Preferences</h2>
+                        
+                        {flash?.success && (
+                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                                <p className="text-green-800 font-semibold">{flash.success}</p>
+                            </div>
+                        )}
                         
                         {errors && Object.keys(errors).length > 0 && (
                             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">

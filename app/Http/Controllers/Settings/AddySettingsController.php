@@ -27,6 +27,11 @@ class AddySettingsController extends Controller
     {
         $organization = $request->user()->organization;
 
+        \Log::info('Addy settings update request', [
+            'all_data' => $request->all(),
+            'organization_id' => $organization->id,
+        ]);
+
         // Update cultural settings
         $settings = AddyCulturalSetting::getOrCreate($organization->id);
         $settingsData = $request->only([
@@ -37,6 +42,8 @@ class AddySettingsController extends Controller
             'quiet_hours_start',
             'quiet_hours_end',
         ]);
+        
+        \Log::info('Settings data before processing', ['data' => $settingsData]);
         
         // Convert boolean strings to actual booleans
         if (isset($settingsData['enable_predictions'])) {
@@ -54,7 +61,11 @@ class AddySettingsController extends Controller
             $settingsData['quiet_hours_end'] = null;
         }
         
+        \Log::info('Settings data after processing', ['data' => $settingsData]);
+        
         $settings->update($settingsData);
+        
+        \Log::info('Settings updated', ['settings_id' => $settings->id, 'tone' => $settings->tone]);
 
         // Update user patterns
         $userPattern = AddyUserPattern::getOrCreate($organization->id, $request->user()->id);
@@ -76,7 +87,11 @@ class AddySettingsController extends Controller
         
         $userPattern->update($patternData);
 
-        return back()->with('success', 'Preferences updated successfully');
+        // Reload settings to return fresh data
+        $settings->refresh();
+        $userPattern->refresh();
+
+        return redirect()->route('settings.addy')->with('success', 'Preferences updated successfully');
     }
 }
 
