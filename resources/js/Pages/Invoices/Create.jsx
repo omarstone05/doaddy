@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import QuickCreateCustomerModal from '@/Components/QuickCreateCustomerModal';
@@ -98,12 +98,27 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
             goods_service_id: item.goods_service_id || null,
         }));
 
-        post('/invoices', {
-            data: {
-                ...data,
-                items: formattedItems,
-            },
+        // Ensure due_date is set if empty
+        let dueDate = data.due_date;
+        if (!dueDate && data.invoice_date) {
+            const invoiceDate = new Date(data.invoice_date);
+            invoiceDate.setDate(invoiceDate.getDate() + 30);
+            dueDate = invoiceDate.toISOString().split('T')[0];
+        }
+
+        // Prepare the complete form data
+        const formData = {
+            ...data,
+            items: formattedItems,
+            due_date: dueDate || data.due_date,
+        };
+
+        // Use router.post to send data directly
+        router.post('/invoices', formData, {
             preserveScroll: true,
+            onError: (errors) => {
+                console.error('Invoice creation errors:', errors);
+            },
         });
     };
 
