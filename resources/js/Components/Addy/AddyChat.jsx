@@ -227,7 +227,7 @@ export default function AddyChat() {
                                     Hi! I'm Addy
                                 </h3>
                                 <p className="text-gray-500 mb-6 max-w-md">
-                                    I'm your business COO. Ask me anything about your finances, sales, team, or inventory.
+                                    I'm your business COO. Ask me anything about your finances, sales, team, or inventory. You can also attach documents, receipts, invoices, quotes, contracts, notes, or any relevant files - I'll extract the information and reference historical data to help you.
                                 </p>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -471,7 +471,7 @@ export default function AddyChat() {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="Ask me anything or attach a receipt/invoice..."
+                                placeholder="Ask me anything or attach documents, receipts, invoices, quotes, contracts, notes, or any relevant files..."
                                 rows="1"
                                 className="flex-1 px-4 py-3 bg-white/80 backdrop-blur-sm border border-mint-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 resize-none text-gray-900 placeholder:text-gray-400 shadow-sm"
                                 disabled={sending}
@@ -488,7 +488,7 @@ export default function AddyChat() {
                         </div>
 
                         <p className="text-xs text-teal-600/60 mt-2">
-                            Press Enter to send, Shift+Enter for new line • Attach receipts, invoices, or documents
+                            Press Enter to send, Shift+Enter for new line • Attach any relevant documents, images, or files. I can extract information and reference historical data.
                         </p>
                     </div>
                 </div>
