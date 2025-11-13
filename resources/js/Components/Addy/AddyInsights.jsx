@@ -20,11 +20,68 @@ export default function AddyInsights() {
         return moods[mood] || '🤖';
     };
 
-    const getUrgencyColor = (urgency) => {
-        if (urgency >= 0.8) return 'text-red-600';
-        if (urgency >= 0.6) return 'text-orange-600';
-        if (urgency >= 0.4) return 'text-yellow-600';
-        return 'text-green-600';
+    const getSystemStatus = (state) => {
+        if (!state) return { message: 'Initializing...', color: 'gray' };
+        
+        const urgency = state.urgency || 0;
+        const mood = state.mood || 'neutral';
+        const context = (state.context || '').toLowerCase();
+        
+        // Gold: Ahead and winning (very low urgency + optimistic mood + positive indicators)
+        if (urgency < 0.2 && (mood === 'optimistic' || context.includes('ahead') || context.includes('exceeding') || context.includes('strong'))) {
+            return {
+                message: "You're ahead and really winning! 🎉",
+                color: 'gold',
+                bgClass: 'bg-gradient-to-r from-yellow-400 to-amber-500',
+                textClass: 'text-yellow-900',
+            };
+        }
+        
+        // Green: All good (low urgency + neutral/optimistic mood)
+        if (urgency < 0.4 && (mood === 'neutral' || mood === 'optimistic' || mood === 'attentive')) {
+            return {
+                message: "We're good! 👍",
+                color: 'green',
+                bgClass: 'bg-gradient-to-r from-green-400 to-emerald-500',
+                textClass: 'text-green-900',
+            };
+        }
+        
+        // Yellow/Orange: A little behind (medium urgency)
+        if (urgency >= 0.4 && urgency < 0.7) {
+            if (mood === 'concerned' || context.includes('behind') || context.includes('lagging')) {
+                return {
+                    message: "You're a little behind ⚠️",
+                    color: 'yellow',
+                    bgClass: 'bg-gradient-to-r from-yellow-400 to-orange-400',
+                    textClass: 'text-yellow-900',
+                };
+            }
+            return {
+                message: "Things need attention 👀",
+                color: 'orange',
+                bgClass: 'bg-gradient-to-r from-orange-400 to-amber-500',
+                textClass: 'text-orange-900',
+            };
+        }
+        
+        // Red: In trouble (high urgency + concerned/urgent mood)
+        if (urgency >= 0.7 || mood === 'urgent' || mood === 'concerned' || context.includes('urgent') || context.includes('critical')) {
+            return {
+                message: "We should be worried 🚨",
+                color: 'red',
+                bgClass: 'bg-gradient-to-r from-red-400 to-rose-600',
+                textClass: 'text-red-900',
+            };
+        }
+        
+        // Default fallback
+        return {
+            message: "Monitoring your business 📊",
+            color: 'gray',
+            bgClass: 'bg-gradient-to-r from-gray-400 to-slate-500',
+            textClass: 'text-gray-900',
+        };
     };
 
     const handleActionClick = (url) => {
@@ -149,14 +206,26 @@ export default function AddyInsights() {
                             </div>
                         )}
                         
+                        {/* System Status */}
+                        {state && (() => {
+                            const status = getSystemStatus(state);
+                            return (
+                                <div className={`${status.bgClass} rounded-2xl p-6 shadow-lg border-2 border-white/30`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-2xl font-bold text-white">System Status</h2>
+                                    </div>
+                                    <p className={`text-xl font-semibold ${status.textClass} mb-4`}>
+                                        {status.message}
+                                    </p>
+                                </div>
+                            );
+                        })()}
+
                         {/* Current State */}
                         {state && (
                             <div className="bg-white/70 backdrop-blur-sm border border-mint-200/50 rounded-2xl p-6 shadow-lg">
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-xl font-semibold text-gray-800">Current Focus</h2>
-                                    <span className={`text-sm font-medium px-3 py-1 rounded-full ${getUrgencyColor(state.urgency)} bg-white/60`}>
-                                        Urgency: {Math.round(state.urgency * 100)}%
-                                    </span>
                                 </div>
                                 
                                 <div className="space-y-3">
