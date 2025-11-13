@@ -155,7 +155,7 @@ class AddyCoreService
         if (isset($perceptionData['sales'])) {
             $sales = $perceptionData['sales'];
 
-            if ($sales['invoice_health']['overdue_count'] > 0) {
+            if (isset($sales['invoice_health']) && isset($sales['invoice_health']['overdue_count']) && $sales['invoice_health']['overdue_count'] > 0) {
                 $issues[] = [
                     'area' => 'sales',
                     'type' => 'overdue_invoices',
@@ -164,7 +164,9 @@ class AddyCoreService
                 ];
             }
 
-            if ($sales['sales_performance']['trend'] === 'decreasing' && 
+            if (isset($sales['sales_performance']) && isset($sales['sales_performance']['trend']) && 
+                $sales['sales_performance']['trend'] === 'decreasing' && 
+                isset($sales['sales_performance']['change_percentage']) &&
                 $sales['sales_performance']['change_percentage'] < -10) {
                 $issues[] = [
                     'area' => 'sales',
@@ -411,7 +413,10 @@ class AddyCoreService
         // CROSS-INSIGHT 1: Low inventory + High sales = Potential stockout
         if (isset($perceptionData['inventory']) && isset($perceptionData['sales'])) {
             $lowStock = $perceptionData['inventory']['stock_levels']['low_stock'];
-            $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
+            $salesTrend = 'stable';
+            if (isset($perceptionData['sales']['sales_performance'])) {
+                $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
+            }
 
             if ($lowStock > 0 && $salesTrend === 'increasing') {
                 $insights[] = [
@@ -435,9 +440,19 @@ class AddyCoreService
 
         // CROSS-INSIGHT 2: Overdue invoices + Upcoming payroll = Cash flow squeeze
         if (isset($perceptionData['sales']) && isset($perceptionData['people'])) {
-            $overdueAmount = $perceptionData['sales']['invoice_health']['overdue_amount'] ?? 0;
-            $payrollDays = $perceptionData['people']['payroll_health']['days_until_payroll'] ?? null;
-            $payrollAmount = $perceptionData['people']['payroll_health']['next_payroll_amount'] ?? 0;
+            // Ensure invoice_health exists before accessing
+            $overdueAmount = 0;
+            if (isset($perceptionData['sales']['invoice_health'])) {
+                $overdueAmount = $perceptionData['sales']['invoice_health']['overdue_amount'] ?? 0;
+            }
+            
+            // Ensure payroll_health exists before accessing
+            $payrollDays = null;
+            $payrollAmount = 0;
+            if (isset($perceptionData['people']['payroll_health'])) {
+                $payrollDays = $perceptionData['people']['payroll_health']['days_until_payroll'] ?? null;
+                $payrollAmount = $perceptionData['people']['payroll_health']['next_payroll_amount'] ?? 0;
+            }
 
             if ($overdueAmount > 0 && $payrollDays !== null && $payrollDays <= 10 && $payrollAmount > 0) {
                 $insights[] = [
@@ -462,9 +477,20 @@ class AddyCoreService
 
         // CROSS-INSIGHT 3: Sales decline + High expenses = Profit margin squeeze
         if (isset($perceptionData['sales']) && isset($perceptionData['money'])) {
-            $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
-            $salesChange = $perceptionData['sales']['sales_performance']['change_percentage'] ?? 0;
-            $spendingTrend = $perceptionData['money']['trends']['trend'] ?? 'stable';
+            $salesTrend = 'stable';
+            $salesChange = 0;
+            if (isset($perceptionData['sales']['sales_performance'])) {
+                $salesTrend = 'stable';
+            if (isset($perceptionData['sales']['sales_performance'])) {
+                $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
+            }
+                $salesChange = $perceptionData['sales']['sales_performance']['change_percentage'] ?? 0;
+            }
+            
+            $spendingTrend = 'stable';
+            if (isset($perceptionData['money']['trends'])) {
+                $spendingTrend = $perceptionData['money']['trends']['trend'] ?? 'stable';
+            }
 
             if ($salesTrend === 'decreasing' && $salesChange < -10 && $spendingTrend === 'increasing') {
                 $insights[] = [
@@ -488,7 +514,10 @@ class AddyCoreService
         // CROSS-INSIGHT 4: High leave volume + Sales goals = Capacity planning
         if (isset($perceptionData['people']) && isset($perceptionData['sales'])) {
             $upcomingLeave = $perceptionData['people']['leave_patterns']['upcoming_count'] ?? 0;
-            $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
+            $salesTrend = 'stable';
+            if (isset($perceptionData['sales']['sales_performance'])) {
+                $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
+            }
 
             if ($upcomingLeave > 5 && $salesTrend === 'increasing') {
                 $insights[] = [
