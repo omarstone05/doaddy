@@ -92,6 +92,8 @@ Route::middleware('auth')->group(function () {
         // User Management
         Route::resource('users', \App\Http\Controllers\Admin\AdminUserController::class);
         Route::post('/users/{user}/toggle-super-admin', [\App\Http\Controllers\Admin\AdminUserController::class, 'toggleSuperAdmin'])->name('users.toggle-super-admin');
+        Route::post('/users/{user}/change-password', [\App\Http\Controllers\Admin\AdminUserController::class, 'changePassword'])->name('users.change-password');
+        Route::post('/users/{user}/send-password-reset', [\App\Http\Controllers\Admin\AdminUserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
         
         // Support Tickets
         Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show']);

@@ -1,14 +1,65 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
-import { Link, router } from '@inertiajs/react';
-import { User, Building2, Shield, ShieldCheck } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { User, Building2, Shield, ShieldCheck, Key, Mail } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Show({ user, stats }) {
+    const { flash } = usePage().props;
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    const [processing, setProcessing] = useState(false);
+
     const handleToggleSuperAdmin = () => {
         if (confirm(`Are you sure you want to ${user.is_super_admin ? 'remove' : 'grant'} super admin access for this user?`)) {
             router.post(`/admin/users/${user.id}/toggle-super-admin`, {}, {
                 preserveScroll: true,
+            });
+        }
+    };
+
+    const handleSendPasswordReset = () => {
+        if (confirm(`Send a password reset email to ${user.email}?`)) {
+            router.post(`/admin/users/${user.id}/send-password-reset`, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowPasswordModal(false);
+                },
+            });
+        }
+    };
+
+    const handleChangePassword = (e) => {
+        e.preventDefault();
+        
+        if (password !== passwordConfirmation) {
+            alert('Passwords do not match');
+            return;
+        }
+
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to change the password for ${user.email}?`)) {
+            setProcessing(true);
+            router.post(`/admin/users/${user.id}/change-password`, {
+                password,
+                password_confirmation: passwordConfirmation,
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowPasswordModal(false);
+                    setPassword('');
+                    setPasswordConfirmation('');
+                    setProcessing(false);
+                },
+                onError: () => {
+                    setProcessing(false);
+                },
             });
         }
     };
@@ -35,23 +86,108 @@ export default function Show({ user, stats }) {
                             <p className="mt-1 text-sm text-gray-500">{user.email}</p>
                         </div>
                     </div>
-                    <Button
-                        onClick={handleToggleSuperAdmin}
-                        variant={user.is_super_admin ? "destructive" : "outline"}
-                    >
-                        {user.is_super_admin ? (
-                            <>
-                                <Shield className="w-4 h-4 mr-2" />
-                                Remove Super Admin
-                            </>
-                        ) : (
-                            <>
-                                <ShieldCheck className="w-4 h-4 mr-2" />
-                                Grant Super Admin
-                            </>
-                        )}
-                    </Button>
+                    <div className="flex items-center space-x-3">
+                        <Button
+                            onClick={() => setShowPasswordModal(true)}
+                            variant="outline"
+                        >
+                            <Key className="w-4 h-4 mr-2" />
+                            Change Password
+                        </Button>
+                        <Button
+                            onClick={handleSendPasswordReset}
+                            variant="outline"
+                        >
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send Reset Email
+                        </Button>
+                        <Button
+                            onClick={handleToggleSuperAdmin}
+                            variant={user.is_super_admin ? "destructive" : "outline"}
+                        >
+                            {user.is_super_admin ? (
+                                <>
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    Remove Super Admin
+                                </>
+                            ) : (
+                                <>
+                                    <ShieldCheck className="w-4 h-4 mr-2" />
+                                    Grant Super Admin
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
+
+                {/* Flash Messages */}
+                {flash?.success && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-800">{flash.success}</p>
+                    </div>
+                )}
+                {flash?.error && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-red-800">{flash.error}</p>
+                    </div>
+                )}
+
+                {/* Password Change Modal */}
+                {showPasswordModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <Card className="p-6 max-w-md w-full mx-4">
+                            <h3 className="text-lg font-semibold mb-4">Change Password for {user.email}</h3>
+                            <form onSubmit={handleChangePassword} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        New Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                        minLength={8}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Confirm Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={passwordConfirmation}
+                                        onChange={(e) => setPasswordConfirmation(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                        minLength={8}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-end space-x-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowPasswordModal(false);
+                                            setPassword('');
+                                            setPasswordConfirmation('');
+                                        }}
+                                        disabled={processing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                    >
+                                        {processing ? 'Changing...' : 'Change Password'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

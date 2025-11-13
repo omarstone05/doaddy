@@ -26,6 +26,10 @@ class Quote extends Model
         'discount_amount',
         'total_amount',
         'status',
+        'follow_up_count',
+        'last_follow_up_at',
+        'last_follow_up_method',
+        'last_follow_up_notes',
         'notes',
         'terms',
     ];
@@ -39,6 +43,8 @@ class Quote extends Model
             'tax_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'follow_up_count' => 'integer',
+            'last_follow_up_at' => 'datetime',
         ];
     }
 

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AdminActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
 
 class AdminUserController extends Controller
@@ -75,6 +77,38 @@ class AdminUserController extends Controller
         return back()->with('success', $user->is_super_admin 
             ? 'User granted super admin access' 
             : 'Super admin access removed');
+    }
+
+    public function changePassword(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        AdminActivityLog::log('password_changed', $user, null, [
+            'changed_by' => $request->user()->email,
+        ]);
+
+        return back()->with('success', 'Password changed successfully');
+    }
+
+    public function sendPasswordReset(Request $request, User $user)
+    {
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            AdminActivityLog::log('password_reset_sent', $user, null, [
+                'sent_by' => $request->user()->email,
+            ]);
+
+            return back()->with('success', 'Password reset email sent successfully to ' . $user->email);
+        }
+
+        return back()->with('error', 'Failed to send password reset email. Please try again.');
     }
 }
 

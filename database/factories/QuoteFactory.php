@@ -30,6 +30,10 @@ class QuoteFactory extends Factory
             'discount_amount' => 0,
             'total_amount' => $total,
             'status' => fake()->randomElement(['draft', 'sent', 'accepted', 'rejected', 'expired']),
+            'follow_up_count' => 0,
+            'last_follow_up_at' => null,
+            'last_follow_up_method' => null,
+            'last_follow_up_notes' => null,
             'notes' => fake()->optional()->sentence(),
         ];
     }
