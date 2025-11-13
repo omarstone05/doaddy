@@ -51,7 +51,7 @@ class AdminOrganizationController extends Controller
             'slug' => 'required|string|max:255|unique:organizations,slug',
             'business_type' => 'nullable|string|max:255',
             'industry' => 'nullable|string|max:255',
-            'tone_preference' => 'nullable|in:formal,conversational,technical',
+            'tone_preference' => 'nullable|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
             'currency' => 'nullable|string|size:3',
             'timezone' => 'nullable|string|max:255',
             'status' => 'nullable|in:active,suspended,trial,cancelled',
@@ -73,7 +73,7 @@ class AdminOrganizationController extends Controller
         }
 
         // Set defaults
-        $validated['tone_preference'] = $validated['tone_preference'] ?? 'conversational';
+        $validated['tone_preference'] = $validated['tone_preference'] ?? 'professional';
         $validated['currency'] = $validated['currency'] ?? 'ZMW';
         $validated['timezone'] = $validated['timezone'] ?? 'Africa/Lusaka';
         $validated['status'] = $validated['status'] ?? 'trial';
@@ -109,6 +109,7 @@ class AdminOrganizationController extends Controller
             'name' => 'sometimes|string|max:255',
             'status' => 'sometimes|in:active,suspended,trial,cancelled',
             'billing_plan' => 'sometimes|nullable|in:free,starter,professional,enterprise',
+            'tone_preference' => 'sometimes|nullable|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
             'mrr' => 'sometimes|numeric|min:0',
             'trial_ends_at' => 'sometimes|nullable|date',
         ]);
@@ -167,4 +168,3 @@ class AdminOrganizationController extends Controller
             ->with('success', 'Organization deleted successfully');
     }
 }
-

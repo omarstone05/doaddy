@@ -38,7 +38,7 @@ class OnboardingController extends Controller
             'business_name' => 'required|string|max:255',
             'industry' => 'required|string|max:255',
             'currency' => 'required|string|size:3',
-            'tone_preference' => 'required|in:formal,conversational,technical',
+            'tone_preference' => 'required|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
         ]);
 
         $user = Auth::user();
@@ -66,4 +66,3 @@ class OnboardingController extends Controller
         return redirect()->route('dashboard')->with('success', 'Welcome to Addy! Let\'s get started.');
     }
 }
-

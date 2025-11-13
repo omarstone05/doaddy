@@ -22,7 +22,7 @@ class OrganizationFactory extends Factory
             'slug' => Str::slug($name),
             'business_type' => fake()->randomElement(['sole_proprietorship', 'partnership', 'corporation', 'llc']),
             'industry' => fake()->randomElement(['retail', 'services', 'manufacturing', 'technology', 'healthcare']),
-            'tone_preference' => fake()->randomElement(['formal', 'conversational', 'technical']),
+            'tone_preference' => fake()->randomElement(['professional', 'casual', 'motivational', 'sassy', 'technical']),
             'currency' => fake()->randomElement(['USD', 'EUR', 'GBP', 'ZMW']),
             'timezone' => fake()->timezone(),
             'settings' => [],

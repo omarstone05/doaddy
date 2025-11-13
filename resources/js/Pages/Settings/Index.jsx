@@ -210,10 +210,14 @@ export default function SettingsIndex({ organization }) {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 >
                                     <option value="">Select tone</option>
-                                    <option value="formal">Formal</option>
-                                    <option value="casual">Casual</option>
-                                    <option value="friendly">Friendly</option>
                                     <option value="professional">Professional</option>
+                                    <option value="casual">Casual</option>
+                                    <option value="motivational">Motivational</option>
+                                    <option value="sassy">Sassy</option>
+                                    <option value="technical">Technical</option>
+                                    <option value="friendly">Friendly (legacy)</option>
+                                    <option value="conversational">Conversational (legacy)</option>
+                                    <option value="formal">Formal (legacy)</option>
                                 </select>
                                 {errors.tone_preference && <p className="mt-1 text-sm text-red-600">{errors.tone_preference}</p>}
                             </div>
@@ -231,4 +235,3 @@ export default function SettingsIndex({ organization }) {
         </SectionLayout>
     );
 }
-

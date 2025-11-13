@@ -14,7 +14,16 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('business_type')->nullable();
             $table->string('industry')->nullable();
-            $table->enum('tone_preference', ['formal', 'conversational', 'technical'])->default('conversational');
+            $table->enum('tone_preference', [
+                'professional',
+                'casual',
+                'motivational',
+                'sassy',
+                'technical',
+                'formal',
+                'conversational',
+                'friendly',
+            ])->default('professional');
             $table->string('currency', 3)->default('ZMW');
             $table->string('timezone')->default('Africa/Lusaka');
             $table->string('logo')->nullable();

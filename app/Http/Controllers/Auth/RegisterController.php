@@ -31,7 +31,7 @@ class RegisterController extends Controller
             'id' => (string) Str::uuid(),
             'name' => $validated['organization_name'],
             'slug' => Str::slug($validated['organization_name']),
-            'tone_preference' => 'conversational',
+            'tone_preference' => 'professional',
             'currency' => 'ZMW',
             'timezone' => 'Africa/Lusaka',
         ]);

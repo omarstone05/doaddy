@@ -79,9 +79,10 @@ class AddyCulturalEngine
         $tone = $this->settings->tone;
 
         return match($tone) {
-            'casual' => $this->makeCasual($message),
+            'casual', 'friendly', 'conversational' => $this->makeCasual($message),
             'motivational' => $this->makeMotivational($message),
             'sassy' => $this->makeSassy($message),
+            'technical' => $this->makeTechnical($message),
             default => $message, // professional - keep as is
         };
     }
@@ -128,6 +129,12 @@ class AddyCulturalEngine
         ];
 
         return $prefixes[array_rand($prefixes)] . $message . $suffixes[array_rand($suffixes)];
+    }
+
+    protected function makeTechnical(string $message): string
+    {
+        $condensed = preg_replace('/\s+/', ' ', trim($message));
+        return "Technical summary: {$condensed}";
     }
 
     /**

@@ -4,9 +4,18 @@ namespace App\Services\Addy\Actions;
 
 use App\Models\MoneyMovement;
 use App\Models\MoneyAccount;
+use App\Services\Addy\TransactionCategorizer;
 
 class CreateTransactionAction extends BaseAction
 {
+    protected TransactionCategorizer $categorizer;
+
+    public function __construct($organization, $user, array $parameters = [])
+    {
+        parent::__construct($organization, $user, $parameters);
+        $this->categorizer = new TransactionCategorizer();
+    }
+
     public function validate(): bool
     {
         // For preview, we only need amount and flow_type
@@ -19,6 +28,7 @@ class CreateTransactionAction extends BaseAction
     {
         $amount = $this->parameters['amount'];
         $flowType = $this->parameters['flow_type'];
+        [$category, $confidence, $autoCategorized] = $this->resolveCategory();
         
         // Get default account if not specified
         $accountId = $this->parameters['account_id'] ?? $this->getDefaultAccountId();
@@ -32,7 +42,7 @@ class CreateTransactionAction extends BaseAction
                     'type' => ucfirst($flowType),
                     'amount' => $amount,
                     'account' => $account->name ?? 'Account not specified',
-                    'category' => $this->parameters['category'] ?? 'Uncategorized',
+                    'category' => $category,
                     'description' => $this->parameters['description'] ?? '',
                     'date' => $this->parameters['date'] ?? now()->toDateString(),
                 ]
@@ -44,6 +54,14 @@ class CreateTransactionAction extends BaseAction
         // Add warning if no account specified
         if (!$accountId) {
             $preview['warnings'][] = 'Please specify which account to use, or I will use the default account.';
+        }
+
+        if ($autoCategorized) {
+            $preview['warnings'][] = sprintf(
+                'I categorized this as %s (confidence %d%%). You can override it if needed.',
+                $category,
+                (int) round($confidence * 100)
+            );
         }
         
         // Store the account_id for execution
@@ -113,13 +131,15 @@ class CreateTransactionAction extends BaseAction
             'organization_id' => $this->organization->id,
         ]);
         
+        [$category] = $this->resolveCategory();
+
         $transaction = MoneyMovement::create([
             'organization_id' => $this->organization->id,
             'from_account_id' => $this->parameters['flow_type'] === 'expense' ? $this->parameters['account_id'] : null,
             'to_account_id' => $this->parameters['flow_type'] === 'income' ? $this->parameters['account_id'] : null,
             'flow_type' => $this->parameters['flow_type'],
             'amount' => $this->parameters['amount'],
-            'category' => $this->parameters['category'] ?? 'Uncategorized',
+            'category' => $category,
             'description' => $this->parameters['description'] ?? '',
             'transaction_date' => $this->parameters['date'] ?? now(),
             'status' => 'approved',
@@ -174,5 +194,20 @@ class CreateTransactionAction extends BaseAction
             'message' => 'Transaction deleted.',
         ];
     }
-}
 
+    protected function resolveCategory(): array
+    {
+        if (!empty($this->parameters['category'])) {
+            return [$this->parameters['category'], 1.0, false];
+        }
+
+        [$category, $confidence] = $this->categorizer->guess(
+            $this->parameters['description'] ?? '',
+            $this->parameters['flow_type'] ?? 'expense'
+        );
+
+        $this->parameters['category'] = $category;
+
+        return [$category, $confidence, true];
+    }
+}

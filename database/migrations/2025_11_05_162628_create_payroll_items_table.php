@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -31,22 +30,24 @@ return new class extends Migration
             // Foreign keys will be added after referenced tables exist
             $table->index(['payroll_run_id', 'team_member_id']);
             });
-            
-            // Add foreign keys after referenced tables exist
-            foreach (['payroll_runs', 'team_members'] as $refTable) {
-                if (Schema::hasTable($refTable)) {
-                    $column = match($refTable) {
-                        'payroll_runs' => 'payroll_run_id',
-                        'team_members' => 'team_member_id',
-                    };
-                    Schema::table('payroll_items', function (Blueprint $table) use ($refTable, $column) {
-                        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payroll_items' AND COLUMN_NAME = '{$column}' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                        if (empty($foreignKeys)) {
-                            $table->foreign($column)->references('id')->on($refTable)->onDelete('cascade');
-                        }
-                    });
-                }
-            }
+        }
+
+        if (Schema::hasTable('payroll_items') && Schema::hasTable('payroll_runs')) {
+            Schema::table('payroll_items', function (Blueprint $table) {
+                $table->foreign('payroll_run_id')
+                    ->references('id')
+                    ->on('payroll_runs')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        if (Schema::hasTable('payroll_items') && Schema::hasTable('team_members')) {
+            Schema::table('payroll_items', function (Blueprint $table) {
+                $table->foreign('team_member_id')
+                    ->references('id')
+                    ->on('team_members')
+                    ->cascadeOnDelete();
+            });
         }
     }
 

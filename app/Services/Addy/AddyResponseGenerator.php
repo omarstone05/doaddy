@@ -1383,6 +1383,7 @@ class AddyResponseGenerator
                     $actions = [
                         ['label' => 'View All Transactions', 'url' => '/money/movements'],
                         ['label' => 'Add Transaction', 'url' => '/money/movements/create'],
+                        ['label' => 'Categorize Transactions', 'command' => 'Categorize transactions'],
                     ];
                     break;
                 
@@ -1568,4 +1569,3 @@ class AddyResponseGenerator
         return $message;
     }
 }
-

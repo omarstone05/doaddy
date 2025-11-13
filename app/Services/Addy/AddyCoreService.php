@@ -149,6 +149,33 @@ class AddyCoreService
                     'data' => $money['trends'],
                 ];
             }
+
+            if (isset($money['cash_flow']['net']) && $money['cash_flow']['net'] < 0) {
+                $issues[] = [
+                    'area' => 'money',
+                    'type' => 'negative_cash_flow',
+                    'severity' => 0.85,
+                    'data' => $money['cash_flow'],
+                ];
+            }
+
+            if (!empty($money['spending_anomalies'])) {
+                $issues[] = [
+                    'area' => 'money',
+                    'type' => 'spending_anomaly',
+                    'severity' => 0.75,
+                    'data' => $money['spending_anomalies'],
+                ];
+            }
+
+            if (!empty($money['uncategorized_transactions'])) {
+                $issues[] = [
+                    'area' => 'money',
+                    'type' => 'data_quality',
+                    'severity' => 0.5,
+                    'data' => $money['uncategorized_transactions'],
+                ];
+            }
         }
 
         // Sales analysis (NEW)

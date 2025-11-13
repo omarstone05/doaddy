@@ -34,7 +34,7 @@ class SettingsController extends Controller
             'slug' => 'nullable|string|max:255|unique:organizations,slug,' . $organization->id,
             'business_type' => 'nullable|string|max:255',
             'industry' => 'nullable|string|max:255',
-            'tone_preference' => 'nullable|string|max:255',
+            'tone_preference' => 'nullable|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
             'currency' => 'nullable|string|size:3',
             'timezone' => 'nullable|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,jpg,png,gif,svg|max:2048', // 2MB max
@@ -60,4 +60,3 @@ class SettingsController extends Controller
         return back()->with('message', 'Settings updated successfully');
     }
 }
-

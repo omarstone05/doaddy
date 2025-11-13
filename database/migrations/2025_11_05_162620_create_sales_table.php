@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -39,25 +38,23 @@ return new class extends Migration
             $table->index('register_session_id');
             $table->index('sale_number');
             });
-            
-            // Add foreign keys after referenced tables exist
-            if (Schema::hasTable('team_members')) {
-                Schema::table('sales', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales' AND COLUMN_NAME = 'cashier_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('cashier_id')->references('id')->on('team_members');
-                    }
-                });
-            }
-            
-            if (Schema::hasTable('register_sessions')) {
-                Schema::table('sales', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales' AND COLUMN_NAME = 'register_session_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('register_session_id')->references('id')->on('register_sessions')->onDelete('set null');
-                    }
-                });
-            }
+        }
+
+        if (Schema::hasTable('sales') && Schema::hasTable('team_members')) {
+            Schema::table('sales', function (Blueprint $table) {
+                $table->foreign('cashier_id')
+                    ->references('id')
+                    ->on('team_members');
+            });
+        }
+        
+        if (Schema::hasTable('sales') && Schema::hasTable('register_sessions')) {
+            Schema::table('sales', function (Blueprint $table) {
+                $table->foreign('register_session_id')
+                    ->references('id')
+                    ->on('register_sessions')
+                    ->nullOnDelete();
+            });
         }
     }
 

@@ -6,9 +6,18 @@ use App\Models\MoneyMovement;
 use App\Models\MoneyAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\Addy\TransactionCategorizer;
 
 class ImportBankStatementAction extends BaseAction
 {
+    protected TransactionCategorizer $categorizer;
+
+    public function __construct($organization, $user, array $parameters = [])
+    {
+        parent::__construct($organization, $user, $parameters);
+        $this->categorizer = new TransactionCategorizer();
+    }
+
     public function validate(): bool
     {
         return isset($this->parameters['transactions']) 
@@ -130,13 +139,15 @@ class ImportBankStatementAction extends BaseAction
                     }
                     
                     // Create transaction
+                    [$category] = $this->categorizer->guess($tx['description'] ?? '', $flowType);
+
                     $transaction = MoneyMovement::create([
                         'organization_id' => $this->organization->id,
                         'from_account_id' => $flowType === 'expense' ? $accountId : null,
                         'to_account_id' => $flowType === 'income' ? $accountId : null,
                         'flow_type' => $flowType,
                         'amount' => $amount,
-                        'category' => $tx['category'] ?? $this->categorizeTransaction($tx['description'] ?? ''),
+                        'category' => $tx['category'] ?? $category,
                         'description' => $tx['description'] ?? 'Bank statement transaction',
                         'transaction_date' => $date,
                         'status' => 'approved',
@@ -326,31 +337,5 @@ class ImportBankStatementAction extends BaseAction
         }
     }
     
-    protected function categorizeTransaction(string $description): string
-    {
-        $description = strtolower($description);
-        
-        // Common categories based on keywords
-        if (preg_match('/\b(food|restaurant|cafe|coffee|meal|dining)\b/i', $description)) {
-            return 'Food & Dining';
-        }
-        if (preg_match('/\b(office|supplies|stationery|equipment)\b/i', $description)) {
-            return 'Office Supplies';
-        }
-        if (preg_match('/\b(transport|fuel|gas|uber|taxi)\b/i', $description)) {
-            return 'Transport';
-        }
-        if (preg_match('/\b(utility|electric|water|internet|phone)\b/i', $description)) {
-            return 'Utilities';
-        }
-        if (preg_match('/\b(salary|payroll|wage)\b/i', $description)) {
-            return 'Payroll';
-        }
-        if (preg_match('/\b(marketing|advertising|promotion)\b/i', $description)) {
-            return 'Marketing';
-        }
-        
-        return 'Uncategorized';
-    }
+   
 }
-

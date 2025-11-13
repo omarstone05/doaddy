@@ -41,6 +41,13 @@ class ActionRegistry
                 'description' => 'Modify budget allocation',
                 'requires_confirmation' => true,
             ],
+            'categorize_transactions' => [
+                'class' => CategorizeTransactionsAction::class,
+                'category' => 'money',
+                'label' => 'Categorize Transactions',
+                'description' => 'Assign categories to uncategorized transactions',
+                'requires_confirmation' => true,
+            ],
             
             // Sales Actions
             'create_invoice' => [

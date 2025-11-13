@@ -8,7 +8,9 @@ use App\Models\BudgetLine;
 use App\Models\MoneyAccount;
 use App\Traits\Cacheable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Carbon\Carbon;
+use App\Services\Addy\TransactionCategorizer;
 
 class MoneyAgent
 {
@@ -43,6 +45,9 @@ class MoneyAgent
             'monthly_burn' => $this->getMonthlyBurn(),
             'trends' => $this->getTrends(),
             'latest_transactions' => $this->getLatestTransactions(),
+            'cash_flow' => $this->getCashFlowSnapshot(),
+            'uncategorized_transactions' => $this->getUncategorizedTransactions(),
+            'spending_anomalies' => $this->getSpendingAnomalies(),
         ];
     }
 
@@ -109,6 +114,46 @@ class MoneyAgent
             'warning' => $warning,
             'healthy' => $healthy,
             'total_budgets' => count($budgets),
+        ];
+    }
+
+    protected function getCashFlowSnapshot(): array
+    {
+        $start = Carbon::now()->subDays(30)->startOfDay();
+        $end = Carbon::now()->endOfDay();
+        $previousStart = (clone $start)->subDays(30);
+        $previousEnd = (clone $start)->subDay();
+
+        $income = (float) MoneyMovement::where('organization_id', $this->organization->id)
+            ->where('flow_type', 'income')
+            ->where('status', 'approved')
+            ->whereBetween('transaction_date', [$start, $end])
+            ->sum('amount');
+
+        $expenses = (float) MoneyMovement::where('organization_id', $this->organization->id)
+            ->where('flow_type', 'expense')
+            ->where('status', 'approved')
+            ->whereBetween('transaction_date', [$start, $end])
+            ->sum('amount');
+
+        $net = $income - $expenses;
+
+        $previousNet = (float) MoneyMovement::where('organization_id', $this->organization->id)
+            ->where('status', 'approved')
+            ->whereBetween('transaction_date', [$previousStart, $previousEnd])
+            ->selectRaw("SUM(CASE WHEN flow_type = 'income' THEN amount ELSE -amount END) as net")
+            ->value('net') ?? 0;
+
+        $trend = $previousNet !== 0
+            ? round((($net - $previousNet) / abs($previousNet)) * 100, 1)
+            : 0;
+
+        return [
+            'income' => $income,
+            'expenses' => $expenses,
+            'net' => $net,
+            'trend_percentage' => $trend,
+            'period' => $start->format('M j') . ' - ' . $end->format('M j'),
         ];
     }
 
@@ -288,6 +333,57 @@ class MoneyAgent
             ];
         }
 
+        if (isset($perception['cash_flow']['net']) && $perception['cash_flow']['net'] < 0) {
+            $insights[] = [
+                'type' => 'alert',
+                'category' => 'money',
+                'title' => 'Negative Cash Flow',
+                'description' => 'Expenses exceeded income over the last 30 days. Consider slowing down spending or speeding up collections.',
+                'priority' => 0.85,
+                'is_actionable' => true,
+                'suggested_actions' => [
+                    'Review large expenses',
+                    'Follow up on overdue invoices',
+                    'Delay non-essential purchases',
+                ],
+                'action_url' => '/money/movements',
+            ];
+        }
+
+        if (!empty($perception['uncategorized_transactions'])) {
+            $insights[] = [
+                'type' => 'suggestion',
+                'category' => 'money',
+                'title' => 'Categorize Recent Transactions',
+                'description' => 'You have uncategorized expenses. Clean them up for more accurate reporting.',
+                'priority' => 0.55,
+                'is_actionable' => true,
+                'suggested_actions' => [
+                    'Categorize the latest expenses',
+                    'Automate categorization rules',
+                ],
+                'action_url' => '/money/movements',
+            ];
+        }
+
+        if (!empty($perception['spending_anomalies'])) {
+            $example = $perception['spending_anomalies'][0];
+            $insights[] = [
+                'type' => 'alert',
+                'category' => 'money',
+                'title' => 'Unusual Spending Detected',
+                'description' => "A {$example['category']} expense of " . number_format($example['amount'], 2) . " looks higher than usual.",
+                'priority' => 0.82,
+                'is_actionable' => true,
+                'suggested_actions' => [
+                    'Confirm if this was expected',
+                    'Flag unusual or fraudulent activity',
+                    'Adjust budget forecasts if valid',
+                ],
+                'action_url' => '/money/movements',
+            ];
+        }
+
         return $insights;
     }
 
@@ -324,5 +420,74 @@ class MoneyAgent
             })
             ->toArray();
     }
-}
 
+    protected function getUncategorizedTransactions(): array
+    {
+        $categorizer = new TransactionCategorizer();
+
+        return MoneyMovement::where('organization_id', $this->organization->id)
+            ->where(function ($query) {
+                $query->whereNull('category')
+                    ->orWhere('category', '')
+                    ->orWhere('category', 'Uncategorized');
+            })
+            ->orderBy('transaction_date', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function (MoneyMovement $movement) use ($categorizer) {
+                [$category, $confidence] = $categorizer->guess($movement->description, $movement->flow_type);
+                return [
+                    'id' => $movement->id,
+                    'description' => $movement->description,
+                    'amount' => (float) $movement->amount,
+                    'suggested_category' => $category,
+                    'confidence' => $confidence,
+                    'date' => $movement->transaction_date->format('Y-m-d'),
+                ];
+            })
+            ->toArray();
+    }
+
+    protected function getSpendingAnomalies(): array
+    {
+        $thresholdDate = Carbon::now()->subDays(45);
+        $recentWindow = Carbon::now()->subDays(30);
+
+        $expenses = MoneyMovement::where('organization_id', $this->organization->id)
+            ->where('flow_type', 'expense')
+            ->where('status', 'approved')
+            ->where('transaction_date', '>=', $thresholdDate)
+            ->get();
+
+        if ($expenses->isEmpty()) {
+            return [];
+        }
+
+        $categoryAverages = $expenses->groupBy(function (MoneyMovement $movement) {
+            return $movement->category ?: 'Uncategorized';
+        })->map(fn (Collection $items) => max(1, (float) $items->avg('amount')));
+
+        $recentExpenses = $expenses->filter(fn (MoneyMovement $movement) => $movement->transaction_date >= $recentWindow);
+
+        $anomalies = [];
+
+        foreach ($recentExpenses as $movement) {
+            $category = $movement->category ?: 'Uncategorized';
+            $average = $categoryAverages[$category] ?? max(1, (float) $expenses->avg('amount'));
+            $amount = (float) $movement->amount;
+
+            if ($amount >= $average * 1.8 && $amount >= 500) {
+                $anomalies[] = [
+                    'id' => $movement->id,
+                    'category' => $category,
+                    'amount' => $amount,
+                    'date' => $movement->transaction_date->format('Y-m-d'),
+                    'deviation' => round(($amount / $average) - 1, 2),
+                    'description' => $movement->description,
+                ];
+            }
+        }
+
+        return array_slice($anomalies, 0, 5);
+    }
+}

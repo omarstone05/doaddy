@@ -304,6 +304,17 @@ class AddyCommandParser
                 'parameters' => $this->extractInvoicePaymentParameters($message),
             ];
         }
+
+        // Categorize transactions
+        if ((str_contains($message, 'categorize') || str_contains($message, 'classify')) 
+            && str_contains($message, 'transaction')) {
+            return [
+                'action_type' => 'categorize_transactions',
+                'parameters' => [
+                    'limit' => $this->extractLimit($message),
+                ],
+            ];
+        }
         
         // Create/confirm/record transaction or expense
         // Patterns: "create transaction", "create expense", "confirm expense", "record expense", "log expense", etc.
@@ -334,10 +345,11 @@ class AddyCommandParser
         }
         
         // Generate report
-        if (str_contains($message, 'generate') || str_contains($message, 'create report')) {
+        if ((str_contains($message, 'generate') || str_contains($message, 'create')) 
+            && str_contains($message, 'report')) {
             return [
                 'action_type' => 'generate_report',
-                'parameters' => ['type' => $this->extractReportType($message)],
+                'parameters' => $this->extractReportParameters($message),
             ];
         }
         
@@ -438,6 +450,43 @@ class AddyCommandParser
         return 'general';
     }
 
+    protected function extractReportParameters(string $message): array
+    {
+        $period = $this->extractReportPeriod($message);
+        $type = $this->extractReportType($message);
+
+        return [
+            'type' => $type,
+            'period' => $period,
+        ];
+    }
+
+    protected function extractReportPeriod(string $message): string
+    {
+        $message = strtolower($message);
+
+        if (preg_match('/last\s+(\d+)\s+day/', $message, $matches)) {
+            return 'last_' . $matches[1] . '_days';
+        }
+        if (preg_match('/last\s+(\d+)\s+week/', $message, $matches)) {
+            return 'last_' . $matches[1] . '_weeks';
+        }
+        if (preg_match('/last\s+(\d+)\s+month/', $message, $matches)) {
+            return 'last_' . $matches[1] . '_months';
+        }
+        if (str_contains($message, 'last week')) return 'last_week';
+        if (str_contains($message, 'this week')) return 'this_week';
+        if (str_contains($message, 'last month')) return 'last_month';
+        if (str_contains($message, 'this month')) return 'this_month';
+        if (str_contains($message, 'last quarter')) return 'last_quarter';
+        if (str_contains($message, 'this quarter')) return 'this_quarter';
+        if (str_contains($message, 'year to date') || str_contains($message, 'ytd')) return 'year_to_date';
+        if (str_contains($message, 'last year')) return 'last_year';
+        if (str_contains($message, 'this year')) return 'this_year';
+
+        return 'last_30_days';
+    }
+
     protected function extractReminderParameters(string $message): array
     {
         $params = [];
@@ -467,6 +516,15 @@ class AddyCommandParser
         }
 
         return $params;
+    }
+
+    protected function extractLimit(string $message): ?int
+    {
+        if (preg_match('/(\d+)\s+(?:transactions?|items?)/', $message, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     protected function extractQuoteParameters(string $message): array

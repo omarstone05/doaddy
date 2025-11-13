@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -32,18 +31,17 @@ return new class extends Migration
             // Foreign keys for owner_id and created_by_id will be added after users table exists
             $table->index(['organization_id', 'quarter', 'status']);
             });
-            
-            // Add foreign keys after users table exists
-            if (Schema::hasTable('users')) {
-                Schema::table('okrs', function (Blueprint $table) {
-                    foreach (['owner_id', 'created_by_id'] as $column) {
-                        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'okrs' AND COLUMN_NAME = '{$column}' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                        if (empty($foreignKeys)) {
-                            $table->foreign($column)->references('id')->on('users')->onDelete('set null');
-                        }
-                    }
-                });
-            }
+        }
+
+        if (Schema::hasTable('okrs') && Schema::hasTable('users')) {
+            Schema::table('okrs', function (Blueprint $table) {
+                foreach (['owner_id', 'created_by_id'] as $column) {
+                    $table->foreign($column)
+                        ->references('id')
+                        ->on('users')
+                        ->nullOnDelete();
+                }
+            });
         }
     }
 

@@ -94,6 +94,7 @@ export default function AddySettings({ settings, userPattern }) {
                                             <option value="casual">Casual</option>
                                             <option value="motivational">Motivational</option>
                                             <option value="sassy">Sassy</option>
+                                            <option value="technical">Technical</option>
                                         </select>
                                     </div>
 

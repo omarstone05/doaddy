@@ -9,7 +9,7 @@ export default function OnboardingConversation({ user, organization }) {
         business_name: organization?.name || '',
         industry: organization?.industry || '',
         currency: organization?.currency || 'ZMW',
-        tone_preference: organization?.tone_preference || 'conversational',
+        tone_preference: organization?.tone_preference || 'professional',
     });
     const [inputValue, setInputValue] = useState('');
     const [messages, setMessages] = useState([]);
@@ -69,8 +69,10 @@ const onboardingSteps = [
         type: 'select',
         field: 'tone_preference',
         options: [
-            { value: 'conversational', label: 'Conversational - Friendly and casual' },
-            { value: 'formal', label: 'Formal - Professional and structured' },
+            { value: 'professional', label: 'Professional - Clear and structured' },
+            { value: 'casual', label: 'Casual - Light and approachable' },
+            { value: 'motivational', label: 'Motivational - Pep talks and encouragement' },
+            { value: 'sassy', label: 'Sassy - Bold with personality' },
             { value: 'technical', label: 'Technical - Detailed and precise' },
         ],
     },
@@ -370,4 +372,3 @@ const onboardingSteps = [
         </>
     );
 }
-

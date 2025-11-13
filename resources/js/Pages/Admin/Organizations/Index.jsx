@@ -13,7 +13,7 @@ export default function Index({ organizations, filters }) {
         slug: '',
         business_type: '',
         industry: '',
-        tone_preference: 'conversational',
+        tone_preference: 'professional',
         currency: 'ZMW',
         timezone: 'Africa/Lusaka',
         status: 'trial',
@@ -79,7 +79,7 @@ export default function Index({ organizations, filters }) {
                     slug: '',
                     business_type: '',
                     industry: '',
-                    tone_preference: 'conversational',
+                    tone_preference: 'professional',
                     currency: 'ZMW',
                     timezone: 'Africa/Lusaka',
                     status: 'trial',
@@ -324,9 +324,14 @@ export default function Index({ organizations, filters }) {
                                                     onChange={(e) => handleInputChange('tone_preference', e.target.value)}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                                 >
-                                                    <option value="formal">Formal</option>
-                                                    <option value="conversational">Conversational</option>
+                                                    <option value="professional">Professional</option>
+                                                    <option value="casual">Casual</option>
+                                                    <option value="motivational">Motivational</option>
+                                                    <option value="sassy">Sassy</option>
                                                     <option value="technical">Technical</option>
+                                                    <option value="friendly">Friendly (legacy)</option>
+                                                    <option value="conversational">Conversational (legacy)</option>
+                                                    <option value="formal">Formal (legacy)</option>
                                                 </select>
                                             </div>
 
@@ -446,4 +451,3 @@ export default function Index({ organizations, filters }) {
         </AdminLayout>
     );
 }
-
