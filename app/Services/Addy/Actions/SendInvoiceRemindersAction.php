@@ -17,7 +17,9 @@ class SendInvoiceRemindersAction extends BaseAction
 
         return [
             'title' => 'Send Payment Reminders',
-            'description' => "Send reminder emails to {$overdueInvoices->count()} customer(s) with overdue invoices.",
+            'description' => $overdueInvoices->isEmpty()
+                ? 'No overdue invoices meet the criteria.'
+                : "Send reminder emails to {$overdueInvoices->count()} customer(s) with overdue invoices.",
             'items' => $overdueInvoices->map(function ($invoice) {
                 return [
                     'id' => $invoice->id,
@@ -42,18 +44,18 @@ class SendInvoiceRemindersAction extends BaseAction
         $overdueInvoices = $this->getOverdueInvoices();
         $sent = 0;
         $failed = [];
+        $channel = $this->parameters['channel'] ?? 'email';
+        $note = $this->parameters['note'] ?? null;
 
         foreach ($overdueInvoices as $invoice) {
             try {
-                // TODO: Implement actual email sending
-                // For now, just mark as reminder sent
-                // Notification::send($invoice->customer, new InvoicePaymentReminder($invoice));
-
-                // Update invoice (if these fields exist)
-                // $invoice->update([
-                //     'last_reminder_sent_at' => now(),
-                //     'reminder_count' => ($invoice->reminder_count ?? 0) + 1,
-                // ]);
+                $invoice->forceFill([
+                    'last_reminder_sent_at' => now(),
+                    'reminder_count' => ($invoice->reminder_count ?? 0) + 1,
+                    'last_reminder_channel' => $channel,
+                    'last_reminder_notes' => $note,
+                    'status' => $invoice->is_overdue ? 'overdue' : $invoice->status,
+                ])->save();
 
                 $sent++;
 
@@ -70,7 +72,9 @@ class SendInvoiceRemindersAction extends BaseAction
             'success' => true,
             'sent' => $sent,
             'failed' => $failed,
-            'message' => "Successfully sent {$sent} reminder email(s).",
+            'message' => $sent === 0
+                ? 'No invoices met the reminder criteria.'
+                : "Logged {$sent} reminder(s) via {$channel}. Notifications can be sent from the Reminders queue.",
         ];
     }
 
@@ -85,11 +89,30 @@ class SendInvoiceRemindersAction extends BaseAction
 
     protected function getOverdueInvoices()
     {
-        return Invoice::where('organization_id', $this->organization->id)
-            ->where('status', 'sent')
-            ->where('due_date', '<', now())
-            ->with('customer')
-            ->get();
+        $limit = (int) ($this->parameters['limit'] ?? 10);
+
+        $query = Invoice::with('customer')
+            ->where('organization_id', $this->organization->id)
+            ->whereIn('status', ['sent', 'overdue'])
+            ->where('due_date', '<', now());
+
+        if (!empty($this->parameters['invoice_number'])) {
+            $query->where('invoice_number', 'like', '%' . strtoupper($this->parameters['invoice_number']) . '%');
+        }
+
+        if (!empty($this->parameters['customer_name'])) {
+            $name = trim($this->parameters['customer_name']);
+            $query->whereHas('customer', function ($q) use ($name) {
+                $q->where('name', 'like', '%' . $name . '%');
+            });
+        }
+
+        if (!empty($this->parameters['min_days_overdue'])) {
+            $days = (int) $this->parameters['min_days_overdue'];
+            $query->where('due_date', '<=', now()->subDays($days));
+        }
+
+        return $query->orderBy('due_date')->limit(max(1, $limit))->get();
     }
 
     protected function getEmailPreview(Invoice $invoice): string
@@ -104,4 +127,3 @@ class SendInvoiceRemindersAction extends BaseAction
             . "Thank you!";
     }
 }
-

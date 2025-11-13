@@ -57,6 +57,13 @@ class ActionRegistry
                 'description' => 'Send follow-up email for pending quotes',
                 'requires_confirmation' => true,
             ],
+            'record_invoice_payment' => [
+                'class' => RecordInvoicePaymentAction::class,
+                'category' => 'sales',
+                'label' => 'Record Invoice Payment',
+                'description' => 'Mark an invoice as paid and create a payment record',
+                'requires_confirmation' => true,
+            ],
             
             // People Actions
             'approve_leave' => [
@@ -128,4 +135,3 @@ class ActionRegistry
         return array_filter(self::$actions, fn($action) => $action['category'] === $category);
     }
 }
-

@@ -176,7 +176,9 @@ class AddyCoreService
                 ];
             }
 
-            if ($sales['sales_performance']['trend'] === 'increasing' && 
+            if (isset($sales['sales_performance']) && isset($sales['sales_performance']['trend']) &&
+                $sales['sales_performance']['trend'] === 'increasing' && 
+                isset($sales['sales_performance']['change_percentage']) &&
                 $sales['sales_performance']['change_percentage'] > 20) {
                 $opportunities[] = [
                     'area' => 'sales',
@@ -190,7 +192,7 @@ class AddyCoreService
         if (isset($perceptionData['people'])) {
             $people = $perceptionData['people'];
 
-            if (isset($people['payroll_health']['days_until_payroll']) && 
+            if (isset($people['payroll_health']) && isset($people['payroll_health']['days_until_payroll']) && 
                 $people['payroll_health']['days_until_payroll'] <= 7) {
                 $issues[] = [
                     'area' => 'people',
@@ -200,7 +202,8 @@ class AddyCoreService
                 ];
             }
 
-            if ($people['leave_patterns']['pending_requests'] > 0) {
+            if (isset($people['leave_patterns']) && isset($people['leave_patterns']['pending_requests']) &&
+                $people['leave_patterns']['pending_requests'] > 0) {
                 $issues[] = [
                     'area' => 'people',
                     'type' => 'pending_leave',
@@ -214,7 +217,8 @@ class AddyCoreService
         if (isset($perceptionData['inventory'])) {
             $inventory = $perceptionData['inventory'];
 
-            if ($inventory['stock_levels']['out_of_stock'] > 0) {
+            if (isset($inventory['stock_levels']) && isset($inventory['stock_levels']['out_of_stock']) &&
+                $inventory['stock_levels']['out_of_stock'] > 0) {
                 $issues[] = [
                     'area' => 'inventory',
                     'type' => 'out_of_stock',
@@ -223,7 +227,8 @@ class AddyCoreService
                 ];
             }
 
-            if ($inventory['stock_levels']['low_stock'] > 0) {
+            if (isset($inventory['stock_levels']) && isset($inventory['stock_levels']['low_stock']) &&
+                $inventory['stock_levels']['low_stock'] > 0) {
                 $issues[] = [
                     'area' => 'inventory',
                     'type' => 'low_stock',
@@ -412,7 +417,11 @@ class AddyCoreService
 
         // CROSS-INSIGHT 1: Low inventory + High sales = Potential stockout
         if (isset($perceptionData['inventory']) && isset($perceptionData['sales'])) {
-            $lowStock = $perceptionData['inventory']['stock_levels']['low_stock'];
+            $lowStock = 0;
+            if (isset($perceptionData['inventory']['stock_levels'])) {
+                $lowStock = $perceptionData['inventory']['stock_levels']['low_stock'] ?? 0;
+            }
+            
             $salesTrend = 'stable';
             if (isset($perceptionData['sales']['sales_performance'])) {
                 $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
@@ -513,7 +522,11 @@ class AddyCoreService
 
         // CROSS-INSIGHT 4: High leave volume + Sales goals = Capacity planning
         if (isset($perceptionData['people']) && isset($perceptionData['sales'])) {
-            $upcomingLeave = $perceptionData['people']['leave_patterns']['upcoming_count'] ?? 0;
+            $upcomingLeave = 0;
+            if (isset($perceptionData['people']['leave_patterns'])) {
+                $upcomingLeave = $perceptionData['people']['leave_patterns']['upcoming_count'] ?? 0;
+            }
+            
             $salesTrend = 'stable';
             if (isset($perceptionData['sales']['sales_performance'])) {
                 $salesTrend = $perceptionData['sales']['sales_performance']['trend'] ?? 'stable';
@@ -540,8 +553,15 @@ class AddyCoreService
 
         // CROSS-INSIGHT 5: Budget overrun in inventory + Out of stock = Poor planning
         if (isset($perceptionData['money']) && isset($perceptionData['inventory'])) {
-            $budgetOverruns = $perceptionData['money']['budget_health']['overrun'] ?? [];
-            $outOfStock = $perceptionData['inventory']['stock_levels']['out_of_stock'] ?? 0;
+            $budgetOverruns = [];
+            if (isset($perceptionData['money']['budget_health'])) {
+                $budgetOverruns = $perceptionData['money']['budget_health']['overrun'] ?? [];
+            }
+            
+            $outOfStock = 0;
+            if (isset($perceptionData['inventory']['stock_levels'])) {
+                $outOfStock = $perceptionData['inventory']['stock_levels']['out_of_stock'] ?? 0;
+            }
 
             // Check if inventory budget is overrun
             $inventoryOverrun = collect($budgetOverruns)->first(function($budget) {
