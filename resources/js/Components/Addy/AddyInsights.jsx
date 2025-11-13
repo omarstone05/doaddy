@@ -21,7 +21,17 @@ export default function AddyInsights() {
     };
 
     const getSystemStatus = (state) => {
-        if (!state) return { message: 'Initializing...', color: 'gray' };
+        if (!state) return { 
+            message: 'Initializing...', 
+            color: 'gray',
+            bgClass: 'bg-gradient-to-r from-gray-400 to-slate-500',
+            textClass: 'text-gray-900',
+            icon: (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            ),
+        };
         
         const urgency = state.urgency || 0;
         const mood = state.mood || 'neutral';
@@ -30,20 +40,30 @@ export default function AddyInsights() {
         // Gold: Ahead and winning (very low urgency + optimistic mood + positive indicators)
         if (urgency < 0.2 && (mood === 'optimistic' || context.includes('ahead') || context.includes('exceeding') || context.includes('strong'))) {
             return {
-                message: "You're ahead and really winning! 🎉",
+                message: "You're ahead and really winning!",
                 color: 'gold',
                 bgClass: 'bg-gradient-to-r from-yellow-400 to-amber-500',
                 textClass: 'text-yellow-900',
+                icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                ),
             };
         }
         
         // Green: All good (low urgency + neutral/optimistic mood)
         if (urgency < 0.4 && (mood === 'neutral' || mood === 'optimistic' || mood === 'attentive')) {
             return {
-                message: "We're good! 👍",
+                message: "We're good!",
                 color: 'green',
                 bgClass: 'bg-gradient-to-r from-green-400 to-emerald-500',
                 textClass: 'text-green-900',
+                icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                ),
             };
         }
         
@@ -51,36 +71,57 @@ export default function AddyInsights() {
         if (urgency >= 0.4 && urgency < 0.7) {
             if (mood === 'concerned' || context.includes('behind') || context.includes('lagging')) {
                 return {
-                    message: "You're a little behind ⚠️",
+                    message: "You're a little behind",
                     color: 'yellow',
                     bgClass: 'bg-gradient-to-r from-yellow-400 to-orange-400',
                     textClass: 'text-yellow-900',
+                    icon: (
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    ),
                 };
             }
             return {
-                message: "Things need attention 👀",
+                message: "Things need attention",
                 color: 'orange',
                 bgClass: 'bg-gradient-to-r from-orange-400 to-amber-500',
                 textClass: 'text-orange-900',
+                icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                ),
             };
         }
         
         // Red: In trouble (high urgency + concerned/urgent mood)
         if (urgency >= 0.7 || mood === 'urgent' || mood === 'concerned' || context.includes('urgent') || context.includes('critical')) {
             return {
-                message: "We should be worried 🚨",
+                message: "We should be worried",
                 color: 'red',
                 bgClass: 'bg-gradient-to-r from-red-400 to-rose-600',
                 textClass: 'text-red-900',
+                icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                ),
             };
         }
         
         // Default fallback
         return {
-            message: "Monitoring your business 📊",
+            message: "Monitoring your business",
             color: 'gray',
             bgClass: 'bg-gradient-to-r from-gray-400 to-slate-500',
             textClass: 'text-gray-900',
+            icon: (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            ),
         };
     };
 
@@ -214,9 +255,14 @@ export default function AddyInsights() {
                                     <div className="flex items-center justify-between mb-4">
                                         <h2 className="text-2xl font-bold text-white">System Status</h2>
                                     </div>
-                                    <p className={`text-xl font-semibold ${status.textClass} mb-4`}>
-                                        {status.message}
-                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-white">
+                                            {status.icon}
+                                        </div>
+                                        <p className={`text-xl font-semibold ${status.textClass}`}>
+                                            {status.message}
+                                        </p>
+                                    </div>
                                 </div>
                             );
                         })()}
