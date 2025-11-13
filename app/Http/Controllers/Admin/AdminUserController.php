@@ -81,19 +81,41 @@ class AdminUserController extends Controller
 
     public function changePassword(Request $request, User $user)
     {
-        $validated = $request->validate([
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        try {
+            $validated = $request->validate([
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        $user->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+            // The User model has 'password' => 'hashed' in casts, so it will auto-hash
+            // We just need to pass the plain password
+            $user->password = $validated['password'];
+            $user->save();
 
-        AdminActivityLog::log('password_changed', $user, null, [
-            'changed_by' => $request->user()->email,
-        ]);
+            // Log the activity
+            try {
+                AdminActivityLog::log('password_changed', $user, null, [
+                    'changed_by' => $request->user()->email,
+                ]);
+            } catch (\Exception $e) {
+                // Log error but don't fail the password change
+                \Log::warning('Failed to log password change activity', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id,
+                ]);
+            }
 
-        return back()->with('success', 'Password changed successfully');
+            return back()->with('success', 'Password changed successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Error changing user password', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id,
+            ]);
+
+            return back()->with('error', 'Failed to change password: ' . $e->getMessage());
+        }
     }
 
     public function sendPasswordReset(Request $request, User $user)
