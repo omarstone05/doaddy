@@ -85,53 +85,61 @@ export default function MoneyIndex({ stats, insights }) {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/money/accounts/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <Wallet className="h-8 w-8 text-teal-500" />
+                <Link href="/money/accounts/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <Wallet className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Account</h3>
+                                <p className="text-sm text-gray-600">Create a new money account</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Account</h3>
-                            <p className="text-sm text-gray-600">Create a new money account</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/money/movements/create?type=income')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-green-500/10 rounded-full mb-4">
-                                <ArrowUp className="h-8 w-8 text-green-500" />
+                <Link href="/money/movements/create?type=income" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-green-500/10 rounded-full mb-4">
+                                    <ArrowUp className="h-8 w-8 text-green-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Income</h3>
+                                <p className="text-sm text-gray-600">Add income transaction</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Income</h3>
-                            <p className="text-sm text-gray-600">Add income transaction</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/money/movements/create?type=expense')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-red-500/10 rounded-full mb-4">
-                                <ArrowDown className="h-8 w-8 text-red-500" />
+                <Link href="/money/movements/create?type=expense" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-red-500/10 rounded-full mb-4">
+                                    <ArrowDown className="h-8 w-8 text-red-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Expense</h3>
+                                <p className="text-sm text-gray-600">Add expense transaction</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Expense</h3>
-                            <p className="text-sm text-gray-600">Add expense transaction</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/money/budgets/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <FileText className="h-8 w-8 text-teal-500" />
+                <Link href="/money/budgets/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <FileText className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Budget</h3>
+                                <p className="text-sm text-gray-600">Set up a new budget</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Budget</h3>
-                            <p className="text-sm text-gray-600">Set up a new budget</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             {/* Recent Activity */}

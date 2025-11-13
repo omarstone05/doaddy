@@ -38,19 +38,13 @@ return new class extends Migration
             // Add foreign keys after referenced tables exist
             if (Schema::hasTable('leave_types')) {
                 Schema::table('leave_requests', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leave_requests' AND COLUMN_NAME = 'leave_type_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('leave_type_id')->references('id')->on('leave_types')->onDelete('cascade');
-                    }
+                    $table->foreign('leave_type_id')->references('id')->on('leave_types')->onDelete('cascade');
                 });
             }
             
             if (Schema::hasTable('users')) {
                 Schema::table('leave_requests', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'leave_requests' AND COLUMN_NAME = 'approved_by_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('approved_by_id')->references('id')->on('users')->onDelete('set null');
-                    }
+                    $table->foreign('approved_by_id')->references('id')->on('users')->onDelete('set null');
                 });
             }
         }
