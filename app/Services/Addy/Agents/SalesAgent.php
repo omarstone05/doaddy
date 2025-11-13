@@ -157,10 +157,13 @@ class SalesAgent
 
     protected function calculateAverageDaysToPayment(): float
     {
+        // Get payments that have allocations to invoices
         $recentPayments = Payment::where('organization_id', $this->organization->id)
-            ->whereNotNull('invoice_id')
+            ->whereHas('allocations', function($query) {
+                $query->whereNotNull('invoice_id');
+            })
             ->whereBetween('payment_date', [now()->subMonth(), now()])
-            ->with('invoice')
+            ->with(['allocations.invoice'])
             ->get();
 
         if ($recentPayments->isEmpty()) {
@@ -171,10 +174,13 @@ class SalesAgent
         $count = 0;
 
         foreach ($recentPayments as $payment) {
-            if ($payment->invoice) {
-                $days = $payment->invoice->created_at->diffInDays($payment->payment_date);
-                $totalDays += $days;
-                $count++;
+            // A payment can have multiple allocations to different invoices
+            foreach ($payment->allocations as $allocation) {
+                if ($allocation->invoice) {
+                    $days = $allocation->invoice->created_at->diffInDays($payment->payment_date);
+                    $totalDays += $days;
+                    $count++;
+                }
             }
         }
 

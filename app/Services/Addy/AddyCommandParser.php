@@ -2,6 +2,8 @@
 
 namespace App\Services\Addy;
 
+use Illuminate\Support\Str;
+
 class AddyCommandParser
 {
     /**
@@ -278,10 +280,28 @@ class AddyCommandParser
         }
         
         // Send invoice reminders
-        if (str_contains($message, 'send') && (str_contains($message, 'reminder') || str_contains($message, 'invoice'))) {
+        if (str_contains($message, 'send') && str_contains($message, 'reminder') && str_contains($message, 'invoice')) {
             return [
                 'action_type' => 'send_invoice_reminders',
-                'parameters' => [],
+                'parameters' => $this->extractReminderParameters($message),
+            ];
+        }
+
+        // Follow up on quotes
+        if (str_contains($message, 'follow up') && str_contains($message, 'quote')) {
+            return [
+                'action_type' => 'follow_up_quote',
+                'parameters' => $this->extractQuoteParameters($message),
+            ];
+        }
+
+        // Record invoice payment
+        if ((str_contains($message, 'mark') || str_contains($message, 'record') || str_contains($message, 'log'))
+            && str_contains($message, 'invoice')
+            && (str_contains($message, 'paid') || str_contains($message, 'payment'))) {
+            return [
+                'action_type' => 'record_invoice_payment',
+                'parameters' => $this->extractInvoicePaymentParameters($message),
             ];
         }
         
@@ -417,6 +437,97 @@ class AddyCommandParser
         
         return 'general';
     }
+
+    protected function extractReminderParameters(string $message): array
+    {
+        $params = [];
+
+        if (preg_match('/invoice\s+#?([a-z0-9\-]+)/i', $message, $matches)) {
+            $params['invoice_number'] = strtoupper($matches[1]);
+        }
+
+        if (preg_match('/customer\s+([a-z\s]+)/i', $message, $matches)) {
+            $params['customer_name'] = Str::title(trim($matches[1]));
+        } elseif (preg_match('/for\s+([a-z\s]+?)(?:\s+invoice|$)/i', $message, $matches)) {
+            $params['customer_name'] = Str::title(trim($matches[1]));
+        }
+
+        if (preg_match('/(\d+)\s+(?:days)?\s*overdue/i', $message, $matches)) {
+            $params['min_days_overdue'] = (int) $matches[1];
+        }
+
+        if (preg_match('/(\d+)\s+(?:invoices|reminders)/i', $message, $matches)) {
+            $params['limit'] = (int) $matches[1];
+        }
+
+        if (str_contains($message, 'sms')) {
+            $params['channel'] = 'sms';
+        } elseif (str_contains($message, 'call')) {
+            $params['channel'] = 'call';
+        }
+
+        return $params;
+    }
+
+    protected function extractQuoteParameters(string $message): array
+    {
+        $params = [];
+
+        if (preg_match('/quote\s+#?([a-z0-9\-]+)/i', $message, $matches)) {
+            $params['quote_number'] = strtoupper($matches[1]);
+        }
+
+        if (preg_match('/for\s+([a-z\s]+?)(?:\s+quote|$)/i', $message, $matches)) {
+            $params['customer_name'] = Str::title(trim($matches[1]));
+        }
+
+        if (preg_match('/(\d+)\s+(?:quotes?|follow ups?)/i', $message, $matches)) {
+            $params['limit'] = (int) $matches[1];
+        }
+
+        if (str_contains($message, 'stale') || str_contains($message, 'again')) {
+            $params['stale_only'] = true;
+        }
+
+        if (preg_match('/expire(?:s|d)?\s+in\s+(\d+)\s+days/i', $message, $matches)) {
+            $params['expiring_within_days'] = (int) $matches[1];
+        }
+
+        return $params;
+    }
+
+    protected function extractInvoicePaymentParameters(string $message): array
+    {
+        $params = [];
+
+        if (preg_match('/invoice\s+#?([a-z0-9\-]+)/i', $message, $matches)) {
+            $params['invoice_number'] = strtoupper($matches[1]);
+        }
+
+        if (preg_match('/\$?\s*(\d+(?:\.\d{2})?)/', $message, $matches)) {
+            $params['amount'] = (float) $matches[1];
+        }
+
+        if (preg_match('/on\s+(\d{4}-\d{2}-\d{2})/i', $message, $matches)) {
+            $params['payment_date'] = $matches[1];
+        } elseif (preg_match('/on\s+(\d{1,2}\/\d{1,2}\/\d{4})/i', $message, $matches)) {
+            $params['payment_date'] = $matches[1];
+        }
+
+        if (str_contains($message, 'cash')) {
+            $params['payment_method'] = 'cash';
+        } elseif (str_contains($message, 'card')) {
+            $params['payment_method'] = 'card';
+        } elseif (str_contains($message, 'transfer')) {
+            $params['payment_method'] = 'bank_transfer';
+        }
+
+        if (preg_match('/ref(?:erence)?\s+([a-z0-9\-]+)/i', $message, $matches)) {
+            $params['payment_reference'] = strtoupper($matches[1]);
+        }
+
+        return $params;
+    }
     
     /**
      * Check if message looks like bank statement data
@@ -454,4 +565,3 @@ class AddyCommandParser
                ($hasHeaders && $hasAmounts && $hasTransactionKeywords);
     }
 }
-
