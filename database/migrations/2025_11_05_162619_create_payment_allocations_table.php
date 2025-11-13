@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -23,34 +22,21 @@ return new class extends Migration
         }
         
         // Add foreign keys if tables exist
-        $driver = Schema::getConnection()->getDriverName();
-        $canCheckInformationSchema = $driver !== 'sqlite';
-        
         if (Schema::hasTable('payment_allocations') && Schema::hasTable('payments')) {
-            Schema::table('payment_allocations', function (Blueprint $table) use ($canCheckInformationSchema) {
-                $canAdd = true;
-                if ($canCheckInformationSchema) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payment_allocations' AND COLUMN_NAME = 'payment_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    $canAdd = empty($foreignKeys);
-                }
-                
-                if ($canAdd) {
-                    $table->foreign('payment_id')->references('id')->on('payments')->onDelete('cascade');
-                }
+            Schema::table('payment_allocations', function (Blueprint $table) {
+                $table->foreign('payment_id')
+                    ->references('id')
+                    ->on('payments')
+                    ->cascadeOnDelete();
             });
         }
         
         if (Schema::hasTable('payment_allocations') && Schema::hasTable('invoices')) {
-            Schema::table('payment_allocations', function (Blueprint $table) use ($canCheckInformationSchema) {
-                $canAdd = true;
-                if ($canCheckInformationSchema) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payment_allocations' AND COLUMN_NAME = 'invoice_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    $canAdd = empty($foreignKeys);
-                }
-                
-                if ($canAdd) {
-                    $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade');
-                }
+            Schema::table('payment_allocations', function (Blueprint $table) {
+                $table->foreign('invoice_id')
+                    ->references('id')
+                    ->on('invoices')
+                    ->cascadeOnDelete();
             });
         }
     }

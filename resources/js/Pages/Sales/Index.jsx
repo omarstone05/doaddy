@@ -85,65 +85,75 @@ export default function SalesIndex({ stats, insights }) {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/pos')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <ShoppingCart className="h-8 w-8 text-teal-500" />
+                <Link href="/pos" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <ShoppingCart className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Point of Sale</h3>
+                                <p className="text-sm text-gray-600">Open POS system</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Point of Sale</h3>
-                            <p className="text-sm text-gray-600">Open POS system</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/customers/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <Users className="h-8 w-8 text-teal-500" />
+                <Link href="/customers/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <Users className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Customer</h3>
+                                <p className="text-sm text-gray-600">Create a new customer</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Customer</h3>
-                            <p className="text-sm text-gray-600">Create a new customer</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/quotes/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-blue-500/10 rounded-full mb-4">
-                                <FileText className="h-8 w-8 text-blue-500" />
+                <Link href="/quotes/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-blue-500/10 rounded-full mb-4">
+                                    <FileText className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Quote</h3>
+                                <p className="text-sm text-gray-600">Generate a new quote</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Quote</h3>
-                            <p className="text-sm text-gray-600">Generate a new quote</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/invoices/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-amber-500/10 rounded-full mb-4">
-                                <FileText className="h-8 w-8 text-amber-500" />
+                <Link href="/invoices/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-amber-500/10 rounded-full mb-4">
+                                    <FileText className="h-8 w-8 text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Invoice</h3>
+                                <p className="text-sm text-gray-600">Generate a new invoice</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Invoice</h3>
-                            <p className="text-sm text-gray-600">Generate a new invoice</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/payments/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-green-500/10 rounded-full mb-4">
-                                <DollarSign className="h-8 w-8 text-green-500" />
+                <Link href="/payments/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-green-500/10 rounded-full mb-4">
+                                    <DollarSign className="h-8 w-8 text-green-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Payment</h3>
+                                <p className="text-sm text-gray-600">Record a payment</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Record Payment</h3>
-                            <p className="text-sm text-gray-600">Record a payment</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             {/* Recent Sales */}

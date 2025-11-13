@@ -76,53 +76,61 @@ export default function PeopleIndex({ stats, insights }) {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/team/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <Users className="h-8 w-8 text-teal-500" />
+                <Link href="/team/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <Users className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Team Member</h3>
+                                <p className="text-sm text-gray-600">Add a new team member</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Team Member</h3>
-                            <p className="text-sm text-gray-600">Add a new team member</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/payroll/runs/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-green-500/10 rounded-full mb-4">
-                                <Wallet className="h-8 w-8 text-green-500" />
+                <Link href="/payroll/runs/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-green-500/10 rounded-full mb-4">
+                                    <Wallet className="h-8 w-8 text-green-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Run Payroll</h3>
+                                <p className="text-sm text-gray-600">Process payroll</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Run Payroll</h3>
-                            <p className="text-sm text-gray-600">Process payroll</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/leave/requests/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-amber-500/10 rounded-full mb-4">
-                                <Calendar className="h-8 w-8 text-amber-500" />
+                <Link href="/leave/requests/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-amber-500/10 rounded-full mb-4">
+                                    <Calendar className="h-8 w-8 text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Leave</h3>
+                                <p className="text-sm text-gray-600">Submit a leave request</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Leave</h3>
-                            <p className="text-sm text-gray-600">Submit a leave request</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/commissions/rules/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-blue-500/10 rounded-full mb-4">
-                                <DollarSign className="h-8 w-8 text-blue-500" />
+                <Link href="/commissions/rules/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-blue-500/10 rounded-full mb-4">
+                                    <DollarSign className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Commission Rule</h3>
+                                <p className="text-sm text-gray-600">Create commission rule</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Commission Rule</h3>
-                            <p className="text-sm text-gray-600">Create commission rule</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </SectionLayout>
     );

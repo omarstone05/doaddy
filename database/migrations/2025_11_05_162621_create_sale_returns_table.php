@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -30,16 +29,15 @@ return new class extends Migration
             $table->index(['organization_id', 'return_date']);
             $table->index('sale_id');
             });
-            
-            // Add foreign key after team_members table exists
-            if (Schema::hasTable('team_members')) {
-                Schema::table('sale_returns', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sale_returns' AND COLUMN_NAME = 'processed_by_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('processed_by_id')->references('id')->on('team_members')->onDelete('cascade');
-                    }
-                });
-            }
+        }
+
+        if (Schema::hasTable('sale_returns') && Schema::hasTable('team_members')) {
+            Schema::table('sale_returns', function (Blueprint $table) {
+                $table->foreign('processed_by_id')
+                    ->references('id')
+                    ->on('team_members')
+                    ->cascadeOnDelete();
+            });
         }
     }
 

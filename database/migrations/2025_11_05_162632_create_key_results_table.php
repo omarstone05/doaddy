@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -30,16 +29,15 @@ return new class extends Migration
             // Foreign key for okr_id will be added after okrs table exists
             $table->index(['okr_id', 'display_order']);
             });
-            
-            // Add foreign key after okrs table exists
-            if (Schema::hasTable('okrs')) {
-                Schema::table('key_results', function (Blueprint $table) {
-                    $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'key_results' AND COLUMN_NAME = 'okr_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
-                    if (empty($foreignKeys)) {
-                        $table->foreign('okr_id')->references('id')->on('okrs')->onDelete('cascade');
-                    }
-                });
-            }
+        }
+
+        if (Schema::hasTable('key_results') && Schema::hasTable('okrs')) {
+            Schema::table('key_results', function (Blueprint $table) {
+                $table->foreign('okr_id')
+                    ->references('id')
+                    ->on('okrs')
+                    ->cascadeOnDelete();
+            });
         }
     }
 
