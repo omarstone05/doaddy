@@ -57,6 +57,29 @@ export function AddyProvider({ children }) {
         }
     };
 
+    const refreshInsights = async () => {
+        try {
+            const response = await axios.post('/api/addy/insights/refresh');
+            if (response.data.success && response.data.data) {
+                // Update local state with refreshed data
+                setAddy(prev => ({
+                    ...prev,
+                    state: response.data.data.state,
+                    top_insight: response.data.data.top_insight,
+                    insights_count: response.data.data.insights_count,
+                }));
+                return { success: true, message: response.data.message };
+            }
+            return { success: false, message: response.data.message || 'Failed to refresh insights' };
+        } catch (error) {
+            console.error('Failed to refresh insights:', error);
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Failed to refresh insights. Please try again.' 
+            };
+        }
+    };
+
     return (
         <AddyContext.Provider
             value={{
@@ -70,6 +93,7 @@ export function AddyProvider({ children }) {
                 showInsightsView,
                 dismissInsight,
                 completeInsight,
+                refreshInsights,
                 hasInsights: addy?.insights_count > 0,
                 topInsight: addy?.top_insight,
                 state: addy?.state,

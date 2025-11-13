@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
     // Addy Insights API
     Route::prefix('api/addy')->group(function () {
         Route::get('/insights', [AddyInsightController::class, 'index']);
+        Route::post('/insights/refresh', [AddyInsightController::class, 'refresh']);
         Route::post('/insights/{insight}/dismiss', [AddyInsightController::class, 'dismiss']);
         Route::post('/insights/{insight}/complete', [AddyInsightController::class, 'complete']);
         

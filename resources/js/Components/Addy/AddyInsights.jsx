@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
 export default function AddyInsights() {
-    const { isOpen, closeAddy, topInsight, state, addy, showChatView } = useAddy();
+    const { isOpen, closeAddy, topInsight, state, addy, showChatView, refreshInsights } = useAddy();
+    const [refreshing, setRefreshing] = useState(false);
+    const [refreshMessage, setRefreshMessage] = useState(null);
 
     if (!isOpen) return null;
 
@@ -29,6 +31,31 @@ export default function AddyInsights() {
         if (url) {
             router.visit(url);
             closeAddy();
+        }
+    };
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        setRefreshMessage(null);
+        
+        try {
+            const result = await refreshInsights();
+            setRefreshMessage({
+                type: result.success ? 'success' : 'error',
+                text: result.message,
+            });
+            
+            // Clear message after 3 seconds
+            setTimeout(() => {
+                setRefreshMessage(null);
+            }, 3000);
+        } catch (error) {
+            setRefreshMessage({
+                type: 'error',
+                text: 'Failed to refresh insights. Please try again.',
+            });
+        } finally {
+            setRefreshing(false);
         }
     };
 
@@ -66,6 +93,29 @@ export default function AddyInsights() {
 
                         <div className="flex items-center gap-2">
                             <button
+                                onClick={handleRefresh}
+                                disabled={refreshing}
+                                className="px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-teal-600 border border-mint-200/60 text-sm font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                title="Refresh insights with latest data"
+                            >
+                                {refreshing ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Refreshing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Refresh
+                                    </>
+                                )}
+                            </button>
+                            <button
                                 onClick={showChatView}
                                 className="px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-teal-600 border border-mint-200/60 text-sm font-semibold transition-all shadow-sm"
                                 title="Back to chat"
@@ -88,6 +138,16 @@ export default function AddyInsights() {
                     <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{
                         background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(240,253,250,0.3) 50%, rgba(255,255,255,0.5) 100%)'
                     }}>
+                        {/* Refresh Message */}
+                        {refreshMessage && (
+                            <div className={`p-4 rounded-xl ${
+                                refreshMessage.type === 'success' 
+                                    ? 'bg-green-50 border border-green-200 text-green-800' 
+                                    : 'bg-red-50 border border-red-200 text-red-800'
+                            }`}>
+                                <p className="text-sm font-medium">{refreshMessage.text}</p>
+                            </div>
+                        )}
                         
                         {/* Current State */}
                         {state && (

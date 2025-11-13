@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AddyInsight;
+use App\Services\Addy\AddyCoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -55,6 +56,36 @@ class AddyInsightController extends Controller
             ]);
 
         return response()->json($insights);
+    }
+
+    public function refresh(Request $request)
+    {
+        try {
+            $organization = $request->user()->organization;
+            $coreService = new AddyCoreService($organization);
+            
+            // Regenerate insights with latest data
+            $coreService->regenerateInsights();
+            
+            // Get updated thought/insights
+            $thought = $coreService->getCurrentThought();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Insights refreshed successfully',
+                'data' => $thought,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to refresh insights', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh insights: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
 
