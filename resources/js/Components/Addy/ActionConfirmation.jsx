@@ -110,6 +110,8 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
                 {/* Report Display */}
                 {result?.success && result.result?.report && (
                     <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        {/* Debug info - remove after testing */}
+                        {console.log('Rendering report:', result.result.report)}
                         <div className="mb-4">
                             <h3 className="text-lg font-bold text-gray-900 mb-1">
                                 {result.result.report.title}
