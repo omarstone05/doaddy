@@ -47,25 +47,29 @@ export default function SettingsIndex({ organization }) {
         // Check if we have a logo file to upload
         const hasLogoFile = data.logo instanceof File;
         
-        // Use transform to exclude logo when it's not a file
-        put('/settings', {
-            transform: (formData) => {
-                // Remove logo if it's not a file
-                if (!hasLogoFile) {
-                    const { logo, ...rest } = formData;
-                    return rest;
-                }
-                return formData;
-            },
-            forceFormData: hasLogoFile,
-            preserveScroll: true,
-            onSuccess: () => {
-                // Clear logo from form data after successful submission if no new file
-                if (!hasLogoFile) {
+        // Always use FormData when we have a file, or when we want to send all data
+        if (hasLogoFile) {
+            // Use FormData for file uploads
+            put('/settings', {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Keep logo in form for preview, but reset to null so it doesn't re-upload
                     setData('logo', null);
-                }
-            },
-        });
+                },
+                onError: (errors) => {
+                    console.error('Settings update errors:', errors);
+                },
+            });
+        } else {
+            // Regular form submission without file
+            put('/settings', {
+                preserveScroll: true,
+                onError: (errors) => {
+                    console.error('Settings update errors:', errors);
+                },
+            });
+        }
     };
 
     return (

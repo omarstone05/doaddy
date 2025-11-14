@@ -58,17 +58,39 @@ class SettingsController extends Controller
             // Handle logo upload
             if ($request->hasFile('logo')) {
                 try {
+                    $logoFile = $request->file('logo');
+                    
+                    \Log::info('Logo upload attempt', [
+                        'organization_id' => $organization->id,
+                        'file_name' => $logoFile->getClientOriginalName(),
+                        'file_size' => $logoFile->getSize(),
+                        'mime_type' => $logoFile->getMimeType(),
+                    ]);
+
                     // Delete old logo if exists
                     if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
                         Storage::disk('public')->delete($organization->logo);
+                        \Log::info('Deleted old logo', ['old_logo_path' => $organization->logo]);
+                    }
+
+                    // Ensure directory exists
+                    $logoDir = "logos/organizations/{$organization->id}";
+                    if (!Storage::disk('public')->exists($logoDir)) {
+                        Storage::disk('public')->makeDirectory($logoDir, 0755, true);
                     }
 
                     // Store new logo
-                    $logoPath = $request->file('logo')->store("logos/organizations/{$organization->id}", 'public');
+                    $logoPath = $logoFile->store($logoDir, 'public');
                     $validated['logo'] = $logoPath;
+                    
+                    \Log::info('Logo uploaded successfully', [
+                        'logo_path' => $logoPath,
+                        'full_path' => Storage::disk('public')->path($logoPath),
+                    ]);
                 } catch (\Exception $e) {
                     \Log::error('Failed to upload logo', [
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                         'organization_id' => $organization->id,
                     ]);
                     // Continue without logo if upload fails
@@ -77,6 +99,9 @@ class SettingsController extends Controller
             } else {
                 // Keep existing logo if no new one uploaded
                 unset($validated['logo']);
+                \Log::info('No logo file in request, keeping existing logo', [
+                    'existing_logo' => $organization->logo,
+                ]);
             }
 
             $organization->update($validated);
