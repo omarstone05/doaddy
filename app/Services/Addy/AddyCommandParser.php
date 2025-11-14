@@ -484,6 +484,17 @@ class AddyCommandParser
     {
         $message = strtolower($message);
 
+        // Daily report patterns - check these FIRST before other patterns
+        if (str_contains($message, "today's report") || str_contains($message, 'today report') 
+            || str_contains($message, "day's report") || str_contains($message, 'daily report')
+            || (str_contains($message, 'report') && str_contains($message, 'today'))) {
+            return 'today';
+        }
+        if (str_contains($message, "yesterday's report") || str_contains($message, 'yesterday report')
+            || (str_contains($message, 'report') && str_contains($message, 'yesterday'))) {
+            return 'yesterday';
+        }
+
         if (preg_match('/last\s+(\d+)\s+day/', $message, $matches)) {
             return 'last_' . $matches[1] . '_days';
         }

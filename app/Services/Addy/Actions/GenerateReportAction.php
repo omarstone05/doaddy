@@ -271,6 +271,14 @@ class GenerateReportAction extends BaseAction
             $start = (clone $now)->subMonths((int) $matches[1])->startOfDay();
         } else {
             switch ($period) {
+                case 'today':
+                    $start = (clone $now)->startOfDay();
+                    $end = (clone $now)->endOfDay();
+                    break;
+                case 'yesterday':
+                    $start = (clone $now)->subDay()->startOfDay();
+                    $end = (clone $now)->subDay()->endOfDay();
+                    break;
                 case 'last_week':
                     $start = (clone $now)->subWeek()->startOfWeek();
                     $end = (clone $now)->subWeek()->endOfWeek();
