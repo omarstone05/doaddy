@@ -64,8 +64,17 @@ class AddyCommandParser
             ];
         }
         
-        // Expense queries
+        // Expense queries - check if they're asking for specific data (category, date, amount) - if so, generate a report
         if ($this->isExpenseQuery($message)) {
+            // Check if query has specific parameters that warrant a report
+            if ($this->hasReportableExpenseQuery($message)) {
+                return [
+                    'intent' => 'action',
+                    'action_type' => 'generate_report',
+                    'parameters' => $this->extractExpenseReportParameters($message),
+                    'confidence' => 0.9,
+                ];
+            }
             return [
                 'intent' => 'query_expenses',
                 'confidence' => 0.9,
@@ -480,18 +489,159 @@ class AddyCommandParser
         ];
     }
 
+    /**
+     * Check if an expense query should generate a report (has specific category, date, or amount query)
+     */
+    protected function hasReportableExpenseQuery(string $message): bool
+    {
+        // Check for specific category mentions (e.g., "coffee", "office supplies", "travel")
+        if (preg_match('/(?:on|for|spent on|spending on|expenses? for)\s+([a-z\s]+?)(?:\s|$|,|\.|on|in|during)/i', $message, $matches)) {
+            $category = trim($matches[1]);
+            // Exclude common words that aren't categories
+            $excludeWords = ['the', 'a', 'an', 'we', 'did', 'do', 'how', 'much', 'what', 'when', 'where', 'which', 'all', 'any'];
+            if (!in_array(strtolower($category), $excludeWords) && strlen($category) > 2) {
+                return true;
+            }
+        }
+        
+        // Check for specific date mentions (e.g., "14th of november", "november 14", "last year")
+        if (preg_match('/(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)/i', $message)) {
+            return true;
+        }
+        if (preg_match('/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?/i', $message)) {
+            return true;
+        }
+        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/', $message)) {
+            return true;
+        }
+        
+        // Check for "how much" or "what" questions about expenses
+        if ((str_contains($message, 'how much') || str_contains($message, 'what')) 
+            && (str_contains($message, 'spend') || str_contains($message, 'spent') || str_contains($message, 'expense'))) {
+            return true;
+        }
+        
+        // Check for "recorded" or "we recorded" with dates
+        if (str_contains($message, 'recorded') && (str_contains($message, 'on') || str_contains($message, 'in'))) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Extract parameters for expense report from query
+     */
+    protected function extractExpenseReportParameters(string $message): array
+    {
+        $params = $this->extractReportParameters($message);
+        $params['type'] = 'expenses'; // Always expenses for expense queries
+        
+        // Extract category if mentioned
+        if (preg_match('/(?:on|for|spent on|spending on|expenses? for)\s+([a-z\s]+?)(?:\s|$|,|\.|on|in|during)/i', $message, $matches)) {
+            $category = trim($matches[1]);
+            $excludeWords = ['the', 'a', 'an', 'we', 'did', 'do', 'how', 'much', 'what', 'when', 'where', 'which', 'all', 'any'];
+            if (!in_array(strtolower($category), $excludeWords) && strlen($category) > 2) {
+                $params['category'] = $category;
+            }
+        }
+        
+        // Extract specific date if mentioned
+        $specificDate = $this->extractSpecificDate($message);
+        if ($specificDate) {
+            $params['specific_date'] = $specificDate;
+            // Override period to be that specific date
+            $params['period'] = 'specific_date';
+        }
+        
+        return $params;
+    }
+
+    /**
+     * Extract specific date from message (e.g., "14th of november last year", "november 14, 2024")
+     */
+    protected function extractSpecificDate(string $message): ?string
+    {
+        $message = strtolower($message);
+        $now = now();
+        
+        // Pattern: "14th of november" or "14th november" with optional year
+        if (preg_match('/(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+(\d{4}))?(?:\s+last\s+year)?/i', $message, $matches)) {
+            $day = (int) $matches[1];
+            $monthName = strtolower($matches[2]);
+            $year = isset($matches[3]) ? (int) $matches[3] : null;
+            
+            // If "last year" mentioned, use previous year
+            if (str_contains($message, 'last year')) {
+                $year = $now->year - 1;
+            } elseif (!$year) {
+                // Default to current year, but if the date has passed this year, might be asking about last year
+                $year = $now->year;
+            }
+            
+            $month = $this->monthToNumber($monthName);
+            return sprintf('%d-%s-%02d', $year, $month, $day);
+        }
+        
+        // Pattern: "november 14" or "november 14, 2024"
+        if (preg_match('/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,\s*(\d{4}))?(?:\s+last\s+year)?/i', $message, $matches)) {
+            $monthName = strtolower($matches[1]);
+            $day = (int) $matches[2];
+            $year = isset($matches[3]) ? (int) $matches[3] : null;
+            
+            if (str_contains($message, 'last year')) {
+                $year = $now->year - 1;
+            } elseif (!$year) {
+                $year = $now->year;
+            }
+            
+            $month = $this->monthToNumber($monthName);
+            return sprintf('%d-%s-%02d', $year, $month, $day);
+        }
+        
+        // Pattern: MM/DD/YYYY or DD/MM/YYYY
+        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/', $message, $matches)) {
+            // Try to determine format - if first number > 12, it's likely DD/MM
+            if ((int) $matches[1] > 12) {
+                $day = (int) $matches[1];
+                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                $year = (int) $matches[3];
+                if ($year < 100) {
+                    $year += 2000;
+                }
+            } else {
+                $month = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                $day = (int) $matches[2];
+                $year = (int) $matches[3];
+                if ($year < 100) {
+                    $year += 2000;
+                }
+            }
+            return sprintf('%d-%s-%02d', $year, $month, $day);
+        }
+        
+        return null;
+    }
+
     protected function extractReportPeriod(string $message): string
     {
         $message = strtolower($message);
 
+        // Check for specific date first - if found, return special marker
+        if ($this->extractSpecificDate($message)) {
+            return 'specific_date';
+        }
+
         // Daily report patterns - check these FIRST before other patterns
         if (str_contains($message, "today's report") || str_contains($message, 'today report') 
             || str_contains($message, "day's report") || str_contains($message, 'daily report')
-            || (str_contains($message, 'report') && str_contains($message, 'today'))) {
+            || (str_contains($message, 'report') && str_contains($message, 'today'))
+            || (str_contains($message, 'today') && (str_contains($message, 'spend') || str_contains($message, 'expense')))) {
             return 'today';
         }
         if (str_contains($message, "yesterday's report") || str_contains($message, 'yesterday report')
-            || (str_contains($message, 'report') && str_contains($message, 'yesterday'))) {
+            || (str_contains($message, 'report') && str_contains($message, 'yesterday'))
+            || (str_contains($message, 'yesterday') && (str_contains($message, 'spend') || str_contains($message, 'expense')))) {
             return 'yesterday';
         }
 
@@ -522,6 +672,7 @@ class AddyCommandParser
         if (str_contains($message, 'last year')) return 'last_year';
         if (str_contains($message, 'this year')) return 'this_year';
 
+        // Default to last 30 days for expense queries without specific period
         return 'last_30_days';
     }
 

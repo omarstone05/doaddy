@@ -42,7 +42,8 @@ class GenerateReportAction extends BaseAction
     protected function buildReport(): array
     {
         $type = $this->parameters['type'] ?? 'general';
-        $range = $this->resolveDateRange($this->parameters['period'] ?? 'last_30_days');
+        $category = $this->parameters['category'] ?? null;
+        $range = $this->resolveDateRange($this->parameters['period'] ?? 'last_30_days', $this->parameters['specific_date'] ?? null);
 
         switch ($type) {
             case 'cash_flow':
@@ -50,7 +51,7 @@ class GenerateReportAction extends BaseAction
                 $data = $this->buildCashFlowReport($range['start'], $range['end']);
                 break;
             case 'expenses':
-                $data = $this->buildExpenseReport($range['start'], $range['end']);
+                $data = $this->buildExpenseReport($range['start'], $range['end'], $category);
                 break;
             case 'sales':
                 $data = $this->buildSalesReport($range['start'], $range['end']);
@@ -66,6 +67,7 @@ class GenerateReportAction extends BaseAction
         return array_merge($data, [
             'type' => $type,
             'range' => $range,
+            'category' => $category,
             'impact' => $data['impact'] ?? 'medium',
             'warnings' => $data['warnings'] ?? [],
         ]);
@@ -123,13 +125,22 @@ class GenerateReportAction extends BaseAction
         ];
     }
 
-    protected function buildExpenseReport(Carbon $start, Carbon $end): array
+    protected function buildExpenseReport(Carbon $start, Carbon $end, ?string $categoryFilter = null): array
     {
-        $expenses = MoneyMovement::where('organization_id', $this->organization->id)
+        $query = MoneyMovement::where('organization_id', $this->organization->id)
             ->where('flow_type', 'expense')
             ->where('status', 'approved')
-            ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
-            ->get();
+            ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()]);
+
+        // Filter by category if specified (case-insensitive partial match)
+        if ($categoryFilter) {
+            $query->where(function($q) use ($categoryFilter) {
+                $q->where('category', 'LIKE', "%{$categoryFilter}%")
+                  ->orWhere('description', 'LIKE', "%{$categoryFilter}%");
+            });
+        }
+
+        $expenses = $query->get();
 
         $total = (float) $expenses->sum('amount');
 
@@ -148,22 +159,39 @@ class GenerateReportAction extends BaseAction
 
         $dailyAverage = $this->calculateDailyAverage($total, $start, $end);
 
+        // Build title based on category filter
+        $title = 'Expense Summary';
+        if ($categoryFilter) {
+            $title = "Expense Report: " . ucwords($categoryFilter);
+        }
+
+        $highlights = [
+            ['label' => 'Total Expenses', 'value' => $this->formatCurrency($total)],
+        ];
+
+        // Only show daily average if period is more than 1 day
+        if ($start->diffInDays($end) > 0) {
+            $highlights[] = ['label' => 'Daily Average', 'value' => $this->formatCurrency($dailyAverage)];
+        }
+
+        if (!$categoryFilter && !empty($topCategories)) {
+            $highlights[] = ['label' => 'Top Category', 'value' => $topCategories[0]['category'] ?? 'N/A'];
+        }
+
         $warnings = [];
-        if (!empty($topCategories) && $topCategories[0]['percent'] >= 40) {
+        if (!empty($topCategories) && $topCategories[0]['percent'] >= 40 && !$categoryFilter) {
             $warnings[] = "{$topCategories[0]['category']} represents {$topCategories[0]['percent']}% of your spend.";
         }
 
         return [
-            'title' => 'Expense Summary',
-            'highlights' => [
-                ['label' => 'Total Expenses', 'value' => $this->formatCurrency($total)],
-                ['label' => 'Daily Average', 'value' => $this->formatCurrency($dailyAverage)],
-                ['label' => 'Top Category', 'value' => $topCategories[0]['category'] ?? 'N/A'],
-            ],
+            'title' => $title,
+            'highlights' => $highlights,
             'data' => [
                 'top_categories' => $topCategories,
                 'daily_average' => $dailyAverage,
                 'category_breakdown' => $byCategory,
+                'filtered_category' => $categoryFilter,
+                'expense_count' => $expenses->count(),
             ],
             'impact' => $total > 20000 ? 'high' : 'medium',
             'warnings' => $warnings,
@@ -257,13 +285,22 @@ class GenerateReportAction extends BaseAction
         ];
     }
 
-    protected function resolveDateRange(string $period): array
+    protected function resolveDateRange(string $period, ?string $specificDate = null): array
     {
         $now = now();
         $start = (clone $now)->subDays(30)->startOfDay();
         $end = (clone $now)->endOfDay();
 
-        if (preg_match('/last_(\d+)_days/', $period, $matches)) {
+        // Handle specific date first
+        if ($period === 'specific_date' && $specificDate) {
+            try {
+                $date = \Carbon\Carbon::parse($specificDate);
+                $start = $date->copy()->startOfDay();
+                $end = $date->copy()->endOfDay();
+            } catch (\Exception $e) {
+                // If parsing fails, fall back to default
+            }
+        } elseif (preg_match('/last_(\d+)_days/', $period, $matches)) {
             $start = (clone $now)->subDays((int) $matches[1])->startOfDay();
         } elseif (preg_match('/last_(\d+)_weeks/', $period, $matches)) {
             $start = (clone $now)->subWeeks((int) $matches[1])->startOfDay();
