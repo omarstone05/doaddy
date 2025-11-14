@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { Save, Building2, Upload, X, Image as ImageIcon } from 'lucide-react';
@@ -55,29 +55,64 @@ export default function SettingsIndex({ organization }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const hasLogoFile = !!logoFile;
+        const hasLogoFile = logoFile instanceof File;
 
-        // Ensure logo field is set correctly before submission
-        if (!hasLogoFile) {
-            setData('logo', null);
-        } else {
-            setData('logo', logoFile);
+        // Prepare data - ensure logo is only included if it's a file
+        const submitData = {
+            name: data.name,
+            slug: data.slug || '',
+            business_type: data.business_type || '',
+            industry: data.industry || '',
+            tone_preference: data.tone_preference || '',
+            currency: data.currency || 'ZMW',
+            timezone: data.timezone || 'Africa/Lusaka',
+        };
+
+        // Only include logo if there's a file
+        if (hasLogoFile) {
+            submitData.logo = logoFile;
         }
 
-        form.put('/settings', {
-            preserveScroll: true,
-            forceFormData: hasLogoFile,
-            onSuccess: () => {
-                setData('logo', null);
-                setLogoFile(null);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
+        // Use router.put directly with proper FormData handling
+        if (hasLogoFile) {
+            // Create FormData for file upload
+            const formData = new FormData();
+            Object.keys(submitData).forEach(key => {
+                if (submitData[key] instanceof File) {
+                    formData.append(key, submitData[key]);
+                } else if (submitData[key] !== null && submitData[key] !== undefined) {
+                    formData.append(key, submitData[key]);
                 }
-            },
-            onError: (formErrors) => {
-                console.error('Settings update errors:', formErrors);
-            },
-        });
+            });
+
+            router.put('/settings', formData, {
+                preserveScroll: true,
+                forceFormData: true,
+                method: 'put',
+                onSuccess: () => {
+                    setData('logo', null);
+                    setLogoFile(null);
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
+                },
+                onError: (formErrors) => {
+                    console.error('Settings update errors:', formErrors);
+                },
+            });
+        } else {
+            // Regular PUT request without file
+            form.put('/settings', {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setData('logo', null);
+                    setLogoFile(null);
+                },
+                onError: (formErrors) => {
+                    console.error('Settings update errors:', formErrors);
+                },
+            });
+        }
     };
 
     return (
