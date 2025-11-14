@@ -57,62 +57,33 @@ export default function SettingsIndex({ organization }) {
 
         const hasLogoFile = logoFile instanceof File;
 
-        // Prepare data - ensure logo is only included if it's a file
-        const submitData = {
-            name: data.name,
-            slug: data.slug || '',
-            business_type: data.business_type || '',
-            industry: data.industry || '',
-            tone_preference: data.tone_preference || '',
-            currency: data.currency || 'ZMW',
-            timezone: data.timezone || 'Africa/Lusaka',
-        };
-
-        // Only include logo if there's a file
+        // Update form data with logo if file exists
         if (hasLogoFile) {
-            submitData.logo = logoFile;
-        }
-
-        // Use router.put directly with proper FormData handling
-        if (hasLogoFile) {
-            // Create FormData for file upload
-            const formData = new FormData();
-            Object.keys(submitData).forEach(key => {
-                if (submitData[key] instanceof File) {
-                    formData.append(key, submitData[key]);
-                } else if (submitData[key] !== null && submitData[key] !== undefined) {
-                    formData.append(key, submitData[key]);
-                }
-            });
-
-            router.put('/settings', formData, {
-                preserveScroll: true,
-                forceFormData: true,
-                method: 'put',
-                onSuccess: () => {
-                    setData('logo', null);
-                    setLogoFile(null);
-                    if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                    }
-                },
-                onError: (formErrors) => {
-                    console.error('Settings update errors:', formErrors);
-                },
-            });
+            setData('logo', logoFile);
         } else {
-            // Regular PUT request without file
-            form.put('/settings', {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setData('logo', null);
-                    setLogoFile(null);
-                },
-                onError: (formErrors) => {
-                    console.error('Settings update errors:', formErrors);
-                },
-            });
+            // Remove logo from form data if no file
+            setData('logo', null);
         }
+
+        // Submit using form.put - it will handle FormData automatically when forceFormData is true
+        form.put('/settings', {
+            preserveScroll: true,
+            forceFormData: hasLogoFile,
+            onSuccess: () => {
+                setData('logo', null);
+                setLogoFile(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            },
+            onError: (formErrors) => {
+                console.error('Settings update errors:', formErrors);
+                // Log the full error for debugging
+                if (formErrors) {
+                    console.error('Full error details:', JSON.stringify(formErrors, null, 2));
+                }
+            },
+        });
     };
 
     return (
