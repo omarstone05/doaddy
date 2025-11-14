@@ -50,6 +50,12 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
     };
 
     if (result || executed) {
+        // Debug: log the result structure
+        if (result?.success && result.result) {
+            console.log('Action result:', result);
+            console.log('Report data:', result.result.report);
+        }
+        
         return (
             <div className={`p-4 rounded-lg mt-3 ${result?.success ? 'bg-green-50/80 backdrop-blur-sm border border-green-300/50' : 'bg-red-50/80 backdrop-blur-sm border border-red-300/50'}`}>
                 <div className="flex items-center gap-2 mb-2">
