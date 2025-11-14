@@ -120,11 +120,19 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
                             <h3 className="text-lg font-bold text-gray-900 mb-1">
                                 {displayResult.result.report.title}
                             </h3>
-                            {displayResult.result.report.range?.label && (
-                                <p className="text-sm text-gray-600">
-                                    Period: {displayResult.result.report.range.label}
-                                </p>
-                            )}
+                            <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                                {displayResult.result.report.range?.label && (
+                                    <span>Period: {displayResult.result.report.range.label}</span>
+                                )}
+                                {displayResult.result.report.category && (
+                                    <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded-full">
+                                        Category: {displayResult.result.report.category}
+                                    </span>
+                                )}
+                                {displayResult.result.report.data?.expense_count !== undefined && (
+                                    <span>Transactions: {displayResult.result.report.data.expense_count}</span>
+                                )}
+                            </div>
                         </div>
 
                         {/* Highlights */}
