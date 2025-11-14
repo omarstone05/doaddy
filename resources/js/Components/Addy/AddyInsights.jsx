@@ -378,11 +378,11 @@ export default function AddyInsights() {
                                             Take Action →
                                         </button>
                                     )}
-                                    {topInsight.id && (
+                                    {topInsight && (
                                         <button
                                             onClick={handleDismiss}
-                                            disabled={dismissing}
-                                            className={`px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${!topInsight.url ? 'flex-1' : ''}`}
+                                            disabled={dismissing || !topInsight.id}
+                                            className={`${topInsight.url ? 'px-6' : 'flex-1 px-6'} py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                                             title="Dismiss this insight"
                                         >
                                             {dismissing ? (
