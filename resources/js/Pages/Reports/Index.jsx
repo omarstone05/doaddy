@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card, CardContent } from '@/Components/ui/Card';
 import { TrendingUp, DollarSign, Receipt, BarChart3 } from 'lucide-react';
@@ -52,21 +52,19 @@ export default function ReportsIndex() {
                 {quickReports.map((report) => {
                     const Icon = report.icon;
                     return (
-                        <Card
-                            key={report.href}
-                            className="hover:shadow-lg transition-shadow cursor-pointer"
-                            onClick={() => router.visit(report.href)}
-                        >
-                            <CardContent className="pt-6">
-                                <div className="flex flex-col items-center text-center">
-                                    <div className={`p-4 rounded-full mb-4 ${report.color}`}>
-                                        <Icon className={`h-8 w-8 ${report.iconColor}`} />
+                        <Link key={report.href} href={report.href} className="block">
+                            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                                <CardContent className="pt-6">
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className={`p-4 rounded-full mb-4 ${report.color}`}>
+                                            <Icon className={`h-8 w-8 ${report.iconColor}`} />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.title}</h3>
+                                        <p className="text-sm text-gray-600">{report.description}</p>
                                     </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.title}</h3>
-                                    <p className="text-sm text-gray-600">{report.description}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     );
                 })}
             </div>

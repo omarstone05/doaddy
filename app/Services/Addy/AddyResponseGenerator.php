@@ -24,6 +24,15 @@ class AddyResponseGenerator
     }
 
     /**
+     * Format currency amount with organization's currency
+     */
+    protected function formatCurrency(float $amount): string
+    {
+        $currency = $this->organization->currency ?? 'ZMW';
+        return $currency . ' ' . number_format($amount, 2);
+    }
+
+    /**
      * Generate response based on intent
      * NEW FLOW: OpenAI handles all conversation, code assists with data/actions
      */
@@ -671,9 +680,9 @@ class AddyResponseGenerator
             );
             
             if ($prediction) {
-                $value = number_format($prediction->predicted_value, 2);
+                $value = $this->formatCurrency($prediction->predicted_value);
                 $confidence = number_format($prediction->confidence * 100, 0);
-                $response .= "\n\n**Prediction:** In 30 days, your cash position will be around \${$value} ({$confidence}% confidence).";
+                $response .= "\n\n**Prediction:** In 30 days, your cash position will be around {$value} ({$confidence}% confidence).";
             }
         }
         
@@ -706,16 +715,16 @@ class AddyResponseGenerator
         $agent = new MoneyAgent($this->organization);
         $data = $agent->perceive();
         
-        $cash = number_format($data['cash_position'], 2);
+        $cash = $this->formatCurrency($data['cash_position']);
         $topExpenses = $data['top_expenses'];
         
-        $response = "Your current cash position is **\${$cash}** across all accounts.\n\n";
+        $response = "Your current cash position is **{$cash}** across all accounts.\n\n";
         
         if (!empty($topExpenses)) {
             $response .= "**Top 3 expenses this month:**\n";
             foreach ($topExpenses as $expense) {
-                $amount = number_format($expense['amount'], 2);
-                $response .= "• {$expense['category']}: \${$amount}\n";
+                $amount = $this->formatCurrency($expense['amount']);
+                $response .= "• {$expense['category']}: {$amount}\n";
             }
         }
         
@@ -774,12 +783,12 @@ class AddyResponseGenerator
         $agent = new MoneyAgent($this->organization);
         $data = $agent->perceive();
         
-        $burn = number_format($data['monthly_burn'], 2);
+        $burn = $this->formatCurrency($data['monthly_burn']);
         $trends = $data['trends'];
         $topExpenses = $data['top_expenses'];
         
         $response = "**Expense Overview:**\n\n";
-        $response .= "**Monthly burn:** \${$burn}\n\n";
+        $response .= "**Monthly burn:** {$burn}\n\n";
         
         if ($trends['trend'] === 'increasing') {
             $response .= "Spending is **up {$trends['change_percentage']}%** from last month.\n\n";
@@ -792,8 +801,8 @@ class AddyResponseGenerator
         if (!empty($topExpenses)) {
             $response .= "**Top categories:**\n";
             foreach ($topExpenses as $expense) {
-                $amount = number_format($expense['amount'], 2);
-                $response .= "• {$expense['category']}: \${$amount}\n";
+                $amount = $this->formatCurrency($expense['amount']);
+                $response .= "• {$expense['category']}: {$amount}\n";
             }
         }
         
@@ -816,15 +825,15 @@ class AddyResponseGenerator
         
         if ($type === 'overdue' || $type === 'all') {
             if ($invoiceHealth['overdue_count'] > 0) {
-                $amount = number_format($invoiceHealth['overdue_amount'], 2);
-                $response .= "**{$invoiceHealth['overdue_count']} overdue invoice(s)** totaling \${$amount}\n\n";
+                $amount = $this->formatCurrency($invoiceHealth['overdue_amount']);
+                $response .= "**{$invoiceHealth['overdue_count']} overdue invoice(s)** totaling {$amount}\n\n";
             }
         }
         
         if ($type === 'pending' || $type === 'all') {
             if ($invoiceHealth['pending_count'] > 0) {
-                $amount = number_format($invoiceHealth['pending_amount'], 2);
-                $response .= "**{$invoiceHealth['pending_count']} pending invoice(s)** totaling \${$amount}\n\n";
+                $amount = $this->formatCurrency($invoiceHealth['pending_amount']);
+                $response .= "**{$invoiceHealth['pending_count']} pending invoice(s)** totaling {$amount}\n\n";
             }
         }
         
@@ -854,12 +863,12 @@ class AddyResponseGenerator
         $performance = $data['sales_performance'];
         $customers = $data['customer_stats'];
         
-        $thisMonth = number_format($performance['current_month'], 2);
-        $lastMonth = number_format($performance['last_month'], 2);
+        $thisMonth = $this->formatCurrency($performance['current_month']);
+        $lastMonth = $this->formatCurrency($performance['last_month']);
         
         $response = "**Sales Performance:**\n\n";
-        $response .= "**This month:** \${$thisMonth}\n";
-        $response .= "**Last month:** \${$lastMonth}\n\n";
+        $response .= "**This month:** {$thisMonth}\n";
+        $response .= "**Last month:** {$lastMonth}\n\n";
         
         if ($performance['trend'] === 'increasing') {
             $response .= "Sales are **up {$performance['change_percentage']}%**! Excellent work.\n\n";
@@ -923,10 +932,10 @@ class AddyResponseGenerator
         $response = "**Payroll Status:**\n\n";
         
         if ($payroll['next_payroll_date']) {
-            $amount = number_format($payroll['next_payroll_amount'], 2);
+            $amount = $this->formatCurrency($payroll['next_payroll_amount']);
             $days = $payroll['days_until_payroll'];
             
-            $response .= "**Next payroll:** \${$amount}\n";
+            $response .= "**Next payroll:** {$amount}\n";
             $response .= "**Due in:** {$days} day(s)\n\n";
             
             if ($days <= 7) {
@@ -950,11 +959,11 @@ class AddyResponseGenerator
         $data = $agent->perceive();
         
         $levels = $data['stock_levels'];
-        $value = number_format($data['inventory_value'], 2);
+        $value = $this->formatCurrency($data['inventory_value']);
         
         $response = "**Inventory Status:**\n\n";
         $response .= "**Total products:** {$levels['total_products']}\n";
-        $response .= "**Total value:** \${$value}\n\n";
+        $response .= "**Total value:** {$value}\n\n";
         
         $response .= "**Stock levels:**\n";
         $response .= "Healthy: {$levels['healthy']}\n";
@@ -1094,12 +1103,14 @@ class AddyResponseGenerator
             // Invoice preview or reminder
             if (isset($item['invoice_number'])) {
                 // Invoice reminder (has invoice_number)
+                $amount = $this->formatCurrency($item['amount']);
                 return "**{$item['customer']}** - Invoice #{$item['invoice_number']} "
-                    . "(\${$item['amount']}, {$item['days_overdue']} days overdue)";
+                    . "({$amount}, {$item['days_overdue']} days overdue)";
             } else {
                 // Invoice preview (no invoice_number yet)
+                $amount = $this->formatCurrency($item['amount']);
                 $date = isset($item['date']) ? " on {$item['date']}" : '';
-                return "**{$item['customer']}** - \${$item['amount']}{$date}";
+                return "**{$item['customer']}** - {$amount}{$date}";
             }
         }
 
@@ -1107,17 +1118,18 @@ class AddyResponseGenerator
             // Transaction
             $category = $item['category'] ?? 'Uncategorized';
             $account = $item['account'] ?? 'No account';
-            return "**{$item['type']}** - \${$item['amount']} "
+            $amount = $this->formatCurrency($item['amount']);
+            return "**{$item['type']}** - {$amount} "
                 . "({$category}) - {$account}";
         }
         
         // Bank statement transaction item
         if (isset($item['flow_type']) || isset($item['description'])) {
             $flowType = $item['flow_type'] ?? ($item['type'] === 'credit' ? 'income' : 'expense');
-            $amount = number_format($item['amount'] ?? 0, 2);
+            $amount = $this->formatCurrency($item['amount'] ?? 0);
             $date = $item['date'] ?? 'Unknown date';
             $description = substr($item['description'] ?? 'No description', 0, 50);
-            return "**{$date}** - {$flowType} \${$amount} - {$description}";
+            return "**{$date}** - {$flowType} {$amount} - {$description}";
         }
 
         // Generic
@@ -1175,8 +1187,10 @@ class AddyResponseGenerator
             }
             
             $response .= "\n**Summary:**\n";
-            $response .= "• **Income:** {$summary['income_count']} transaction(s) - \${$summary['total_income']}\n";
-            $response .= "• **Expenses:** {$summary['expense_count']} transaction(s) - \${$summary['total_expenses']}\n";
+            $totalIncome = $this->formatCurrency($summary['total_income']);
+            $totalExpenses = $this->formatCurrency($summary['total_expenses']);
+            $response .= "• **Income:** {$summary['income_count']} transaction(s) - {$totalIncome}\n";
+            $response .= "• **Expenses:** {$summary['expense_count']} transaction(s) - {$totalExpenses}\n";
             
             if ($summary['duplicate_count'] > 0) {
                 $response .= "• **Duplicates:** {$summary['duplicate_count']} transaction(s) will be skipped\n";
@@ -1185,10 +1199,10 @@ class AddyResponseGenerator
             $response .= "\n**Sample transactions (first 5):**\n";
             foreach (array_slice($transactions, 0, 5) as $tx) {
                 $flowType = $tx['flow_type'] ?? ($tx['type'] === 'credit' ? 'income' : 'expense');
-                $amount = number_format($tx['amount'] ?? 0, 2);
+                $amount = $this->formatCurrency($tx['amount'] ?? 0);
                 $date = $tx['date'] ?? 'Unknown date';
                 $description = substr($tx['description'] ?? 'No description', 0, 40);
-                $response .= "• {$date}: **{$flowType}** \${$amount} - {$description}\n";
+                $response .= "• {$date}: **{$flowType}** {$amount} - {$description}\n";
             }
             
             if ($transactionCount > 5) {
@@ -1323,8 +1337,8 @@ class AddyResponseGenerator
                     $response = "Here are your latest transactions:\n\n";
                     foreach (array_slice($transactions, 0, 5) as $tx) {
                         $type = $tx['type'] === 'income' ? 'Income' : 'Expense';
-                        $amount = number_format($tx['amount'], 2);
-                        $response .= "• {$type}: \${$amount} - {$tx['category']} ({$tx['formatted_date']})\n";
+                        $amount = $this->formatCurrency($tx['amount']);
+                        $response .= "• {$type}: {$amount} - {$tx['category']} ({$tx['formatted_date']})\n";
                         if (!empty($tx['description'])) {
                             $response .= "  {$tx['description']}\n";
                         }

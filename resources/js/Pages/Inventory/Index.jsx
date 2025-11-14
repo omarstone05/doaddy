@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { SectionInsightCard } from '@/Components/sections/SectionInsightCard';
@@ -76,41 +76,47 @@ export default function InventoryIndex({ stats, insights }) {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/products/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <Box className="h-8 w-8 text-teal-500" />
+                <Link href="/products/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <Box className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Product</h3>
+                                <p className="text-sm text-gray-600">Create a new product</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Product</h3>
-                            <p className="text-sm text-gray-600">Create a new product</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/stock/adjustments/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-green-500/10 rounded-full mb-4">
-                                <TrendingUp className="h-8 w-8 text-green-500" />
+                <Link href="/stock/adjustments/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-green-500/10 rounded-full mb-4">
+                                    <TrendingUp className="h-8 w-8 text-green-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Stock Adjustment</h3>
+                                <p className="text-sm text-gray-600">Adjust stock levels</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Stock Adjustment</h3>
-                            <p className="text-sm text-gray-600">Adjust stock levels</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/stock')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-blue-500/10 rounded-full mb-4">
-                                <Package className="h-8 w-8 text-blue-500" />
+                <Link href="/stock" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-blue-500/10 rounded-full mb-4">
+                                    <Package className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">View Stock</h3>
+                                <p className="text-sm text-gray-600">View stock levels</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">View Stock</h3>
-                            <p className="text-sm text-gray-600">View stock levels</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </SectionLayout>
     );

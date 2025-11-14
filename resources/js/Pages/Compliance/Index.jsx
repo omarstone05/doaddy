@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { SectionInsightCard } from '@/Components/sections/SectionInsightCard';
@@ -76,53 +76,61 @@ export default function ComplianceIndex({ stats, insights }) {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/compliance/documents/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-teal-500/10 rounded-full mb-4">
-                                <FileText className="h-8 w-8 text-teal-500" />
+                <Link href="/compliance/documents/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-teal-500/10 rounded-full mb-4">
+                                    <FileText className="h-8 w-8 text-teal-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Document</h3>
+                                <p className="text-sm text-gray-600">Upload a document</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Document</h3>
-                            <p className="text-sm text-gray-600">Upload a document</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/compliance/licenses/create')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-green-500/10 rounded-full mb-4">
-                                <FileCheck className="h-8 w-8 text-green-500" />
+                <Link href="/compliance/licenses/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-green-500/10 rounded-full mb-4">
+                                    <FileCheck className="h-8 w-8 text-green-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add License</h3>
+                                <p className="text-sm text-gray-600">Register a license</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add License</h3>
-                            <p className="text-sm text-gray-600">Register a license</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/activity-logs')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-blue-500/10 rounded-full mb-4">
-                                <Shield className="h-8 w-8 text-blue-500" />
+                <Link href="/activity-logs" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-blue-500/10 rounded-full mb-4">
+                                    <Shield className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Audit Trail</h3>
+                                <p className="text-sm text-gray-600">View activity logs</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Audit Trail</h3>
-                            <p className="text-sm text-gray-600">View activity logs</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.visit('/settings')}>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-4 bg-amber-500/10 rounded-full mb-4">
-                                <Building2 className="h-8 w-8 text-amber-500" />
+                <Link href="/settings" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-amber-500/10 rounded-full mb-4">
+                                    <Building2 className="h-8 w-8 text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings</h3>
+                                <p className="text-sm text-gray-600">Manage settings</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings</h3>
-                            <p className="text-sm text-gray-600">Manage settings</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </SectionLayout>
     );
