@@ -8,6 +8,7 @@ export default function SettingsIndex({ organization }) {
     const { flash } = usePage().props;
     const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
     const [logoFile, setLogoFile] = useState(null);
+    const [logoUploading, setLogoUploading] = useState(false);
     const fileInputRef = useRef(null);
     const form = useForm({
         name: organization.name || '',
@@ -17,7 +18,6 @@ export default function SettingsIndex({ organization }) {
         tone_preference: organization.tone_preference || '',
         currency: organization.currency || 'ZMW',
         timezone: organization.timezone || 'Africa/Lusaka',
-        logo: null,
     });
     const { data, setData, processing, errors } = form;
 
@@ -32,7 +32,6 @@ export default function SettingsIndex({ organization }) {
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setData('logo', file);
             setLogoFile(file);
             // Create preview
             const reader = new FileReader();
@@ -44,41 +43,56 @@ export default function SettingsIndex({ organization }) {
     };
 
     const handleRemoveLogo = () => {
-        setData('logo', null);
         setLogoFile(null);
-        setLogoPreview(null);
+        setLogoPreview(organization.logo_url || null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleLogoSubmit = (e) => {
         e.preventDefault();
-
-        const hasLogoFile = logoFile instanceof File;
-
-        // Update form data with logo if file exists
-        if (hasLogoFile) {
-            setData('logo', logoFile);
-        } else {
-            // Remove logo from form data if no file
-            setData('logo', null);
+        
+        if (!logoFile || !(logoFile instanceof File)) {
+            return;
         }
 
-        // Submit using form.put - it will handle FormData automatically when forceFormData is true
-        form.put('/settings', {
+        setLogoUploading(true);
+
+        const formData = new FormData();
+        formData.append('logo', logoFile);
+
+        router.post('/settings/logo', formData, {
             preserveScroll: true,
-            forceFormData: hasLogoFile,
+            forceFormData: true,
             onSuccess: () => {
-                setData('logo', null);
                 setLogoFile(null);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
+                // Refresh the page to get updated logo URL
+                router.reload({ only: ['organization'] });
+            },
+            onError: (formErrors) => {
+                console.error('Logo upload errors:', formErrors);
+            },
+            onFinish: () => {
+                setLogoUploading(false);
+            },
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Submit settings without logo
+        form.put('/settings', {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Settings saved successfully
             },
             onError: (formErrors) => {
                 console.error('Settings update errors:', formErrors);
-                // Log the full error for debugging
                 if (formErrors) {
                     console.error('Full error details:', JSON.stringify(formErrors, null, 2));
                 }
@@ -111,12 +125,12 @@ export default function SettingsIndex({ organization }) {
                         </div>
                     )}
                     
-                    <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
-                        {/* Logo Upload Section */}
-                        <div className="mb-6 pb-6 border-b border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Organization Logo
-                            </label>
+                    {/* Logo Upload Section - Separate Form */}
+                    <div className="mb-6 pb-6 border-b border-gray-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            Organization Logo
+                        </label>
+                        <form onSubmit={handleLogoSubmit} className="space-y-4">
                             <div className="flex items-start gap-6">
                                 <div className="flex-shrink-0">
                                     {logoPreview ? (
@@ -126,14 +140,16 @@ export default function SettingsIndex({ organization }) {
                                                 alt="Organization logo"
                                                 className="h-24 w-24 object-contain border border-gray-300 rounded-lg bg-white p-2"
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={handleRemoveLogo}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                                                title="Remove logo"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
+                                            {logoFile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveLogo}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                    title="Remove selected logo"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="h-24 w-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
@@ -150,20 +166,35 @@ export default function SettingsIndex({ organization }) {
                                         className="hidden"
                                         id="logo-upload"
                                     />
-                                    <label
-                                        htmlFor="logo-upload"
-                                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-                                    >
-                                        <Upload className="h-4 w-4 mr-2" />
-                                        {logoPreview ? 'Change Logo' : 'Upload Logo'}
-                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <label
+                                            htmlFor="logo-upload"
+                                            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                                        >
+                                            <Upload className="h-4 w-4 mr-2" />
+                                            {logoPreview && !logoFile ? 'Change Logo' : 'Select Logo'}
+                                        </label>
+                                        {logoFile && (
+                                            <Button
+                                                type="submit"
+                                                disabled={logoUploading}
+                                                className="bg-teal-600 hover:bg-teal-700 text-white"
+                                            >
+                                                {logoUploading ? 'Uploading...' : 'Save Logo'}
+                                            </Button>
+                                        )}
+                                    </div>
                                     <p className="mt-2 text-xs text-gray-500">
                                         Recommended: Square image, max 2MB. Formats: JPG, PNG, GIF, SVG
                                     </p>
                                     {errors.logo && <p className="mt-1 text-sm text-red-600">{errors.logo}</p>}
                                 </div>
                             </div>
-                        </div>
+                        </form>
+                    </div>
+
+                    {/* Settings Form - Without Logo */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>

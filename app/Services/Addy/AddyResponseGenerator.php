@@ -1259,7 +1259,7 @@ class AddyResponseGenerator
         
         // Get cultural settings for personality
         $culturalEngine = new AddyCulturalEngine($this->organization, $this->user);
-        $tone = $culturalEngine->getSettings()->tone ?? 'professional';
+        $tone = $culturalEngine->getTone();
         
         // Build comprehensive system message with personality and data context
         $systemMessage = $this->buildConversationalSystemMessage($state, $thought, $tone, $dataContext, $culturalEngine, $historicalContext);

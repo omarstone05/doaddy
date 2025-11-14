@@ -65,6 +65,10 @@ class AddySettingsController extends Controller
         
         $settings->update($settingsData);
         
+        if (!empty($settingsData['tone']) && $organization->tone_preference !== $settingsData['tone']) {
+            $organization->update(['tone_preference' => $settingsData['tone']]);
+        }
+        
         \Log::info('Settings updated', ['settings_id' => $settings->id, 'tone' => $settings->tone]);
 
         // Update user patterns
@@ -94,4 +98,3 @@ class AddySettingsController extends Controller
         return redirect()->route('settings.addy')->with('success', 'Preferences updated successfully');
     }
 }
-

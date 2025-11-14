@@ -25,6 +25,81 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function updateLogo(Request $request)
+    {
+        try {
+            $organization = Organization::findOrFail(Auth::user()->organization_id);
+
+            $validated = $request->validate([
+                'logo' => 'required|image|mimes:jpeg,jpg,png,gif,svg|max:2048', // 2MB max
+            ]);
+
+            try {
+                $logoFile = $request->file('logo');
+                
+                \Log::info('Logo upload attempt', [
+                    'organization_id' => $organization->id,
+                    'file_name' => $logoFile->getClientOriginalName(),
+                    'file_size' => $logoFile->getSize(),
+                    'mime_type' => $logoFile->getMimeType(),
+                ]);
+
+                // Delete old logo if exists
+                if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
+                    Storage::disk('public')->delete($organization->logo);
+                    \Log::info('Deleted old logo', ['old_logo_path' => $organization->logo]);
+                }
+
+                // Ensure directory exists
+                $logoDir = "logos/organizations/{$organization->id}";
+                if (!Storage::disk('public')->exists($logoDir)) {
+                    Storage::disk('public')->makeDirectory($logoDir, 0755, true);
+                }
+
+                // Store new logo
+                $logoPath = $logoFile->store($logoDir, 'public');
+                $organization->logo = $logoPath;
+                $organization->save();
+                
+                \Log::info('Logo uploaded successfully', [
+                    'logo_path' => $logoPath,
+                    'full_path' => Storage::disk('public')->path($logoPath),
+                ]);
+
+                try {
+                    return $this->notifyAndBack('success', 'Logo Updated', 'Your organization logo has been updated successfully.');
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to create notification for logo update', [
+                        'error' => $e->getMessage(),
+                    ]);
+                    return back()->with('message', 'Logo updated successfully');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to upload logo', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'organization_id' => $organization->id,
+                ]);
+                
+                return back()->withErrors([
+                    'logo' => 'Failed to upload logo: ' . $e->getMessage(),
+                ]);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Failed to update logo', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => Auth::id(),
+            ]);
+
+            return back()->withErrors([
+                'logo' => 'Failed to update logo. Please try again or contact support if the problem persists.',
+            ]);
+        }
+    }
+
     public function update(Request $request)
     {
         try {
@@ -44,7 +119,6 @@ class SettingsController extends Controller
                 'tone_preference' => 'nullable|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
                 'currency' => 'nullable|string|size:3',
                 'timezone' => 'nullable|string|max:255',
-                'logo' => 'nullable|image|mimes:jpeg,jpg,png,gif,svg|max:2048', // 2MB max
             ]);
 
             // Convert empty strings to null for nullable fields
@@ -77,54 +151,7 @@ class SettingsController extends Controller
                 }
             }
 
-            // Handle logo upload
-            if ($request->hasFile('logo')) {
-                try {
-                    $logoFile = $request->file('logo');
-                    
-                    \Log::info('Logo upload attempt', [
-                        'organization_id' => $organization->id,
-                        'file_name' => $logoFile->getClientOriginalName(),
-                        'file_size' => $logoFile->getSize(),
-                        'mime_type' => $logoFile->getMimeType(),
-                    ]);
-
-                    // Delete old logo if exists
-                    if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
-                        Storage::disk('public')->delete($organization->logo);
-                        \Log::info('Deleted old logo', ['old_logo_path' => $organization->logo]);
-                    }
-
-                    // Ensure directory exists
-                    $logoDir = "logos/organizations/{$organization->id}";
-                    if (!Storage::disk('public')->exists($logoDir)) {
-                        Storage::disk('public')->makeDirectory($logoDir, 0755, true);
-                    }
-
-                    // Store new logo
-                    $logoPath = $logoFile->store($logoDir, 'public');
-                    $validated['logo'] = $logoPath;
-                    
-                    \Log::info('Logo uploaded successfully', [
-                        'logo_path' => $logoPath,
-                        'full_path' => Storage::disk('public')->path($logoPath),
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to upload logo', [
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                        'organization_id' => $organization->id,
-                    ]);
-                    // Continue without logo if upload fails
-                    unset($validated['logo']);
-                }
-            } else {
-                // Keep existing logo if no new one uploaded
-                unset($validated['logo']);
-                \Log::info('No logo file in request, keeping existing logo', [
-                    'existing_logo' => $organization->logo,
-                ]);
-            }
+            // Logo is handled separately via updateLogo endpoint
 
             // Log what we're about to update
             \Log::info('Updating organization settings', [

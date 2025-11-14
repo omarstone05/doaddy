@@ -322,6 +322,7 @@ Route::middleware('auth')->group(function () {
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/logo', [SettingsController::class, 'updateLogo'])->name('settings.update-logo');
     
     // Addy Settings
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');

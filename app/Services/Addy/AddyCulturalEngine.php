@@ -70,13 +70,21 @@ class AddyCulturalEngine
     {
         return $this->settings;
     }
+    
+    /**
+     * Resolve the active tone, falling back to organization preference
+     */
+    public function getTone(): string
+    {
+        return $this->settings->tone ?? $this->organization->tone_preference ?? 'professional';
+    }
 
     /**
      * Adapt message tone based on settings
      */
     public function adaptTone(string $message): string
     {
-        $tone = $this->settings->tone;
+        $tone = $this->getTone();
 
         return match($tone) {
             'casual', 'friendly', 'conversational' => $this->makeCasual($message),
