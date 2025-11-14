@@ -1043,6 +1043,12 @@ class AddyResponseGenerator
             auth()->user()
         );
 
+        // Get cultural engine for tone adaptation
+        $culturalEngine = new \App\Services\Addy\AddyCulturalEngine(
+            $this->organization,
+            auth()->user()
+        );
+
         try {
             // Prepare action
             $action = $executionService->prepareAction(
@@ -1075,6 +1081,9 @@ class AddyResponseGenerator
                 }
             }
 
+            // Apply tone adaptation to the response
+            $response = $culturalEngine->adaptTone($response);
+
             return [
                 'content' => $response,
                 'action' => [
@@ -1090,8 +1099,12 @@ class AddyResponseGenerator
             ];
 
         } catch (\Exception $e) {
+            $errorMessage = "I couldn't prepare that action: {$e->getMessage()}";
+            // Apply tone to error message too
+            $errorMessage = $culturalEngine->adaptTone($errorMessage);
+            
             return [
-                'content' => "I couldn't prepare that action: {$e->getMessage()}",
+                'content' => $errorMessage,
             ];
         }
     }
