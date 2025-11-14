@@ -100,6 +100,161 @@ export default function ActionConfirmation({ action, onConfirm, onCancel, messag
                         )}
                     </div>
                 )}
+
+                {/* Report Display */}
+                {result?.success && result.result?.report && (
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                {result.result.report.title}
+                            </h3>
+                            {result.result.report.range?.label && (
+                                <p className="text-sm text-gray-600">
+                                    Period: {result.result.report.range.label}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Highlights */}
+                        {result.result.report.highlights && result.result.report.highlights.length > 0 && (
+                            <div className="mb-4">
+                                <h4 className="text-sm font-semibold text-gray-700 mb-2">Key Metrics</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {result.result.report.highlights.map((highlight, index) => (
+                                        <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            <div className="text-xs text-gray-600 mb-1">{highlight.label}</div>
+                                            <div className="text-lg font-bold text-gray-900">
+                                                {highlight.value}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Detailed Data */}
+                        {result.result.report.data && (
+                            <div className="mb-4 space-y-4">
+                                {/* Cash Flow Data */}
+                                {result.result.report.data.cash_flow && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Cash Flow Details</h4>
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            {result.result.report.data.cash_flow.income_total !== undefined && (
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-gray-600">Total Income:</span>
+                                                    <span className="text-sm font-semibold text-green-600">
+                                                        {result.result.report.data.cash_flow.income_total?.toLocaleString('en-ZM', {
+                                                            style: 'currency',
+                                                            currency: 'ZMW',
+                                                            minimumFractionDigits: 2
+                                                        }) || 'ZMW 0.00'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {result.result.report.data.cash_flow.expense_total !== undefined && (
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm text-gray-600">Total Expenses:</span>
+                                                    <span className="text-sm font-semibold text-red-600">
+                                                        {result.result.report.data.cash_flow.expense_total?.toLocaleString('en-ZM', {
+                                                            style: 'currency',
+                                                            currency: 'ZMW',
+                                                            minimumFractionDigits: 2
+                                                        }) || 'ZMW 0.00'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {result.result.report.data.cash_flow.net_cash_flow !== undefined && (
+                                                <div className="flex justify-between pt-2 border-t border-gray-300">
+                                                    <span className="text-sm font-semibold text-gray-700">Net Cash Flow:</span>
+                                                    <span className={`text-sm font-bold ${
+                                                        result.result.report.data.cash_flow.net_cash_flow >= 0 
+                                                            ? 'text-green-600' 
+                                                            : 'text-red-600'
+                                                    }`}>
+                                                        {result.result.report.data.cash_flow.net_cash_flow?.toLocaleString('en-ZM', {
+                                                            style: 'currency',
+                                                            currency: 'ZMW',
+                                                            minimumFractionDigits: 2
+                                                        }) || 'ZMW 0.00'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Expense Data */}
+                                {result.result.report.data.expenses && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Expense Breakdown</h4>
+                                        {result.result.report.data.expenses.top_categories && 
+                                         result.result.report.data.expenses.top_categories.length > 0 && (
+                                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                                <div className="space-y-2">
+                                                    {result.result.report.data.expenses.top_categories.map((category, index) => (
+                                                        <div key={index} className="flex justify-between items-center">
+                                                            <span className="text-sm text-gray-700">{category.category}</span>
+                                                            <div className="text-right">
+                                                                <div className="text-sm font-semibold text-gray-900">
+                                                                    {category.amount?.toLocaleString('en-ZM', {
+                                                                        style: 'currency',
+                                                                        currency: 'ZMW',
+                                                                        minimumFractionDigits: 2
+                                                                    }) || 'ZMW 0.00'}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">{category.percent}%</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Sales Data */}
+                                {result.result.report.data.invoice_count !== undefined && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Sales Summary</h4>
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="text-xs text-gray-600 mb-1">Invoices</div>
+                                                    <div className="text-sm font-semibold text-gray-900">
+                                                        {result.result.report.data.invoice_count || 0}
+                                                    </div>
+                                                </div>
+                                                {result.result.report.data.customers && (
+                                                    <div>
+                                                        <div className="text-xs text-gray-600 mb-1">Top Customers</div>
+                                                        <div className="text-sm font-semibold text-gray-900">
+                                                            {Object.keys(result.result.report.data.customers).length}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Warnings */}
+                        {result.result.report.warnings && result.result.report.warnings.length > 0 && (
+                            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <h4 className="text-sm font-semibold text-yellow-900 mb-2">⚠️ Warnings</h4>
+                                <ul className="space-y-1">
+                                    {result.result.report.warnings.map((warning, index) => (
+                                        <li key={index} className="text-sm text-yellow-800">
+                                            • {warning}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
