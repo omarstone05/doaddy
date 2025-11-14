@@ -353,8 +353,27 @@ export default function AddyChat() {
                                             {message.role === 'assistant' && message.metadata?.action && (
                                                 <ActionConfirmation
                                                     action={message.metadata.action}
-                                                    onConfirm={() => loadHistory()}
-                                                    onCancel={() => loadHistory()}
+                                                    messageId={message.id}
+                                                    onConfirm={(result) => {
+                                                        // Update the message in local state with the result
+                                                        setMessages(prev => prev.map(msg => 
+                                                            msg.id === message.id 
+                                                                ? { ...msg, action_result: result, action_executed: true }
+                                                                : msg
+                                                        ));
+                                                    }}
+                                                    onCancel={() => {
+                                                        // Just reload to get fresh state
+                                                        loadHistory();
+                                                    }}
+                                                    onUpdateMessage={(msgId, updates) => {
+                                                        // Update message in local state
+                                                        setMessages(prev => prev.map(msg => 
+                                                            msg.id === msgId 
+                                                                ? { ...msg, ...updates }
+                                                                : msg
+                                                        ));
+                                                    }}
                                                 />
                                             )}
                                             
