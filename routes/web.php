@@ -329,7 +329,9 @@ Route::middleware('auth')->group(function () {
     
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/api/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     
     // Commission Rules

@@ -60,5 +60,48 @@ class NotificationController extends Controller
 
         return back()->with('message', 'Notification deleted');
     }
-}
+
+    public function recent()
+    {
+        $notifications = Notification::where('user_id', Auth::id())
+            ->where('organization_id', Auth::user()->organization_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($notification) {
+                return [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'action_url' => $notification->action_url,
+                    'is_read' => $notification->is_read,
+                    'created_at' => $notification->created_at->diffForHumans(),
+                    'created_at_full' => $notification->created_at->toISOString(),
+                ];
+            });
+
+        $unreadCount = Notification::where('user_id', Auth::id())
+            ->where('organization_id', Auth::user()->organization_id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount,
+        ]);
+    }
+
+    public function markAllAsRead()
+    {
+        Notification::where('user_id', Auth::id())
+            ->where('organization_id', Auth::user()->organization_id)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
+        return response()->json(['success' => true]);
+    }
 

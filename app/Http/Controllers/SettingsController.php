@@ -11,6 +11,7 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
+    use CreatesNotifications;
     public function index()
     {
         $organization = Organization::findOrFail(Auth::user()->organization_id);
@@ -40,6 +41,14 @@ class SettingsController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,jpg,png,gif,svg|max:2048', // 2MB max
         ]);
 
+        // Convert empty strings to null for nullable fields
+        $nullableFields = ['slug', 'business_type', 'industry', 'tone_preference', 'currency', 'timezone'];
+        foreach ($nullableFields as $field) {
+            if (isset($validated[$field]) && $validated[$field] === '') {
+                $validated[$field] = null;
+            }
+        }
+
         // Handle logo upload
         if ($request->hasFile('logo')) {
             // Delete old logo if exists
@@ -57,6 +66,6 @@ class SettingsController extends Controller
 
         $organization->update($validated);
 
-        return back()->with('message', 'Settings updated successfully');
+        return $this->notifyAndBack('success', 'Settings Updated', 'Your organization settings have been updated successfully.');
     }
 }

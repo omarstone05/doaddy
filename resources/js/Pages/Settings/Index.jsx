@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { Save, Building2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef } from 'react';
 
 export default function SettingsIndex({ organization }) {
+    const { flash } = usePage().props;
     const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
     const fileInputRef = useRef(null);
 
@@ -42,9 +43,28 @@ export default function SettingsIndex({ organization }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Check if we have a logo file to upload
+        const hasLogoFile = data.logo instanceof File;
+        
+        // Use transform to exclude logo when it's not a file
         put('/settings', {
-            forceFormData: true,
+            transform: (formData) => {
+                // Remove logo if it's not a file
+                if (!hasLogoFile) {
+                    const { logo, ...rest } = formData;
+                    return rest;
+                }
+                return formData;
+            },
+            forceFormData: hasLogoFile,
             preserveScroll: true,
+            onSuccess: () => {
+                // Clear logo from form data after successful submission if no new file
+                if (!hasLogoFile) {
+                    setData('logo', null);
+                }
+            },
         });
     };
 
@@ -61,6 +81,12 @@ export default function SettingsIndex({ organization }) {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    {flash?.message && (
+                        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-green-800 font-medium">{flash.message}</p>
+                        </div>
+                    )}
+                    
                     <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
                         {/* Logo Upload Section */}
                         <div className="mb-6 pb-6 border-b border-gray-200">

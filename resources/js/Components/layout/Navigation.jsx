@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Search, Bell, ChevronDown, Settings } from 'lucide-react';
+import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import axios from 'axios';
 
 // Navigation items - main sections only for pill navigation
 // Note: dashboard is PNG, others are SVG
@@ -16,7 +17,7 @@ const navItems = [
 ];
 
 export function Navigation() {
-  const { auth, url } = usePage().props;
+  const { auth, url, unreadNotificationCount: initialUnreadCount } = usePage().props;
   // Inertia's url prop is the path without leading slash (e.g., "dashboard" not "/dashboard")
   // Fallback to window.location.pathname which includes leading slash
   const pathFromInertia = url || '';
@@ -24,8 +25,98 @@ export function Navigation() {
   const currentPath = pathFromWindow || (pathFromInertia ? '/' + pathFromInertia : '');
   const normalizedPath = currentPath.replace(/\/$/, '') || '/';
 
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount || 0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get('/api/notifications/recent');
+      setNotifications(response.data.notifications);
+      setUnreadCount(response.data.unread_count);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  // Fetch notifications on mount and when dropdown opens
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
+
+  // Poll for new notifications every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleLogout = () => {
     router.post('/logout');
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await router.post(`/notifications/${id}/read`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+          fetchNotifications();
+        },
+      });
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await axios.post('/notifications/mark-all-read');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.is_read) {
+      handleMarkAsRead(notification.id);
+    }
+    if (notification.action_url) {
+      router.visit(notification.action_url);
+      setShowNotifications(false);
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case 'info':
+      default:
+        return <Info className="h-5 w-5 text-blue-500" />;
+    }
   };
 
   const isActive = (href) => {
@@ -115,14 +206,99 @@ export function Navigation() {
             >
               <Search className="h-5 w-5" />
             </button>
-            <button 
-              type="button"
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors relative"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-teal-500 rounded-full"></span>
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button 
+                type="button"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors relative"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[600px] flex flex-col">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllAsRead}
+                          className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <Link
+                        href="/notifications"
+                        className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                        onClick={() => setShowNotifications(false)}
+                      >
+                        View all
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Notifications List */}
+                  <div className="overflow-y-auto flex-1">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p className="text-sm">No notifications</p>
+                        <p className="text-xs mt-1">You're all caught up!</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-100">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={cn(
+                              "p-4 hover:bg-gray-50 cursor-pointer transition-colors",
+                              !notification.is_read && "bg-teal-50/50"
+                            )}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-0.5">
+                                {getNotificationIcon(notification.type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className={cn(
+                                      "text-sm font-medium",
+                                      !notification.is_read ? "text-gray-900" : "text-gray-700"
+                                    )}>
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-2">
+                                      {notification.created_at}
+                                    </p>
+                                  </div>
+                                  {!notification.is_read && (
+                                    <div className="h-2 w-2 bg-teal-500 rounded-full flex-shrink-0 mt-1"></div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="relative group">
               <button 
                 type="button"
