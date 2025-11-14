@@ -13,7 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         // Update the enum to include all valid values
-        DB::statement("ALTER TABLE organizations MODIFY COLUMN tone_preference ENUM('professional', 'casual', 'motivational', 'sassy', 'technical', 'formal', 'conversational', 'friendly') DEFAULT 'professional'");
+        // SQLite doesn't support MODIFY COLUMN, so we skip this migration for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE organizations MODIFY COLUMN tone_preference ENUM('professional', 'casual', 'motivational', 'sassy', 'technical', 'formal', 'conversational', 'friendly') DEFAULT 'professional'");
+        }
     }
 
     /**
@@ -22,6 +25,9 @@ return new class extends Migration
     public function down(): void
     {
         // Revert to the old enum values
-        DB::statement("ALTER TABLE organizations MODIFY COLUMN tone_preference ENUM('formal', 'conversational', 'technical') DEFAULT 'formal'");
+        // SQLite doesn't support MODIFY COLUMN, so we skip this migration for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE organizations MODIFY COLUMN tone_preference ENUM('formal', 'conversational', 'technical') DEFAULT 'formal'");
+        }
     }
 };

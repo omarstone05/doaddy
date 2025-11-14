@@ -2,7 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { Save, Building2, Upload, X, Image as ImageIcon } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function SettingsIndex({ organization }) {
     const { flash } = usePage().props;
@@ -19,6 +19,13 @@ export default function SettingsIndex({ organization }) {
         timezone: organization.timezone || 'Africa/Lusaka',
         logo: null,
     });
+
+    useEffect(() => {
+        setLogoPreview(organization.logo_url || null);
+    }, [organization.logo_url]);
+
+    const successMessage = flash?.message || flash?.success;
+    const generalError = flash?.error || errors?.error;
 
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
@@ -43,33 +50,22 @@ export default function SettingsIndex({ organization }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
-        // Check if we have a logo file to upload
-        const hasLogoFile = data.logo instanceof File;
-        
-        // Always use FormData when we have a file, or when we want to send all data
-        if (hasLogoFile) {
-            // Use FormData for file uploads
-            put('/settings', {
-                forceFormData: true,
-                preserveScroll: true,
-                onSuccess: () => {
-                    // Keep logo in form for preview, but reset to null so it doesn't re-upload
-                    setData('logo', null);
-                },
-                onError: (errors) => {
-                    console.error('Settings update errors:', errors);
-                },
-            });
-        } else {
-            // Regular form submission without file
-            put('/settings', {
-                preserveScroll: true,
-                onError: (errors) => {
-                    console.error('Settings update errors:', errors);
-                },
-            });
+
+        const formOptions = {
+            preserveScroll: true,
+            onSuccess: () => {
+                setData('logo', null);
+            },
+            onError: (formErrors) => {
+                console.error('Settings update errors:', formErrors);
+            },
+        };
+
+        if (data.logo instanceof File) {
+            formOptions.forceFormData = true;
         }
+
+        put('/settings', formOptions);
     };
 
     return (
@@ -85,9 +81,15 @@ export default function SettingsIndex({ organization }) {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    {flash?.message && (
+                    {successMessage && (
                         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <p className="text-green-800 font-medium">{flash.message}</p>
+                            <p className="text-green-800 font-medium">{successMessage}</p>
+                        </div>
+                    )}
+
+                    {generalError && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-800 font-medium">{generalError}</p>
                         </div>
                     )}
                     

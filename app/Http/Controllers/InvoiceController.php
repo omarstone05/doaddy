@@ -174,9 +174,9 @@ class InvoiceController extends Controller
 
         $organization = $invoice->organization;
         $logoUrl = null;
-        if ($organization->logo && \Storage::exists($organization->logo)) {
+        if ($organization->logo && \Storage::disk('public')->exists($organization->logo)) {
             // Use absolute URL for PDF rendering
-            $logoUrl = url(\Storage::url($organization->logo));
+            $logoUrl = url(\Storage::disk('public')->url($organization->logo));
         }
 
         $pdfService = new \App\Services\PDF\PdfService();

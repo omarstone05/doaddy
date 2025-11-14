@@ -14,10 +14,9 @@ class SettingsController extends Controller
     public function index()
     {
         $organization = Organization::findOrFail(Auth::user()->organization_id);
-        
-        // Add logo URL if logo exists
-        $organization->logo_url = $organization->logo 
-            ? Storage::url($organization->logo) 
+
+        $organization->logo_url = ($organization->logo && Storage::disk('public')->exists($organization->logo))
+            ? Storage::disk('public')->url($organization->logo)
             : null;
 
         return Inertia::render('Settings/Index', [
@@ -29,6 +28,12 @@ class SettingsController extends Controller
     {
         try {
             $organization = Organization::findOrFail(Auth::user()->organization_id);
+
+            if ($request->filled('slug')) {
+                $request->merge([
+                    'slug' => Str::slug($request->input('slug')),
+                ]);
+            }
 
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -42,7 +47,7 @@ class SettingsController extends Controller
             ]);
 
             // Convert empty strings to null for nullable fields
-            $nullableFields = ['slug', 'business_type', 'industry', 'currency', 'timezone'];
+            $nullableFields = ['business_type', 'industry'];
             foreach ($nullableFields as $field) {
                 if (isset($validated[$field]) && $validated[$field] === '') {
                     $validated[$field] = null;
@@ -53,6 +58,14 @@ class SettingsController extends Controller
             if (isset($validated['tone_preference']) && $validated['tone_preference'] === '') {
                 // Don't change tone_preference if empty string is sent
                 unset($validated['tone_preference']);
+            }
+
+            if (!array_key_exists('slug', $validated) || $validated['slug'] === null || $validated['slug'] === '') {
+                if ($organization->slug) {
+                    $validated['slug'] = $organization->slug;
+                } else {
+                    $validated['slug'] = $this->generateUniqueSlug($validated['name'], $organization->id);
+                }
             }
 
             // Handle logo upload
@@ -129,5 +142,28 @@ class SettingsController extends Controller
                 'error' => 'Failed to update settings. Please try again or contact support if the problem persists.',
             ])->withInput($request->except(['password', 'password_confirmation', 'logo']));
         }
+    }
+
+    private function generateUniqueSlug(string $name, string $organizationId): string
+    {
+        $baseSlug = Str::slug($name);
+
+        if (!$baseSlug) {
+            $baseSlug = Str::lower(Str::random(8));
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (
+            Organization::where('slug', $slug)
+                ->where('id', '!=', $organizationId)
+                ->exists()
+        ) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
     }
 }

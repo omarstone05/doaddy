@@ -144,7 +144,7 @@ class MoneyAgent
             ->selectRaw("SUM(CASE WHEN flow_type = 'income' THEN amount ELSE -amount END) as net")
             ->value('net') ?? 0;
 
-        $trend = $previousNet !== 0
+        $trend = ($previousNet !== 0 && abs($previousNet) > 0)
             ? round((($net - $previousNet) / abs($previousNet)) * 100, 1)
             : 0;
 
