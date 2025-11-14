@@ -253,13 +253,19 @@ class AddyCommandParser
         $actionKeywords = [
             'send', 'create', 'generate', 'schedule', 'approve', 
             'make', 'draft', 'prepare', 'export', 'download',
-            'confirm', 'record', 'add', 'log', 'enter', 'register'
+            'confirm', 'record', 'add', 'log', 'enter', 'register',
+            'give me', 'show me', 'get me', 'give', 'show', 'get'
         ];
         
         foreach ($actionKeywords as $keyword) {
             if (str_starts_with($message, $keyword) || str_contains($message, $keyword)) {
                 return true;
             }
+        }
+        
+        // Also check for report requests specifically
+        if (str_contains($message, 'report')) {
+            return true;
         }
         
         return false;
@@ -344,13 +350,26 @@ class AddyCommandParser
             ];
         }
         
-        // Generate report
-        if ((str_contains($message, 'generate') || str_contains($message, 'create')) 
-            && str_contains($message, 'report')) {
-            return [
-                'action_type' => 'generate_report',
-                'parameters' => $this->extractReportParameters($message),
-            ];
+        // Generate report - recognize multiple patterns
+        if (str_contains($message, 'report')) {
+            // Check for action verbs: generate, create, give me, show me, get me, prepare, make
+            $hasActionVerb = str_contains($message, 'generate') 
+                || str_contains($message, 'create') 
+                || str_contains($message, 'give me')
+                || str_contains($message, 'show me')
+                || str_contains($message, 'get me')
+                || str_contains($message, 'prepare')
+                || str_contains($message, 'make')
+                || str_contains($message, 'give')
+                || str_contains($message, 'show')
+                || str_contains($message, 'get');
+            
+            if ($hasActionVerb || str_contains($message, 'weekly report') || str_contains($message, 'monthly report')) {
+                return [
+                    'action_type' => 'generate_report',
+                    'parameters' => $this->extractReportParameters($message),
+                ];
+            }
         }
         
         return null;
@@ -474,8 +493,16 @@ class AddyCommandParser
         if (preg_match('/last\s+(\d+)\s+month/', $message, $matches)) {
             return 'last_' . $matches[1] . '_months';
         }
+        // Weekly report patterns
+        if (str_contains($message, 'weekly report') || str_contains($message, 'week report')) {
+            return 'this_week'; // Default to this week for weekly reports
+        }
         if (str_contains($message, 'last week')) return 'last_week';
         if (str_contains($message, 'this week')) return 'this_week';
+        // Monthly report patterns
+        if (str_contains($message, 'monthly report') || str_contains($message, 'month report')) {
+            return 'this_month'; // Default to this month for monthly reports
+        }
         if (str_contains($message, 'last month')) return 'last_month';
         if (str_contains($message, 'this month')) return 'this_month';
         if (str_contains($message, 'last quarter')) return 'last_quarter';

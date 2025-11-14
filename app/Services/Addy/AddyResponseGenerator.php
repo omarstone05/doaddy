@@ -1504,8 +1504,10 @@ class AddyResponseGenerator
             case 'sassy':
                 $message .= "Communication style: Be sassy, confident, and a bit playful. You're direct and no-nonsense, ";
                 $message .= "but with personality. Use phrases like 'Real talk:', 'Heads up,', 'Spilling the tea:', ";
-                $message .= "and 'You knew that was coming, right?'. Be witty and confident, like a sharp business advisor ";
-                $message .= "who doesn't sugarcoat but still cares. Keep it classy and efficient.\n\n";
+                $message .= "'Alright superstar,', 'You knew that was coming, right?', and 'Consider it handled.'. ";
+                $message .= "Be witty and confident, like a sharp business advisor who doesn't sugarcoat but still cares. ";
+                $message .= "Keep it classy and efficient. IMPORTANT: You MUST use this sassy tone in EVERY response. ";
+                $message .= "Don't be polite or professional - be sassy, direct, and confident. This is your personality.\n\n";
                 break;
             case 'technical':
                 $message .= "Communication style: Be precise and technical. Use specific terminology, data-driven insights, ";
