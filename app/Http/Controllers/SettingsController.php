@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\AddyCulturalSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -47,17 +48,25 @@ class SettingsController extends Controller
             ]);
 
             // Convert empty strings to null for nullable fields
-            $nullableFields = ['business_type', 'industry'];
+            $nullableFields = ['slug', 'business_type', 'industry', 'currency', 'timezone'];
             foreach ($nullableFields as $field) {
                 if (isset($validated[$field]) && $validated[$field] === '') {
                     $validated[$field] = null;
                 }
             }
             
-            // Handle tone_preference separately - only set if provided and valid
+            // Handle tone_preference - if empty string, keep existing value (don't update)
+            // If a valid value is provided, it will be saved
             if (isset($validated['tone_preference']) && $validated['tone_preference'] === '') {
                 // Don't change tone_preference if empty string is sent
                 unset($validated['tone_preference']);
+            } elseif (isset($validated['tone_preference'])) {
+                // Ensure tone_preference is saved if provided
+                \Log::info('Saving tone_preference', [
+                    'organization_id' => $organization->id,
+                    'old_tone' => $organization->tone_preference,
+                    'new_tone' => $validated['tone_preference'],
+                ]);
             }
 
             if (!array_key_exists('slug', $validated) || $validated['slug'] === null || $validated['slug'] === '') {
@@ -118,6 +127,7 @@ class SettingsController extends Controller
             }
 
             $organization->update($validated);
+            $this->syncAddyToneSetting($organization);
 
             // Try to create notification, but don't fail if it doesn't work
             try {
@@ -165,5 +175,17 @@ class SettingsController extends Controller
         }
 
         return $slug;
+    }
+
+    private function syncAddyToneSetting(Organization $organization): void
+    {
+        if (!$organization->tone_preference) {
+            return;
+        }
+
+        AddyCulturalSetting::updateOrCreate(
+            ['organization_id' => $organization->id],
+            ['tone' => $organization->tone_preference]
+        );
     }
 }
