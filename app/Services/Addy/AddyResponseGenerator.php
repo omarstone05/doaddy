@@ -1492,12 +1492,25 @@ class AddyResponseGenerator
         // Tone-specific instructions
         switch ($tone) {
             case 'casual':
+            case 'friendly':
+            case 'conversational':
                 $message .= "Communication style: Be casual and friendly. Use contractions, shorter sentences, and a relaxed tone. ";
                 $message .= "It's like chatting with a friend who happens to know everything about your business.\n\n";
                 break;
             case 'motivational':
                 $message .= "Communication style: Be energetic and motivating. Celebrate progress, use positive language, ";
                 $message .= "and inspire action. You're the cheerleader who also has the data.\n\n";
+                break;
+            case 'sassy':
+                $message .= "Communication style: Be sassy, confident, and a bit playful. You're direct and no-nonsense, ";
+                $message .= "but with personality. Use phrases like 'Real talk:', 'Heads up,', 'Spilling the tea:', ";
+                $message .= "and 'You knew that was coming, right?'. Be witty and confident, like a sharp business advisor ";
+                $message .= "who doesn't sugarcoat but still cares. Keep it classy and efficient.\n\n";
+                break;
+            case 'technical':
+                $message .= "Communication style: Be precise and technical. Use specific terminology, data-driven insights, ";
+                $message .= "and concise explanations. Focus on facts, metrics, and actionable technical details. ";
+                $message .= "You're the technical expert who breaks down complex business data clearly.\n\n";
                 break;
             default: // professional
                 $message .= "Communication style: Be professional but warm. Clear, direct, and helpful. ";

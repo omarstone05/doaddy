@@ -122,21 +122,40 @@ class AddyCulturalEngine
 
     protected function makeSassy(string $message): string
     {
+        // For sassy tone, the AI should already be generating sassy responses based on system message
+        // So we only apply light modifications if needed, or return as-is if already sassy
+        // Check if message already has sassy indicators
+        $sassyIndicators = ['real talk', 'heads up', 'spilling the tea', 'you knew that', 'trailblazer', 'superstar'];
+        $hasSassyTone = false;
+        foreach ($sassyIndicators as $indicator) {
+            if (stripos($message, $indicator) !== false) {
+                $hasSassyTone = true;
+                break;
+            }
+        }
+        
+        // If already sassy, return as-is (AI is handling it)
+        if ($hasSassyTone) {
+            return $message;
+        }
+        
+        // Otherwise, add light sassy flavor (but AI should be doing most of the work)
         $prefixes = [
-            "Alright superstar, ",
             "Real talk: ",
-            "Heads up, trailblazer—",
-            "Spilling the tea: ",
+            "Heads up: ",
+            "",
         ];
 
         $suffixes = [
-            " Keep the momentum going.",
-            " You knew that was coming, right?",
-            " Let's keep it classy and efficient.",
-            " Consider it handled.",
+            " You got this.",
+            " Keep it moving.",
+            "",
         ];
 
-        return $prefixes[array_rand($prefixes)] . $message . $suffixes[array_rand($suffixes)];
+        $prefix = $prefixes[array_rand($prefixes)];
+        $suffix = $suffixes[array_rand($suffixes)];
+        
+        return $prefix . $message . $suffix;
     }
 
     protected function makeTechnical(string $message): string
