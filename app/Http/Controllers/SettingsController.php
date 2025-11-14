@@ -126,7 +126,24 @@ class SettingsController extends Controller
                 ]);
             }
 
+            // Log what we're about to update
+            \Log::info('Updating organization settings', [
+                'organization_id' => $organization->id,
+                'fields_to_update' => array_keys($validated),
+                'tone_preference_included' => isset($validated['tone_preference']),
+                'tone_preference_value' => $validated['tone_preference'] ?? 'not set',
+            ]);
+
             $organization->update($validated);
+            
+            // Verify tone_preference was saved
+            $organization->refresh();
+            \Log::info('Organization settings updated', [
+                'organization_id' => $organization->id,
+                'current_tone_preference' => $organization->tone_preference,
+            ]);
+            
+            // Sync tone to AddyCulturalSetting
             $this->syncAddyToneSetting($organization);
 
             // Try to create notification, but don't fail if it doesn't work
@@ -180,12 +197,21 @@ class SettingsController extends Controller
     private function syncAddyToneSetting(Organization $organization): void
     {
         if (!$organization->tone_preference) {
+            \Log::info('No tone_preference to sync', [
+                'organization_id' => $organization->id,
+            ]);
             return;
         }
 
-        AddyCulturalSetting::updateOrCreate(
+        $setting = AddyCulturalSetting::updateOrCreate(
             ['organization_id' => $organization->id],
             ['tone' => $organization->tone_preference]
         );
+
+        \Log::info('Synced tone_preference to AddyCulturalSetting', [
+            'organization_id' => $organization->id,
+            'tone' => $organization->tone_preference,
+            'setting_id' => $setting->id,
+        ]);
     }
 }
