@@ -62,7 +62,11 @@ class DepartmentController extends Controller
             ...$validated,
         ]);
 
-        return redirect()->route('departments.show', $department->id)->with('message', 'Department created successfully');
+        try {
+            return $this->notifyAndRedirect('departments.show', $department->id, 'success', 'Department Created', 'Department created successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('departments.show', $department->id)->with('message', 'Department created successfully');
+        }
     }
 
     public function show($id)

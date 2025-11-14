@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { SectionInsightCard } from '@/Components/sections/SectionInsightCard';
-import { Users, Wallet, Calendar, Briefcase, DollarSign, Plus } from 'lucide-react';
+import { Users, Wallet, Calendar, Briefcase, DollarSign, Plus, Building2 } from 'lucide-react';
 
 export default function PeopleIndex({ stats, insights }) {
     return (
@@ -75,7 +75,7 @@ export default function PeopleIndex({ stats, insights }) {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <Link href="/team/create" className="block">
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardContent className="pt-6">
@@ -85,6 +85,20 @@ export default function PeopleIndex({ stats, insights }) {
                                 </div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Team Member</h3>
                                 <p className="text-sm text-gray-600">Add a new team member</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+
+                <Link href="/departments/create" className="block">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="p-4 bg-purple-500/10 rounded-full mb-4">
+                                    <Building2 className="h-8 w-8 text-purple-500" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Department</h3>
+                                <p className="text-sm text-gray-600">Create a new department</p>
                             </div>
                         </CardContent>
                     </Card>
