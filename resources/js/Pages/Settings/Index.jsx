@@ -7,9 +7,9 @@ import { useState, useRef, useEffect } from 'react';
 export default function SettingsIndex({ organization }) {
     const { flash } = usePage().props;
     const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
+    const [logoFile, setLogoFile] = useState(null);
     const fileInputRef = useRef(null);
-
-    const { data, setData, put, processing, errors } = useForm({
+    const form = useForm({
         name: organization.name || '',
         slug: organization.slug || '',
         business_type: organization.business_type || '',
@@ -19,9 +19,11 @@ export default function SettingsIndex({ organization }) {
         timezone: organization.timezone || 'Africa/Lusaka',
         logo: null,
     });
+    const { data, setData, processing, errors } = form;
 
     useEffect(() => {
         setLogoPreview(organization.logo_url || null);
+        setLogoFile(null);
     }, [organization.logo_url]);
 
     const successMessage = flash?.message || flash?.success;
@@ -31,6 +33,7 @@ export default function SettingsIndex({ organization }) {
         const file = e.target.files[0];
         if (file) {
             setData('logo', file);
+            setLogoFile(file);
             // Create preview
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -42,6 +45,7 @@ export default function SettingsIndex({ organization }) {
 
     const handleRemoveLogo = () => {
         setData('logo', null);
+        setLogoFile(null);
         setLogoPreview(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -51,21 +55,29 @@ export default function SettingsIndex({ organization }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const formOptions = {
+        const hasLogoFile = !!logoFile;
+
+        // Ensure logo field is set correctly before submission
+        if (!hasLogoFile) {
+            setData('logo', null);
+        } else {
+            setData('logo', logoFile);
+        }
+
+        form.put('/settings', {
             preserveScroll: true,
+            forceFormData: hasLogoFile,
             onSuccess: () => {
                 setData('logo', null);
+                setLogoFile(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             },
             onError: (formErrors) => {
                 console.error('Settings update errors:', formErrors);
             },
-        };
-
-        if (data.logo instanceof File) {
-            formOptions.forceFormData = true;
-        }
-
-        put('/settings', formOptions);
+        });
     };
 
     return (
