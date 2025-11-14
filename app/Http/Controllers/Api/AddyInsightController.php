@@ -10,32 +10,118 @@ use Illuminate\Support\Facades\Log;
 
 class AddyInsightController extends Controller
 {
-    public function dismiss(Request $request, AddyInsight $insight)
+    public function dismiss(Request $request, $insight)
     {
-        if ($insight->organization_id !== $request->user()->organization_id) {
-            abort(403, 'Unauthorized');
+        try {
+            // Find the insight - handle both route model binding and manual lookup
+            if ($insight instanceof AddyInsight) {
+                $insightModel = $insight;
+            } else {
+                $insightModel = AddyInsight::findOrFail($insight);
+            }
+
+            // Check if user is authenticated
+            if (!$request->user()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+
+            // Check organization ownership
+            if ($insightModel->organization_id !== $request->user()->organization_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $insightModel->dismiss();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Insight dismissed',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning('Insight not found for dismiss', [
+                'insight_id' => $insight instanceof AddyInsight ? $insight->id : $insight,
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Insight not found',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to dismiss insight', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'insight_id' => $insight instanceof AddyInsight ? $insight->id : $insight,
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to dismiss insight: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $insight->dismiss();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Insight dismissed',
-        ]);
     }
 
-    public function complete(Request $request, AddyInsight $insight)
+    public function complete(Request $request, $insight)
     {
-        if ($insight->organization_id !== $request->user()->organization_id) {
-            abort(403, 'Unauthorized');
+        try {
+            // Find the insight - handle both route model binding and manual lookup
+            if ($insight instanceof AddyInsight) {
+                $insightModel = $insight;
+            } else {
+                $insightModel = AddyInsight::findOrFail($insight);
+            }
+
+            // Check if user is authenticated
+            if (!$request->user()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+
+            // Check organization ownership
+            if ($insightModel->organization_id !== $request->user()->organization_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $insightModel->complete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Insight completed',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning('Insight not found for complete', [
+                'insight_id' => $insight instanceof AddyInsight ? $insight->id : $insight,
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Insight not found',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to complete insight', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'insight_id' => $insight instanceof AddyInsight ? $insight->id : $insight,
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete insight: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $insight->complete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Insight completed',
-        ]);
     }
 
     public function index(Request $request)

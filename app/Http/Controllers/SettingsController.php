@@ -11,7 +11,6 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
-    use CreatesNotifications;
     public function index()
     {
         $organization = Organization::findOrFail(Auth::user()->organization_id);

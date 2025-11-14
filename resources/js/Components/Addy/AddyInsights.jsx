@@ -3,9 +3,10 @@ import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
 export default function AddyInsights() {
-    const { isOpen, closeAddy, topInsight, state, addy, showChatView, refreshInsights } = useAddy();
+    const { isOpen, closeAddy, topInsight, state, addy, showChatView, refreshInsights, dismissInsight } = useAddy();
     const [refreshing, setRefreshing] = useState(false);
     const [refreshMessage, setRefreshMessage] = useState(null);
+    const [dismissing, setDismissing] = useState(false);
 
     if (!isOpen) return null;
 
@@ -129,6 +130,27 @@ export default function AddyInsights() {
         if (url) {
             router.visit(url);
             closeAddy();
+        }
+    };
+
+    const handleDismiss = async () => {
+        if (!topInsight?.id) return;
+        
+        setDismissing(true);
+        try {
+            await dismissInsight(topInsight.id);
+            // The dismissInsight function will reload the page, so we don't need to do anything else
+        } catch (error) {
+            console.error('Failed to dismiss insight:', error);
+            setDismissing(false);
+            setRefreshMessage({
+                type: 'error',
+                text: error.response?.data?.message || 'Failed to dismiss insight. Please try again.',
+            });
+            // Clear error message after 5 seconds
+            setTimeout(() => {
+                setRefreshMessage(null);
+            }, 5000);
         }
     };
 
@@ -347,16 +369,41 @@ export default function AddyInsights() {
                                     </div>
                                 )}
 
-                                {topInsight.url && (
-                                    <div className="mt-6">
+                                <div className="mt-6 flex gap-3">
+                                    {topInsight.url && (
                                         <button
                                             onClick={() => handleActionClick(topInsight.url)}
-                                            className="w-full bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl"
+                                            className="flex-1 bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl"
                                         >
                                             Take Action →
                                         </button>
-                                    </div>
-                                )}
+                                    )}
+                                    {topInsight.id && (
+                                        <button
+                                            onClick={handleDismiss}
+                                            disabled={dismissing}
+                                            className={`px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${!topInsight.url ? 'flex-1' : ''}`}
+                                            title="Dismiss this insight"
+                                        >
+                                            {dismissing ? (
+                                                <>
+                                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Dismissing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Dismiss
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 

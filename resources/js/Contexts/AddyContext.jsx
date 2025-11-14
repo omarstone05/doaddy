@@ -39,11 +39,17 @@ export function AddyProvider({ children }) {
 
     const dismissInsight = async (insightId) => {
         try {
-            await axios.post(`/api/addy/insights/${insightId}/dismiss`);
-            // Refresh page data
-            window.location.reload();
+            const response = await axios.post(`/api/addy/insights/${insightId}/dismiss`);
+            if (response.data.success) {
+                // Refresh page data
+                window.location.reload();
+            } else {
+                throw new Error(response.data.message || 'Failed to dismiss insight');
+            }
         } catch (error) {
             console.error('Failed to dismiss insight:', error);
+            // Re-throw so the component can handle it
+            throw error;
         }
     };
 

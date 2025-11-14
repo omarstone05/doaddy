@@ -106,8 +106,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/addy')->group(function () {
         Route::get('/insights', [AddyInsightController::class, 'index']);
         Route::post('/insights/refresh', [AddyInsightController::class, 'refresh']);
-        Route::post('/insights/{insight}/dismiss', [AddyInsightController::class, 'dismiss']);
-        Route::post('/insights/{insight}/complete', [AddyInsightController::class, 'complete']);
+        Route::post('/insights/{insight}/dismiss', [AddyInsightController::class, 'dismiss'])->where('insight', '[0-9]+');
+        Route::post('/insights/{insight}/complete', [AddyInsightController::class, 'complete'])->where('insight', '[0-9]+');
         
         // Addy Chat
         Route::post('/chat', [AddyChatController::class, 'sendMessage']);
