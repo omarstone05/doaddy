@@ -3,10 +3,10 @@ import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
 export default function AddyInsights() {
-    const { isOpen, closeAddy, topInsight, state, addy, showChatView, refreshInsights, dismissInsight } = useAddy();
+    const { isOpen, closeAddy, topInsight, insights, state, addy, showChatView, refreshInsights, dismissInsight } = useAddy();
     const [refreshing, setRefreshing] = useState(false);
     const [refreshMessage, setRefreshMessage] = useState(null);
-    const [dismissing, setDismissing] = useState(false);
+    const [dismissing, setDismissing] = useState(null); // Track which insight is being dismissed
 
     if (!isOpen) return null;
 
@@ -133,16 +133,16 @@ export default function AddyInsights() {
         }
     };
 
-    const handleDismiss = async () => {
-        if (!topInsight?.id) return;
+    const handleDismiss = async (insightId) => {
+        if (!insightId) return;
         
-        setDismissing(true);
+        setDismissing(insightId);
         try {
-            await dismissInsight(topInsight.id);
+            await dismissInsight(insightId);
             // The dismissInsight function will reload the page, so we don't need to do anything else
         } catch (error) {
             console.error('Failed to dismiss insight:', error);
-            setDismissing(false);
+            setDismissing(null);
             setRefreshMessage({
                 type: 'error',
                 text: error.response?.data?.message || 'Failed to dismiss insight. Please try again.',
@@ -330,97 +330,89 @@ export default function AddyInsights() {
                             </div>
                         )}
 
-                        {/* Top Insight */}
-                        {topInsight && (
-                            <div className="bg-white/70 backdrop-blur-sm border border-mint-200/50 rounded-2xl p-6 shadow-lg">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3 flex-wrap">
-                                        <div className={`
-                                            px-3 py-1 rounded-full text-xs font-semibold uppercase
-                                            ${topInsight.type === 'alert' ? 'bg-red-100 text-red-700' : ''}
-                                            ${topInsight.type === 'suggestion' ? 'bg-teal-100 text-teal-700' : ''}
-                                            ${topInsight.type === 'observation' ? 'bg-green-100 text-green-700' : ''}
-                                            ${topInsight.type === 'achievement' ? 'bg-purple-100 text-purple-700' : ''}
-                                        `}>
-                                            {topInsight.type}
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900">{topInsight.title}</h3>
-                                    </div>
-                                    <span className="text-sm font-medium px-3 py-1 rounded-full text-gray-600 bg-white/60">
-                                        Priority: {Math.round(topInsight.priority * 100)}%
-                                    </span>
-                                </div>
+                        {/* All Insights - Two Column Layout */}
+                        {insights && insights.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {insights.map((insight) => {
+                                    const isDismissing = dismissing === insight.id;
+                                    return (
+                                        <div key={insight.id} className="bg-white/70 backdrop-blur-sm border border-mint-200/50 rounded-2xl p-6 shadow-lg">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <div className={`
+                                                        px-3 py-1 rounded-full text-xs font-semibold uppercase
+                                                        ${insight.type === 'alert' ? 'bg-red-100 text-red-700' : ''}
+                                                        ${insight.type === 'suggestion' ? 'bg-teal-100 text-teal-700' : ''}
+                                                        ${insight.type === 'observation' ? 'bg-green-100 text-green-700' : ''}
+                                                        ${insight.type === 'achievement' ? 'bg-purple-100 text-purple-700' : ''}
+                                                    `}>
+                                                        {insight.type}
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900">{insight.title}</h3>
+                                                </div>
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full text-gray-600 bg-white/60">
+                                                    {Math.round(insight.priority * 100)}%
+                                                </span>
+                                            </div>
 
-                                <div className="prose prose-sm max-w-none">
-                                    <p className="text-gray-700 whitespace-pre-line">{topInsight.description}</p>
-                                </div>
+                                            <div className="prose prose-sm max-w-none">
+                                                <p className="text-gray-700 whitespace-pre-line text-sm">{insight.description}</p>
+                                            </div>
 
-                                {topInsight.actions && topInsight.actions.length > 0 && (
-                                    <div className="mt-4">
-                                        <p className="text-sm font-semibold text-gray-700 mb-2">Suggested Actions:</p>
-                                        <ul className="space-y-2">
-                                            {topInsight.actions.map((action, index) => (
-                                                <li key={index} className="flex items-start gap-2 text-gray-600">
-                                                    <span className="text-teal-600 font-bold">→</span>
-                                                    <span>{action}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-
-                                <div className="mt-6 flex gap-3">
-                                    {topInsight.url && (
-                                        <button
-                                            onClick={() => handleActionClick(topInsight.url)}
-                                            className="flex-1 bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl"
-                                        >
-                                            Take Action →
-                                        </button>
-                                    )}
-                                    {topInsight && (
-                                        <button
-                                            onClick={handleDismiss}
-                                            disabled={dismissing || !topInsight.id}
-                                            className={`${topInsight.url ? 'px-6' : 'flex-1 px-6'} py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                                            title="Dismiss this insight"
-                                        >
-                                            {dismissing ? (
-                                                <>
-                                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Dismissing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                    Dismiss
-                                                </>
+                                            {insight.actions && insight.actions.length > 0 && (
+                                                <div className="mt-4">
+                                                    <p className="text-xs font-semibold text-gray-700 mb-2">Suggested Actions:</p>
+                                                    <ul className="space-y-1">
+                                                        {insight.actions.slice(0, 3).map((action, index) => (
+                                                            <li key={index} className="flex items-start gap-2 text-gray-600 text-sm">
+                                                                <span className="text-teal-600 font-bold">→</span>
+                                                                <span>{action}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
                                             )}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Additional Insights */}
-                        {addy?.insights_count > 1 && (
-                            <div className="bg-white/70 backdrop-blur-sm border border-mint-200/50 rounded-2xl p-6 shadow-lg">
-                                <p className="text-gray-600 text-center">
-                                    You have <span className="font-semibold text-gray-900">{addy.insights_count - 1} more insight{addy.insights_count - 1 !== 1 ? 's' : ''}</span> waiting
-                                </p>
-                                <p className="text-sm text-gray-500 text-center mt-2">
-                                    Full insights dashboard coming soon
-                                </p>
+                                            <div className="mt-4 flex gap-2">
+                                                {insight.url && (
+                                                    <button
+                                                        onClick={() => handleActionClick(insight.url)}
+                                                        className="flex-1 bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl text-sm"
+                                                    >
+                                                        Take Action →
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDismiss(insight.id)}
+                                                    disabled={isDismissing || !insight.id}
+                                                    className={`${insight.url ? 'px-4' : 'flex-1 px-4'} py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm`}
+                                                    title="Dismiss this insight"
+                                                >
+                                                    {isDismissing ? (
+                                                        <>
+                                                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Dismiss
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 
                         {/* No insights */}
-                        {!topInsight && !state && (
+                        {(!insights || insights.length === 0) && !state && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <div className="text-6xl mb-4">✨</div>
                                 <h3 className="text-xl font-semibold text-gray-700 mb-2">All Clear!</h3>

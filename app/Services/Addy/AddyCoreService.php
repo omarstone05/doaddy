@@ -658,6 +658,20 @@ class AddyCoreService
         $insights = $this->getActiveInsights();
         $topInsight = $insights->sortByDesc('priority')->first();
 
+        // Format all insights for frontend
+        $allInsights = $insights->sortByDesc('priority')->map(function ($insight) {
+            return [
+                'id' => $insight->id,
+                'type' => $insight->type,
+                'category' => $insight->category,
+                'title' => $insight->title,
+                'description' => $insight->description,
+                'priority' => (float) $insight->priority,
+                'actions' => $insight->suggested_actions,
+                'url' => $insight->action_url,
+            ];
+        })->values()->all();
+
         return [
             'state' => [
                 'focus_area' => $this->state->focus_area ?? 'Overview',
@@ -676,6 +690,7 @@ class AddyCoreService
                 'actions' => $topInsight->suggested_actions,
                 'url' => $topInsight->action_url,
             ] : null,
+            'insights' => $allInsights,
             'insights_count' => $insights->count(),
         ];
     }

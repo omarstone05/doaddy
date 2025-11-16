@@ -72,6 +72,7 @@ export function AddyProvider({ children }) {
                     ...prev,
                     state: response.data.data.state,
                     top_insight: response.data.data.top_insight,
+                    insights: response.data.data.insights || [],
                     insights_count: response.data.data.insights_count,
                 }));
                 return { success: true, message: response.data.message };
@@ -102,6 +103,7 @@ export function AddyProvider({ children }) {
                 refreshInsights,
                 hasInsights: addy?.insights_count > 0,
                 topInsight: addy?.top_insight,
+                insights: addy?.insights || [],
                 state: addy?.state,
             }}
         >
