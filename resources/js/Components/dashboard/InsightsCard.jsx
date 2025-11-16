@@ -5,14 +5,22 @@ import { router } from '@inertiajs/react';
 
 export function InsightsCard({ userName = 'User', message }) {
   const addyContext = useAddy();
-  const { openAddy, topInsight, insights, state, hasInsights } = addyContext || {};
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   
-  // Safety check - if context is not available, return null or a fallback
+  // If context is not available, render fallback
   if (!addyContext) {
-    return null;
+    return (
+      <div className="bg-gradient-to-br from-teal-500 to-mint-300 p-6 md:p-8 shadow-lg rounded-2xl h-full flex items-center justify-center">
+        <div className="text-white text-center">
+          <p className="text-lg font-semibold mb-2">Insights</p>
+          <p className="text-sm opacity-80">Loading insights...</p>
+        </div>
+      </div>
+    );
   }
+  
+  const { openAddy, topInsight, insights, state, hasInsights } = addyContext;
 
   // Prepare insights array - include topInsight if it exists and isn't already in insights
   const allInsights = React.useMemo(() => {

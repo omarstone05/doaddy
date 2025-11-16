@@ -155,8 +155,11 @@ export function AddyProvider({ children }) {
 export function useAddy() {
     const context = useContext(AddyContext);
     
+    // Return null instead of throwing to allow graceful handling
+    // Components can check for null and render fallbacks
     if (!context) {
-        throw new Error('useAddy must be used within an AddyProvider');
+        console.warn('useAddy must be used within an AddyProvider');
+        return null;
     }
     
     return context;
