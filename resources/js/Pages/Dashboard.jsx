@@ -61,13 +61,13 @@ export default function Dashboard({ user, availableCards, orgCards = [], stats, 
   });
 
   const [cards, setCards] = useState(() => {
-    // Create Addy insight card (6×2 in old system = 24×8 in new grid)
+    // Create Addy insight card (6×3 in old system = 24×12 in new grid)
     const addyCard = {
       id: addyCardId,
       type: 'addy_insight',
       dashboard_card: { key: 'addy_insight', name: 'Addy Insights' },
       width: 24, // 6 * 4 = 24
-      height: 8, // 8 units high
+      height: 12, // 12 units high
       row: undefined,
       col: undefined,
       display_order: 0,
