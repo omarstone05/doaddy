@@ -41,8 +41,27 @@ export function AddyProvider({ children }) {
         try {
             const response = await axios.post(`/api/addy/insights/${insightId}/dismiss`);
             if (response.data.success) {
-                // Refresh page data
-                window.location.reload();
+                // Update local state to remove the dismissed insight
+                setAddy(prev => {
+                    if (!prev) return prev;
+                    
+                    // Filter out the dismissed insight
+                    const updatedInsights = (prev.insights || []).filter(insight => insight.id !== insightId);
+                    
+                    // Update top_insight if it was the dismissed one
+                    let updatedTopInsight = prev.top_insight;
+                    if (prev.top_insight?.id === insightId) {
+                        // Set the next highest priority insight as top, or null if none
+                        updatedTopInsight = updatedInsights.length > 0 ? updatedInsights[0] : null;
+                    }
+                    
+                    return {
+                        ...prev,
+                        insights: updatedInsights,
+                        top_insight: updatedTopInsight,
+                        insights_count: updatedInsights.length,
+                    };
+                });
             } else {
                 throw new Error(response.data.message || 'Failed to dismiss insight');
             }
@@ -55,9 +74,30 @@ export function AddyProvider({ children }) {
 
     const completeInsight = async (insightId) => {
         try {
-            await axios.post(`/api/addy/insights/${insightId}/complete`);
-            // Refresh page data
-            window.location.reload();
+            const response = await axios.post(`/api/addy/insights/${insightId}/complete`);
+            if (response.data.success) {
+                // Update local state to remove the completed insight
+                setAddy(prev => {
+                    if (!prev) return prev;
+                    
+                    // Filter out the completed insight
+                    const updatedInsights = (prev.insights || []).filter(insight => insight.id !== insightId);
+                    
+                    // Update top_insight if it was the completed one
+                    let updatedTopInsight = prev.top_insight;
+                    if (prev.top_insight?.id === insightId) {
+                        // Set the next highest priority insight as top, or null if none
+                        updatedTopInsight = updatedInsights.length > 0 ? updatedInsights[0] : null;
+                    }
+                    
+                    return {
+                        ...prev,
+                        insights: updatedInsights,
+                        top_insight: updatedTopInsight,
+                        insights_count: updatedInsights.length,
+                    };
+                });
+            }
         } catch (error) {
             console.error('Failed to complete insight:', error);
         }
