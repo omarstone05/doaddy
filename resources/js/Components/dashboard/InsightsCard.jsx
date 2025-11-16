@@ -3,10 +3,16 @@ import { BackgroundGradientAnimation } from '../ui/BackgroundGradientAnimation';
 import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
-export function InsightsCard({ userName, message }) {
-  const { openAddy, topInsight, insights, state, hasInsights } = useAddy();
+export function InsightsCard({ userName = 'User', message }) {
+  const addyContext = useAddy();
+  const { openAddy, topInsight, insights, state, hasInsights } = addyContext || {};
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Safety check - if context is not available, return null or a fallback
+  if (!addyContext) {
+    return null;
+  }
 
   // Prepare insights array - include topInsight if it exists and isn't already in insights
   const allInsights = React.useMemo(() => {
@@ -49,7 +55,9 @@ export function InsightsCard({ userName, message }) {
     : `Hi, ${userName}`;
 
   const handleCardClick = () => {
-    openAddy(currentInsight || topInsight ? 'insights' : 'chat');
+    if (openAddy) {
+      openAddy(currentInsight || topInsight ? 'insights' : 'chat');
+    }
   };
 
   return (
@@ -62,11 +70,18 @@ export function InsightsCard({ userName, message }) {
         </p>
         
         {/* Title with smooth transition */}
-        <div className="relative mb-3 md:mb-4">
+        <div className="relative mb-3 md:mb-4 overflow-hidden">
           <h2 
-            className={`text-xl md:text-2xl font-bold text-white transition-opacity duration-500 ease-in-out leading-tight line-clamp-2 ${
+            className={`text-xl md:text-2xl font-bold text-white transition-opacity duration-500 ease-in-out leading-tight ${
               isTransitioning ? 'opacity-0' : 'opacity-100'
             }`}
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
           >
             {displayTitle}
           </h2>
@@ -103,7 +118,9 @@ export function InsightsCard({ userName, message }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  openAddy('insights');
+                  if (openAddy) {
+                    openAddy('insights');
+                  }
                 }}
                 className="px-3 md:px-4 py-2 bg-white/20 hover:bg-white/40 text-white text-sm md:text-base font-medium rounded-lg transition-colors backdrop-blur-sm"
               >
@@ -112,17 +129,19 @@ export function InsightsCard({ userName, message }) {
             </div>
           )}
 
-          {!currentInsight && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                openAddy('chat');
-              }}
-              className="px-3 md:px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm md:text-base font-medium rounded-lg transition-colors backdrop-blur-sm"
-            >
-              Talk to Addy →
-            </button>
-          )}
+            {!currentInsight && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (openAddy) {
+                    openAddy('chat');
+                  }
+                }}
+                className="px-3 md:px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm md:text-base font-medium rounded-lg transition-colors backdrop-blur-sm"
+              >
+                Talk to Addy →
+              </button>
+            )}
         </div>
 
         {/* Pagination indicator - positioned at bottom */}
