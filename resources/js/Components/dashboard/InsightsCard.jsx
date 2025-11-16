@@ -62,9 +62,9 @@ export function InsightsCard({ userName, message }) {
         </p>
         
         {/* Title with smooth transition */}
-        <div className="relative mb-3 md:mb-4 overflow-hidden">
+        <div className="relative mb-3 md:mb-4">
           <h2 
-            className={`text-2xl md:text-3xl lg:text-4xl font-bold text-white transition-opacity duration-500 ease-in-out leading-tight ${
+            className={`text-xl md:text-2xl font-bold text-white transition-opacity duration-500 ease-in-out leading-tight line-clamp-2 ${
               isTransitioning ? 'opacity-0' : 'opacity-100'
             }`}
           >
