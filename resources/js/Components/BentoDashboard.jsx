@@ -240,6 +240,7 @@ const PerformanceCard = ({ onRemove, stats }) => {
 };
 
 const AddyInsightsCard = ({ onRemove, userName, stats }) => {
+  // Addy Insights card is non-removable, so onRemove is ignored
   return (
     <div className="relative h-full">
       <InsightsCard 
@@ -249,15 +250,6 @@ const AddyInsightsCard = ({ onRemove, userName, stats }) => {
           : `You have ${formatCurrency(Math.abs(stats?.net_balance || 0))} in expenses. Consider reviewing your budget.`
         }
       />
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }} 
-        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/30 rounded-lg p-1 z-10 pointer-events-auto"
-      >
-        <X size={16} className="text-white" />
-      </button>
     </div>
   );
 };
