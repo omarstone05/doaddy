@@ -30,7 +30,7 @@ export function InsightsCard({ userName, message }) {
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % allInsights.length);
         setIsTransitioning(false);
-      }, 300); // Half of transition duration
+      }, 250); // Half of transition duration (500ms / 2)
     }, 5000); // Change every 5 seconds
 
     return () => clearInterval(interval);
@@ -63,7 +63,7 @@ export function InsightsCard({ userName, message }) {
           {/* Title with smooth transition */}
           <div className="relative h-12 mb-3 overflow-hidden">
             <h2 
-              className={`text-3xl font-bold text-white absolute inset-0 transition-opacity duration-600 ease-in-out ${
+              className={`text-3xl font-bold text-white absolute inset-0 transition-opacity duration-500 ease-in-out ${
                 isTransitioning ? 'opacity-0' : 'opacity-100'
               }`}
             >
@@ -74,7 +74,7 @@ export function InsightsCard({ userName, message }) {
           {/* Message with smooth transition */}
           <div className="relative min-h-[4rem] mb-4 overflow-hidden">
             <p 
-              className={`text-white/90 leading-relaxed absolute inset-0 transition-opacity duration-600 ease-in-out ${
+              className={`text-white/90 leading-relaxed absolute inset-0 transition-opacity duration-500 ease-in-out ${
                 isTransitioning ? 'opacity-0' : 'opacity-100'
               }`}
             >
@@ -83,7 +83,7 @@ export function InsightsCard({ userName, message }) {
           </div>
           
           {/* Action buttons */}
-          <div className={`transition-opacity duration-600 ease-in-out ${
+          <div className={`transition-opacity duration-500 ease-in-out ${
             isTransitioning ? 'opacity-0' : 'opacity-100'
           }`}>
             {currentInsight && currentInsight.url && (
