@@ -4,7 +4,14 @@ import AddyChat from './AddyChat';
 import AddyInsights from './AddyInsights';
 
 export default function AddyPanel() {
-    const { isOpen, panelView } = useAddy();
+    const addyContext = useAddy();
+    
+    // If context is not available, don't render
+    if (!addyContext) {
+        return null;
+    }
+    
+    const { isOpen, panelView } = addyContext;
 
     if (!isOpen) return null;
 

@@ -6,7 +6,14 @@ import ActionConfirmation from './ActionConfirmation';
 import ReactMarkdown from 'react-markdown';
 
 export default function AddyChat() {
-    const { isOpen, closeAddy, showInsightsView } = useAddy();
+    const addyContext = useAddy();
+    
+    // If context is not available, don't render
+    if (!addyContext) {
+        return null;
+    }
+    
+    const { isOpen, closeAddy, showInsightsView } = addyContext;
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);

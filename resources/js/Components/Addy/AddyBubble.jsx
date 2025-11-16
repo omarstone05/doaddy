@@ -2,7 +2,14 @@ import React from 'react';
 import { useAddy } from '../../Contexts/AddyContext';
 
 export default function AddyBubble() {
-    const { openAddy, hasInsights, state, addy } = useAddy();
+    const addyContext = useAddy();
+    
+    // If context is not available, don't render
+    if (!addyContext) {
+        return null;
+    }
+    
+    const { openAddy, hasInsights, state, addy } = addyContext;
 
     // Debug: log bubble render state
     React.useEffect(() => {

@@ -4,7 +4,14 @@ import { router } from '@inertiajs/react';
 import { useAddy } from '../../Contexts/AddyContext';
 
 export function SectionInsightCard({ sectionName, insights, sectionIcon }) {
-  const { openAddy } = useAddy();
+  const addyContext = useAddy();
+  
+  // If context is not available, don't render
+  if (!addyContext) {
+    return null;
+  }
+  
+  const { openAddy } = addyContext;
   // Get the top insight for this section
   const topInsight = insights && insights.length > 0 
     ? insights[0] 

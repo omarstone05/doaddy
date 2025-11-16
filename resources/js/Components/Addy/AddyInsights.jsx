@@ -3,7 +3,14 @@ import { useAddy } from '../../Contexts/AddyContext';
 import { router } from '@inertiajs/react';
 
 export default function AddyInsights() {
-    const { isOpen, closeAddy, topInsight, insights, state, addy, showChatView, refreshInsights, dismissInsight } = useAddy();
+    const addyContext = useAddy();
+    
+    // If context is not available, don't render
+    if (!addyContext) {
+        return null;
+    }
+    
+    const { isOpen, closeAddy, topInsight, insights, state, addy, showChatView, refreshInsights, dismissInsight } = addyContext;
     const [refreshing, setRefreshing] = useState(false);
     const [refreshMessage, setRefreshMessage] = useState(null);
     const [dismissing, setDismissing] = useState(null); // Track which insight is being dismissed
