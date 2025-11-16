@@ -265,7 +265,15 @@ class DashboardController extends Controller
                 ->with(['customer', 'cashier'])
                 ->latest()
                 ->limit(5)
-                ->get();
+                ->get()
+                ->map(function($sale) {
+                    return [
+                        'id' => $sale->id,
+                        'customer_name' => $sale->customer->name ?? 'Walk-in',
+                        'total' => (float) $sale->total_amount,
+                        'date' => $sale->created_at->format('M d, Y'),
+                    ];
+                });
         } catch (\Exception $e) {
             \Log::warning('Recent sales query failed - tables may not exist', ['error' => $e->getMessage()]);
             $recentSales = collect([]);
@@ -294,9 +302,15 @@ class DashboardController extends Controller
                 ->orderBy('current_stock')
                 ->limit(5)
                 ->get();
+            
+            // Get total products count
+            $totalProducts = GoodsAndService::where('organization_id', $organizationId)
+                ->where('type', 'product')
+                ->count();
         } catch (\Exception $e) {
             \Log::warning('Low stock products query failed - tables may not exist', ['error' => $e->getMessage()]);
             $lowStockProducts = collect([]);
+            $totalProducts = 0;
         }
         
         // Budget data - handle missing columns gracefully
@@ -404,23 +418,29 @@ class DashboardController extends Controller
         
         return Inertia::render('Dashboard', [
             'user' => $request->user(),
-            'availableCards' => $availableCards,
-            'orgCards' => $orgCards,
-            'timeframe' => $timeframe,
             'stats' => [
                 'total_accounts' => $totalAccounts,
-                'total_revenue' => $totalRevenue,
-                'total_expenses' => $totalExpenses,
-                'net_balance' => $netBalance,
-                'previous_revenue' => $previousRevenue,
-                'previous_expenses' => $previousExpenses,
+                'total_revenue' => (float) $totalRevenue,
+                'total_expenses' => (float) $totalExpenses,
+                'net_balance' => (float) $netBalance,
+                'previous_revenue' => (float) $previousRevenue,
+                'previous_expenses' => (float) $previousExpenses,
                 'revenue_trend' => $revenueTrend,
                 'expense_trend' => $expenseTrend,
                 'top_products' => $topProducts,
                 'top_customers' => $topCustomers,
                 'recent_sales' => $recentSales,
-                'pending_invoices' => $pendingInvoices,
+                'pending_invoices' => $pendingInvoices->map(function($invoice) {
+                    return [
+                        'id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'customer_name' => $invoice->customer->name ?? 'N/A',
+                        'total_amount' => (float) $invoice->total_amount,
+                        'due_date' => $invoice->due_date?->format('M d, Y'),
+                    ];
+                }),
                 'low_stock_products' => $lowStockProducts,
+                'total_products' => $totalProducts ?? 0,
                 'budgets' => $budgets,
                 'revenue_by_category' => $revenueByCategory,
                 'expense_breakdown' => $expenseBreakdown,
