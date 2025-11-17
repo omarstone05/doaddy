@@ -1784,7 +1784,7 @@ class AddyResponseGenerator
         $response = $culturalEngine->adaptTone($response);
         
         return [
-            'message' => $response,
+            'content' => $response,
             'quick_actions' => [
                 [
                     'label' => '📤 Go to Upload Center',
