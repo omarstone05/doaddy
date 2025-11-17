@@ -1,18 +1,37 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { ArrowLeft, Edit, User, Building2, DollarSign, Link as LinkIcon, Plus, Trash2, ExternalLink, FileText, Eye, X, Download } from 'lucide-react';
-import { useState } from 'react';
+import { Card } from '@/Components/ui/Card';
+import { ArrowLeft, Edit, User, Building2, DollarSign, Link as LinkIcon, Plus, Trash2, ExternalLink, FileText, Eye, X, Download, Upload, Shield, Power, Mail, Lock } from 'lucide-react';
+import { useState, useRef } from 'react';
 import axios from 'axios';
 
-export default function TeamShow({ teamMember }) {
+export default function TeamShow({ teamMember, organizationRoles, userRole }) {
     const [showAddLink, setShowAddLink] = useState(false);
     const [linkName, setLinkName] = useState('');
     const [linkUrl, setLinkUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [attachments, setAttachments] = useState(teamMember.attachments || []);
     const [previewDocument, setPreviewDocument] = useState(null);
+    const [showUploadDocument, setShowUploadDocument] = useState(false);
+    const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+    const [showInviteForm, setShowInviteForm] = useState(false);
+    const [uploadingDocument, setUploadingDocument] = useState(false);
+    const fileInputRef = useRef(null);
+    const documentFileRef = useRef(null);
     const documents = teamMember.documents || [];
+    
+    const user = teamMember.user;
+    const isUserActive = user?.is_active ?? false;
+    
+    const inviteForm = useForm({
+        password: '',
+        send_invite: false,
+    });
+    
+    const permissionsForm = useForm({
+        role_id: userRole?.id || '',
+    });
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-ZM', {
@@ -151,9 +170,29 @@ export default function TeamShow({ teamMember }) {
                                     </p>
                                 )}
                                 {teamMember.user && (
-                                    <p className="text-sm text-teal-600">
-                                        Linked to user account
-                                    </p>
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-teal-600">
+                                            Linked to user account: {teamMember.user.email}
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">User Status:</span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                isUserActive
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700'
+                                            }`}>
+                                                {isUserActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                        {userRole && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500">Role:</span>
+                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                    {userRole.name}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -223,6 +262,330 @@ export default function TeamShow({ teamMember }) {
                         </div>
                     </div>
                 </div>
+
+                {/* User Management Section */}
+                {teamMember.user && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900">User Account Management</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* User Status Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p className="font-medium text-gray-900">User Account Status</p>
+                                    <p className="text-sm text-gray-500">
+                                        {isUserActive 
+                                            ? 'User can log in and access the system'
+                                            : 'User cannot log in. Set password to activate.'}
+                                    </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isUserActive}
+                                        onChange={(e) => {
+                                            router.post(`/team/${teamMember.id}/toggle-user-status`, {
+                                                is_active: e.target.checked,
+                                            }, {
+                                                preserveScroll: true,
+                                                onSuccess: () => {
+                                                    router.reload({ only: ['teamMember'] });
+                                                },
+                                            });
+                                        }}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                                </label>
+                            </div>
+
+                            {/* Invite Form (when user is inactive) */}
+                            {!isUserActive && (
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <p className="font-medium text-yellow-900">Activate User Account</p>
+                                            <p className="text-sm text-yellow-700">Set a password to activate this user account</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowInviteForm(!showInviteForm)}
+                                        >
+                                            {showInviteForm ? 'Cancel' : 'Set Password'}
+                                        </Button>
+                                    </div>
+                                    {showInviteForm && (
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault();
+                                            inviteForm.post(`/team/${teamMember.id}/invite-user`, {
+                                                preserveScroll: true,
+                                                onSuccess: () => {
+                                                    setShowInviteForm(false);
+                                                    inviteForm.reset();
+                                                    router.reload({ only: ['teamMember'] });
+                                                },
+                                            });
+                                        }} className="space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Password <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={inviteForm.data.password}
+                                                    onChange={(e) => inviteForm.setData('password', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                    placeholder="Minimum 8 characters"
+                                                    required
+                                                    minLength={8}
+                                                />
+                                                {inviteForm.errors.password && (
+                                                    <p className="mt-1 text-sm text-red-600">{inviteForm.errors.password}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id="send_invite"
+                                                    checked={inviteForm.data.send_invite}
+                                                    onChange={(e) => inviteForm.setData('send_invite', e.target.checked)}
+                                                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                                />
+                                                <label htmlFor="send_invite" className="ml-2 block text-sm text-gray-700">
+                                                    Send invitation email
+                                                </label>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button type="submit" disabled={inviteForm.processing}>
+                                                    <Lock className="h-4 w-4 mr-2" />
+                                                    {inviteForm.processing ? 'Setting...' : 'Set Password & Activate'}
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Permissions Button (when user is active) */}
+                            {isUserActive && (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowPermissionsModal(true)}
+                                    >
+                                        <Shield className="h-4 w-4 mr-2" />
+                                        Permissions & Role
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowUploadDocument(true)}
+                                    >
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        Upload Document
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Document Upload Modal */}
+                {showUploadDocument && teamMember.user && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <Card className="max-w-md w-full">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Upload Document</h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowUploadDocument(false);
+                                            if (documentFileRef.current) {
+                                                documentFileRef.current.value = '';
+                                            }
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    if (!documentFileRef.current?.files[0]) return;
+                                    
+                                    setUploadingDocument(true);
+                                    const formData = new FormData();
+                                    formData.append('file', documentFileRef.current.files[0]);
+                                    formData.append('category', 'user_document');
+                                    
+                                    router.post(`/team/${teamMember.id}/upload-document`, formData, {
+                                        preserveScroll: true,
+                                        forceFormData: true,
+                                        onSuccess: () => {
+                                            setShowUploadDocument(false);
+                                            if (documentFileRef.current) {
+                                                documentFileRef.current.value = '';
+                                            }
+                                            router.reload({ only: ['teamMember'] });
+                                        },
+                                        onFinish: () => {
+                                            setUploadingDocument(false);
+                                        },
+                                    });
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Select File
+                                        </label>
+                                        <input
+                                            ref={documentFileRef}
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xls,.xlsx,.txt"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            required
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Supported: PDF, DOC, DOCX, JPG, PNG, GIF, XLS, XLSX, TXT (Max 10MB)
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button type="submit" disabled={uploadingDocument}>
+                                            {uploadingDocument ? 'Uploading...' : 'Upload'}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setShowUploadDocument(false);
+                                                if (documentFileRef.current) {
+                                                    documentFileRef.current.value = '';
+                                                }
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Permissions Modal */}
+                {showPermissionsModal && teamMember.user && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Set Role & Permissions</h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowPermissionsModal(false);
+                                            permissionsForm.reset();
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    permissionsForm.post(`/team/${teamMember.id}/update-user-role`, {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setShowPermissionsModal(false);
+                                            router.reload({ only: ['teamMember', 'userRole'] });
+                                        },
+                                    });
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Select Role <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            value={permissionsForm.data.role_id}
+                                            onChange={(e) => permissionsForm.setData('role_id', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            required
+                                        >
+                                            <option value="">Select a role...</option>
+                                            {organizationRoles?.map((role) => (
+                                                <option key={role.id} value={role.id}>
+                                                    {role.name} {role.level && `(Level ${role.level})`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {permissionsForm.errors.role_id && (
+                                            <p className="mt-1 text-sm text-red-600">{permissionsForm.errors.role_id}</p>
+                                        )}
+                                    </div>
+                                    
+                                    {permissionsForm.data.role_id && (() => {
+                                        const selectedRole = organizationRoles?.find(r => r.id === permissionsForm.data.role_id);
+                                        if (!selectedRole) return null;
+                                        
+                                        const permissionsByCategory = {};
+                                        (selectedRole.permissions || []).forEach(perm => {
+                                            const [category] = perm.split('.');
+                                            if (!permissionsByCategory[category]) {
+                                                permissionsByCategory[category] = [];
+                                            }
+                                            permissionsByCategory[category].push(perm);
+                                        });
+                                        
+                                        return (
+                                            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                                                <p className="text-sm font-medium text-gray-900 mb-2">Role Permissions:</p>
+                                                {selectedRole.description && (
+                                                    <p className="text-sm text-gray-600 mb-3">{selectedRole.description}</p>
+                                                )}
+                                                {Object.keys(permissionsByCategory).length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {Object.entries(permissionsByCategory).map(([category, perms]) => (
+                                                            <div key={category}>
+                                                                <p className="text-xs font-medium text-gray-700 uppercase mb-1">{category}</p>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {perms.map((perm) => (
+                                                                        <span
+                                                                            key={perm}
+                                                                            className="px-2 py-0.5 text-xs bg-teal-100 text-teal-700 rounded"
+                                                                        >
+                                                                            {perm.split('.')[1] || perm}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-gray-500">No specific permissions defined for this role.</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+
+                                    <div className="flex gap-2 pt-4">
+                                        <Button type="submit" disabled={permissionsForm.processing}>
+                                            {permissionsForm.processing ? 'Saving...' : 'Save Role'}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setShowPermissionsModal(false);
+                                                permissionsForm.reset();
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Links & Attachments */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
