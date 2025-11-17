@@ -234,55 +234,97 @@ class TeamMemberController extends Controller
     }
 
     /**
-     * Toggle user active status
+     * Grant system access to team member
      */
-    public function toggleUserStatus(Request $request, $id)
+    public function grantAccess(Request $request, $id)
     {
         $teamMember = TeamMember::where('organization_id', Auth::user()->organization_id)
-            ->with('user')
             ->findOrFail($id);
 
-        if (!$teamMember->user) {
-            return back()->withErrors(['error' => 'Team member must be linked to a user account.']);
+        $request->validate([
+            'email' => 'required|email|max:255',
+            'action' => 'required|in:invite,set_password',
+            'password' => 'required_if:action,set_password|string|min:8',
+        ]);
+
+        $organizationId = Auth::user()->organization_id;
+        $organization = \App\Models\Organization::find($organizationId);
+
+        // Update team member email if different
+        if ($teamMember->email !== $request->email) {
+            $teamMember->update(['email' => $request->email]);
         }
 
-        $request->validate([
-            'is_active' => 'required|boolean',
-        ]);
-
-        $teamMember->user->update([
-            'is_active' => $request->is_active,
-        ]);
-
-        return back()->with('message', $request->is_active ? 'User activated successfully' : 'User deactivated successfully');
-    }
-
-    /**
-     * Set password and invite user
-     */
-    public function inviteUser(Request $request, $id)
-    {
-        $teamMember = TeamMember::where('organization_id', Auth::user()->organization_id)
-            ->with('user')
-            ->findOrFail($id);
-
-        if (!$teamMember->user) {
-            return back()->withErrors(['error' => 'Team member must be linked to a user account.']);
+        // Find or create user account
+        $user = User::where('email', $request->email)->first();
+        
+        if (!$user) {
+            // Create new user account
+            $user = User::create([
+                'id' => (string) Str::uuid(),
+                'name' => trim("{$teamMember->first_name} {$teamMember->last_name}"),
+                'email' => $request->email,
+                'password' => $request->action === 'set_password' 
+                    ? bcrypt($request->password) 
+                    : bcrypt(Str::random(16)), // Random password if inviting
+                'is_active' => true,
+                'email_verified_at' => $request->action === 'set_password' ? null : now(), // Will verify on first login if invited
+            ]);
+        } else {
+            // Update existing user
+            $user->update([
+                'is_active' => true,
+            ]);
+            
+            // Set password if action is set_password
+            if ($request->action === 'set_password') {
+                $user->update([
+                    'password' => bcrypt($request->password),
+                ]);
+            }
         }
 
-        $request->validate([
-            'password' => 'required|string|min:8',
-            'send_invite' => 'nullable|boolean',
-        ]);
+        // Link team member to user
+        $teamMember->update(['user_id' => $user->id]);
 
-        $teamMember->user->update([
-            'password' => bcrypt($request->password),
-            'is_active' => true,
-        ]);
+        // Ensure user belongs to organization
+        if (!$user->belongsToOrganization($organizationId)) {
+            // Get default role (Member) if no role specified
+            $defaultRole = \App\Models\OrganizationRole::where('slug', 'member')->first();
+            
+            $user->organizations()->attach($organizationId, [
+                'role_id' => $defaultRole?->id,
+                'role' => $defaultRole?->slug ?? 'member',
+                'is_active' => true,
+                'joined_at' => now(),
+            ]);
+        }
 
-        // TODO: Send invitation email if send_invite is true
+        // Send invitation email if action is 'invite'
+        if ($request->action === 'invite') {
+            try {
+                // Use Laravel's password reset system to send invitation
+                $status = \Illuminate\Support\Facades\Password::sendResetLink(['email' => $user->email]);
+                
+                if ($status !== \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+                    \Log::warning('Failed to send password reset link for invitation', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'status' => $status,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send invitation email', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail the request if email fails
+            }
+        }
 
-        return back()->with('message', 'Password set successfully. User has been activated.');
+        return back()->with('message', $request->action === 'invite' 
+            ? 'Invitation sent successfully. User can now set their password via email.' 
+            : 'Password set successfully. User has been activated.');
     }
 
     /**

@@ -23,10 +23,14 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
     
     const user = teamMember.user;
     const isUserActive = user?.is_active ?? false;
+    const hasEmail = teamMember.email && teamMember.email.trim() !== '';
+    const canAccessSystem = user && isUserActive && hasEmail;
+    const showAccessSystemButton = !user || !hasEmail || !isUserActive;
     
-    const inviteForm = useForm({
+    const accessSystemForm = useForm({
+        email: teamMember.email || '',
         password: '',
-        send_invite: false,
+        action: 'invite', // 'invite' or 'set_password'
     });
     
     const permissionsForm = useForm({
@@ -264,120 +268,64 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
                 </div>
 
                 {/* User Management Section */}
-                {teamMember.user && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-gray-900">User Account Management</h2>
-                        </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold text-gray-900">System Access</h2>
+                    </div>
 
-                        <div className="space-y-4">
-                            {/* User Status Toggle */}
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <p className="font-medium text-gray-900">User Account Status</p>
-                                    <p className="text-sm text-gray-500">
-                                        {isUserActive 
-                                            ? 'User can log in and access the system'
-                                            : 'User cannot log in. Set password to activate.'}
-                                    </p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={isUserActive}
-                                        onChange={(e) => {
-                                            router.post(`/team/${teamMember.id}/toggle-user-status`, {
-                                                is_active: e.target.checked,
-                                            }, {
-                                                preserveScroll: true,
-                                                onSuccess: () => {
-                                                    router.reload({ only: ['teamMember'] });
-                                                },
-                                            });
-                                        }}
-                                        className="sr-only peer"
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                                </label>
-                            </div>
-
-                            {/* Invite Form (when user is inactive) */}
-                            {!isUserActive && (
-                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                            <p className="font-medium text-yellow-900">Activate User Account</p>
-                                            <p className="text-sm text-yellow-700">Set a password to activate this user account</p>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setShowInviteForm(!showInviteForm)}
-                                        >
-                                            {showInviteForm ? 'Cancel' : 'Set Password'}
-                                        </Button>
+                    <div className="space-y-4">
+                        {/* Access System Button (when user doesn't have access) */}
+                        {showAccessSystemButton && (
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p className="font-medium text-blue-900">Grant System Access</p>
+                                        <p className="text-sm text-blue-700">
+                                            {!hasEmail 
+                                                ? 'Add an email address to grant system access'
+                                                : !user 
+                                                    ? 'Create user account to grant system access'
+                                                    : 'Activate user account to grant system access'}
+                                        </p>
                                     </div>
-                                    {showInviteForm && (
-                                        <form onSubmit={(e) => {
-                                            e.preventDefault();
-                                            inviteForm.post(`/team/${teamMember.id}/invite-user`, {
-                                                preserveScroll: true,
-                                                onSuccess: () => {
-                                                    setShowInviteForm(false);
-                                                    inviteForm.reset();
-                                                    router.reload({ only: ['teamMember'] });
-                                                },
-                                            });
-                                        }} className="space-y-3">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Password <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    value={inviteForm.data.password}
-                                                    onChange={(e) => inviteForm.setData('password', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                                    placeholder="Minimum 8 characters"
-                                                    required
-                                                    minLength={8}
-                                                />
-                                                {inviteForm.errors.password && (
-                                                    <p className="mt-1 text-sm text-red-600">{inviteForm.errors.password}</p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    id="send_invite"
-                                                    checked={inviteForm.data.send_invite}
-                                                    onChange={(e) => inviteForm.setData('send_invite', e.target.checked)}
-                                                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                                />
-                                                <label htmlFor="send_invite" className="ml-2 block text-sm text-gray-700">
-                                                    Send invitation email
-                                                </label>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button type="submit" disabled={inviteForm.processing}>
-                                                    <Lock className="h-4 w-4 mr-2" />
-                                                    {inviteForm.processing ? 'Setting...' : 'Set Password & Activate'}
-                                                </Button>
-                                            </div>
-                                        </form>
-                                    )}
+                                    <Button
+                                        onClick={() => setShowInviteForm(true)}
+                                        disabled={!hasEmail}
+                                    >
+                                        <User className="h-4 w-4 mr-2" />
+                                        Access System
+                                    </Button>
                                 </div>
-                            )}
+                                {!hasEmail && (
+                                    <p className="text-sm text-red-600 mt-2">
+                                        ⚠️ Email address is required for system access. Please add an email address to this team member first.
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
-                            {/* Permissions Button (when user is active) */}
-                            {isUserActive && (
+                        {/* User Account Info (when user has access) */}
+                        {canAccessSystem && (
+                            <>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p className="font-medium text-gray-900">User Account Status</p>
+                                        <p className="text-sm text-gray-500">
+                                            {user.email} • {userRole ? `Role: ${userRole.name}` : 'No role assigned'}
+                                        </p>
+                                    </div>
+                                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                                        Active
+                                    </span>
+                                </div>
+
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
                                         onClick={() => setShowPermissionsModal(true)}
                                     >
                                         <Shield className="h-4 w-4 mr-2" />
-                                        Permissions & Role
+                                        Roles & Permissions
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -387,13 +335,152 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
                                         Upload Document
                                     </Button>
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Access System Modal */}
+                {showInviteForm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <Card className="max-w-md w-full">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Grant System Access</h3>
+                                    <button
+                                        onClick={() => {
+                                            setShowInviteForm(false);
+                                            accessSystemForm.reset();
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    accessSystemForm.post(`/team/${teamMember.id}/grant-access`, {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setShowInviteForm(false);
+                                            accessSystemForm.reset();
+                                            router.reload({ only: ['teamMember', 'userRole'] });
+                                        },
+                                    });
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Email Address <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={accessSystemForm.data.email}
+                                            onChange={(e) => accessSystemForm.setData('email', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            placeholder="user@example.com"
+                                            required
+                                        />
+                                        {accessSystemForm.errors.email && (
+                                            <p className="mt-1 text-sm text-red-600">{accessSystemForm.errors.email}</p>
+                                        )}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Email address is required for system access
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            Choose Action
+                                        </label>
+                                        <div className="space-y-2">
+                                            <label className="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input
+                                                    type="radio"
+                                                    name="action"
+                                                    value="invite"
+                                                    checked={accessSystemForm.data.action === 'invite'}
+                                                    onChange={(e) => accessSystemForm.setData('action', e.target.value)}
+                                                    className="mt-1 h-4 w-4 text-teal-600 focus:ring-teal-500"
+                                                />
+                                                <div className="ml-3 flex-1">
+                                                    <div className="flex items-center">
+                                                        <Mail className="h-4 w-4 mr-2 text-teal-600" />
+                                                        <span className="font-medium text-gray-900">Invite User</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        Send an invitation email with login instructions
+                                                    </p>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input
+                                                    type="radio"
+                                                    name="action"
+                                                    value="set_password"
+                                                    checked={accessSystemForm.data.action === 'set_password'}
+                                                    onChange={(e) => accessSystemForm.setData('action', e.target.value)}
+                                                    className="mt-1 h-4 w-4 text-teal-600 focus:ring-teal-500"
+                                                />
+                                                <div className="ml-3 flex-1">
+                                                    <div className="flex items-center">
+                                                        <Lock className="h-4 w-4 mr-2 text-teal-600" />
+                                                        <span className="font-medium text-gray-900">Set Password</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        Manually set a password for the user
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {accessSystemForm.data.action === 'set_password' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Password <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={accessSystemForm.data.password}
+                                                onChange={(e) => accessSystemForm.setData('password', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                placeholder="Minimum 8 characters"
+                                                required
+                                                minLength={8}
+                                            />
+                                            {accessSystemForm.errors.password && (
+                                                <p className="mt-1 text-sm text-red-600">{accessSystemForm.errors.password}</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2 pt-4">
+                                        <Button type="submit" disabled={accessSystemForm.processing}>
+                                            {accessSystemForm.processing 
+                                                ? 'Processing...' 
+                                                : accessSystemForm.data.action === 'invite' 
+                                                    ? 'Send Invitation' 
+                                                    : 'Set Password & Activate'}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setShowInviteForm(false);
+                                                accessSystemForm.reset();
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </Card>
                     </div>
                 )}
 
                 {/* Document Upload Modal */}
-                {showUploadDocument && teamMember.user && (
+                {showUploadDocument && canAccessSystem && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                         <Card className="max-w-md w-full">
                             <div className="p-6">
@@ -474,7 +561,7 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
                 )}
 
                 {/* Permissions Modal */}
-                {showPermissionsModal && teamMember.user && (
+                {showPermissionsModal && canAccessSystem && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                         <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
                             <div className="p-6">

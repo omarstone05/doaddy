@@ -305,8 +305,7 @@ Route::middleware('auth')->group(function () {
         'destroy' => 'team.destroy',
     ]);
     Route::post('/team/{id}/upload-document', [TeamMemberController::class, 'uploadDocument'])->name('team.upload-document');
-    Route::post('/team/{id}/toggle-user-status', [TeamMemberController::class, 'toggleUserStatus'])->name('team.toggle-user-status');
-    Route::post('/team/{id}/invite-user', [TeamMemberController::class, 'inviteUser'])->name('team.invite-user');
+    Route::post('/team/{id}/grant-access', [TeamMemberController::class, 'grantAccess'])->name('team.grant-access');
     Route::post('/team/{id}/update-user-role', [TeamMemberController::class, 'updateUserRole'])->name('team.update-user-role');
     
     // Reports
