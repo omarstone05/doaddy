@@ -44,8 +44,21 @@ GOOGLE_DRIVE_FOLDER_ID=1zKc9rXw9kJt_AQhQf9EYfbKPk_g0vgTb
 
 ## Next Steps: One-Time Authentication
 
+### Step 0: Add Test User (IMPORTANT!)
+Before authenticating, you need to add your email as a test user:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select project: **addy-businiess**
+3. Go to **APIs & Services** → **OAuth consent screen**
+4. Scroll to **Test users** section
+5. Click **+ ADD USERS**
+6. Add your email: **addydigital25@gmail.com** (or your email)
+7. Click **ADD**
+
+**Why?** The OAuth app is in "Testing" mode, so only approved test users can access it.
+
 ### Step 1: Authenticate Google Drive
-Visit: **https://doaddy.com/auth/google**
+After adding yourself as a test user, visit: **https://doaddy.com/auth/google**
 
 This will:
 1. Redirect you to Google
