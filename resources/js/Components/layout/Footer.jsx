@@ -11,7 +11,7 @@ export default function Footer() {
                         <img 
                             src="/assets/logos/penda.png" 
                             alt="Penda Digital" 
-                            className="h-[67px] w-auto object-contain"
+                            className="h-[54px] w-auto object-contain"
                         />
                         <div className="text-sm text-gray-600">
                             <p className="font-medium">© {currentYear} All rights reserved.</p>
