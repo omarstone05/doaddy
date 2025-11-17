@@ -17,7 +17,8 @@ class AdminUserController extends Controller
         $users = User::query()
             ->with(['organizations' => function($query) {
                 $query->select('organizations.id', 'organizations.name', 'organizations.slug')
-                      ->withPivot('role', 'is_active', 'joined_at');
+                      ->withPivot('role', 'is_active', 'joined_at')
+                      ->wherePivot('is_active', true); // Only show active organization memberships
             }])
             ->when($request->search, function ($query, $search) {
                 $query->where(function($q) use ($search) {

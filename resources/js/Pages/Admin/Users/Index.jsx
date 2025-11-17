@@ -57,7 +57,7 @@ export default function Index({ users, filters }) {
                                         Organization
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Super Admin
+                                        Role
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Created
@@ -104,15 +104,38 @@ export default function Index({ users, filters }) {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {user.is_super_admin ? (
-                                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-800">
-                                                    Yes
-                                                </span>
-                                            ) : (
-                                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                                                    No
-                                                </span>
-                                            )}
+                                            <div className="flex flex-wrap gap-1">
+                                                {user.is_super_admin && (
+                                                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                                        Super Admin
+                                                    </span>
+                                                )}
+                                                {user.organizations && user.organizations.length > 0 ? (
+                                                    user.organizations.slice(0, 2).map((org) => {
+                                                        const role = org.pivot?.role || 'member';
+                                                        const roleColors = {
+                                                            owner: 'bg-teal-100 text-teal-800',
+                                                            admin: 'bg-blue-100 text-blue-800',
+                                                            member: 'bg-gray-100 text-gray-800',
+                                                        };
+                                                        return (
+                                                            <span
+                                                                key={org.id}
+                                                                className={`px-2 py-1 text-xs font-medium rounded-full ${roleColors[role] || roleColors.member}`}
+                                                                title={`${org.name}: ${role}`}
+                                                            >
+                                                                {role.charAt(0).toUpperCase() + role.slice(1)}
+                                                            </span>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    !user.is_super_admin && (
+                                                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                                            No Role
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(user.created_at).toLocaleDateString()}
