@@ -57,11 +57,20 @@ Route::post('/lenco/subscription-webhook', [\App\Http\Controllers\LencoSubscript
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
+    Route::post('/login/whatsapp/send-code', [LoginController::class, 'sendWhatsAppCode'])->name('login.whatsapp.send-code');
+    Route::post('/login/whatsapp/verify', [LoginController::class, 'verifyWhatsAppCode'])->name('login.whatsapp.verify');
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
+    Route::post('/register/whatsapp/send-code', [RegisterController::class, 'sendRegistrationWhatsAppCode'])->name('register.whatsapp.send-code');
+    Route::post('/register/whatsapp/verify', [RegisterController::class, 'verifyRegistrationWhatsAppCode'])->name('register.whatsapp.verify');
+    Route::post('/register/whatsapp', [RegisterController::class, 'storeWithWhatsApp'])->name('register.whatsapp');
 });
 
 Route::middleware('auth')->group(function () {
+    // Organization switching
+    Route::post('/organizations/{organization}/switch', [\App\Http\Controllers\OrganizationSwitchController::class, 'switch'])->name('organizations.switch');
+    Route::get('/api/organizations', [\App\Http\Controllers\OrganizationSwitchController::class, 'index'])->name('organizations.index');
+    
     // Onboarding
     Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding');
     Route::post('/onboarding/complete', [\App\Http\Controllers\OnboardingController::class, 'complete'])->name('onboarding.complete');

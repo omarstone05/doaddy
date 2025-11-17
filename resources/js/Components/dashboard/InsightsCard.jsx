@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BackgroundGradientAnimation } from '../ui/BackgroundGradientAnimation';
 import { useAddy } from '../../Contexts/AddyContext';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { getOrganizationTheme } from '../../utils/themeColors';
 
-export function InsightsCard({ userName = 'User', message }) {
+export function InsightsCard({ userName = 'User', organizationName, message }) {
+  const { props } = usePage();
+  const themeIndex = props?.auth?.user?.organization?.theme_index ?? 0;
+  const theme = getOrganizationTheme(themeIndex);
   const addyContext = useAddy();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -11,7 +15,7 @@ export function InsightsCard({ userName = 'User', message }) {
   // If context is not available, render fallback
   if (!addyContext) {
     return (
-      <div className="bg-gradient-to-br from-teal-500 to-mint-300 p-6 md:p-8 shadow-lg rounded-2xl h-full flex items-center justify-center">
+      <div className={`bg-gradient-to-br ${theme.gradient} p-6 md:p-8 shadow-lg rounded-2xl h-full flex items-center justify-center`}>
         <div className="text-white text-center">
           <p className="text-lg font-semibold mb-2">Insights</p>
           <p className="text-sm opacity-80">Loading insights...</p>
@@ -69,13 +73,20 @@ export function InsightsCard({ userName = 'User', message }) {
   };
 
   return (
-    <BackgroundGradientAnimation className="bg-gradient-to-br from-teal-500 to-mint-300 p-6 md:p-8 shadow-lg cursor-pointer hover:shadow-xl transition-shadow h-full relative overflow-hidden flex flex-col" onClick={handleCardClick}>
+    <BackgroundGradientAnimation className={`bg-gradient-to-br ${theme.gradient} p-6 md:p-8 shadow-lg cursor-pointer hover:shadow-xl transition-shadow h-full relative overflow-hidden flex flex-col`} onClick={handleCardClick}>
       {/* Content Section */}
       <div className="flex-1 flex flex-col relative z-10">
         {/* Header Label */}
         <p className="text-xs md:text-sm font-medium text-white/80 mb-2 md:mb-3">
           {hasInsights ? 'Active Insights' : 'Insights'}
         </p>
+        
+        {/* Business Name */}
+        {organizationName && (
+          <p className="text-xs md:text-sm font-medium text-white/70 mb-1 md:mb-2">
+            {organizationName}
+          </p>
+        )}
         
         {/* Title with smooth transition */}
         <div className="relative mb-3 md:mb-4 overflow-hidden">

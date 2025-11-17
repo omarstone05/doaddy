@@ -26,6 +26,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone_number',
         'organization_id',
         'is_super_admin',
         'admin_notes',
@@ -57,9 +58,89 @@ class User extends Authenticatable
         ];
     }
 
-    public function organization(): BelongsTo
+    /**
+     * Many-to-many relationship with organizations
+     */
+    public function organizations(): BelongsToMany
     {
-        return $this->belongsTo(Organization::class);
+        return $this->belongsToMany(Organization::class, 'organization_user')
+            ->withPivot('role', 'is_active', 'joined_at')
+            ->withTimestamps()
+            ->orderBy('joined_at', 'desc');
+    }
+
+    /**
+     * Get the current organization (for backward compatibility)
+     * Uses session, organization_id, or first organization
+     */
+    public function getOrganizationAttribute(): ?Organization
+    {
+        // Try to get from session first
+        $currentOrgId = session('current_organization_id');
+        if ($currentOrgId) {
+            $org = $this->organizations()->where('organizations.id', $currentOrgId)->first();
+            if ($org) {
+                return $org;
+            }
+        }
+        
+        // Try organization_id (for backward compatibility)
+        if ($this->attributes['organization_id'] ?? null) {
+            $org = $this->organizations()->where('organizations.id', $this->attributes['organization_id'])->first();
+            if ($org) {
+                return $org;
+            }
+        }
+        
+        // Fallback to first organization
+        return $this->organizations()->first();
+    }
+
+    /**
+     * Get the current organization ID
+     */
+    public function getCurrentOrganizationIdAttribute(): ?string
+    {
+        return session('current_organization_id') 
+            ?? ($this->attributes['organization_id'] ?? null)
+            ?? $this->organizations()->first()?->id;
+    }
+
+    /**
+     * Check if user belongs to an organization
+     */
+    public function belongsToOrganization(string $organizationId): bool
+    {
+        return $this->organizations()->where('organizations.id', $organizationId)->exists();
+    }
+
+    /**
+     * Get user's role in an organization
+     */
+    public function getRoleInOrganization(string $organizationId): ?string
+    {
+        $pivot = $this->organizations()
+            ->where('organizations.id', $organizationId)
+            ->first()?->pivot;
+        
+        return $pivot?->role;
+    }
+
+    /**
+     * Check if user is owner of an organization
+     */
+    public function isOwnerOf(string $organizationId): bool
+    {
+        return $this->getRoleInOrganization($organizationId) === 'owner';
+    }
+
+    /**
+     * Get organization_id (for backward compatibility)
+     * Returns current organization ID
+     */
+    public function getOrganizationIdAttribute(): ?string
+    {
+        return $this->current_organization_id;
     }
 
     public function teamMember(): HasOne

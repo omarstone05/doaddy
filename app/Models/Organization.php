@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Organization extends Model
 {
@@ -40,9 +41,44 @@ class Organization extends Model
         ];
     }
 
+    /**
+     * Many-to-many relationship with users (via pivot table)
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'organization_user')
+            ->withPivot('role', 'is_active', 'joined_at')
+            ->withTimestamps()
+            ->wherePivot('is_active', true)
+            ->orderBy('joined_at', 'desc');
+    }
+
+    /**
+     * All users (including inactive) via pivot table
+     */
+    public function allMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'organization_user')
+            ->withPivot('role', 'is_active', 'joined_at')
+            ->withTimestamps()
+            ->orderBy('joined_at', 'desc');
+    }
+
+    /**
+     * Legacy users relationship (for backward compatibility)
+     * @deprecated Use members() instead
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * Get owners of this organization
+     */
+    public function owners(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', 'owner');
     }
 
     public function supportTickets(): HasMany

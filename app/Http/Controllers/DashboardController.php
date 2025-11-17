@@ -313,23 +313,32 @@ class DashboardController extends Controller
             $totalProducts = 0;
         }
         
-        // Budget data - handle missing columns gracefully
+        // Budget data - handle missing columns gracefully (optimized to avoid N+1)
         try {
-            $budgets = \App\Models\BudgetLine::where('organization_id', $organizationId)
-                ->get()
-                ->map(function($budget) use ($dateRange) {
-                    $spent = \App\Models\MoneyMovement::where('organization_id', $budget->organization_id)
-                        ->where('budget_line_id', $budget->id)
-                        ->where('flow_type', 'expense')
-                        ->where('status', 'approved')
-                        ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
-                        ->sum('amount');
-                    return [
-                        'name' => $budget->name,
-                        'budget' => $budget->amount,
-                        'spent' => $spent,
-                    ];
-                });
+            $budgetLines = \App\Models\BudgetLine::where('organization_id', $organizationId)->get();
+            
+            // Get all spent amounts in a single query (optimized to avoid N+1)
+            if ($budgetLines->isNotEmpty()) {
+                $budgetIds = $budgetLines->pluck('id');
+                $spentAmounts = \App\Models\MoneyMovement::where('organization_id', $organizationId)
+                    ->whereIn('budget_line_id', $budgetIds)
+                    ->where('flow_type', 'expense')
+                    ->where('status', 'approved')
+                    ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
+                    ->selectRaw('budget_line_id, SUM(amount) as total_spent')
+                    ->groupBy('budget_line_id')
+                    ->pluck('total_spent', 'budget_line_id');
+            } else {
+                $spentAmounts = collect([]);
+            }
+            
+            $budgets = $budgetLines->map(function($budget) use ($spentAmounts) {
+                return [
+                    'name' => $budget->name,
+                    'budget' => $budget->amount,
+                    'spent' => $spentAmounts->get($budget->id, 0),
+                ];
+            });
         } catch (\Exception $e) {
             \Log::warning('Budget query failed - table/column may not exist', ['error' => $e->getMessage()]);
             $budgets = collect([]);

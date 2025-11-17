@@ -54,9 +54,23 @@ class OnboardingController extends Controller
 
         // Update organization with onboarding data
         if ($user->organization) {
+            // Generate unique slug - allows duplicate company names but ensures unique slugs in DB
+            // Multiple companies can have the same name, but each gets a unique slug (e.g., "my-company", "my-company-1", "my-company-2")
+            $baseSlug = Str::slug($validated['business_name']);
+            $slug = $baseSlug;
+            $counter = 1;
+            
+            // Check if slug already exists (excluding current organization)
+            while (Organization::where('slug', $slug)
+                ->where('id', '!=', $user->organization->id)
+                ->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
             $user->organization->update([
-                'name' => $validated['business_name'],
-                'slug' => Str::slug($validated['business_name']),
+                'name' => $validated['business_name'], // Name can be duplicated
+                'slug' => $slug, // Slug must be unique
                 'industry' => $validated['industry'],
                 'currency' => $validated['currency'],
                 'tone_preference' => $validated['tone_preference'],

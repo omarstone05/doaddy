@@ -381,6 +381,15 @@ class AddyCommandParser
             }
         }
         
+        // Create organization/company
+        if ((str_contains($message, 'create') || str_contains($message, 'make') || str_contains($message, 'new') || str_contains($message, 'start'))
+            && (str_contains($message, 'organization') || str_contains($message, 'organisation') || str_contains($message, 'company') || str_contains($message, 'business'))) {
+            return [
+                'action_type' => 'create_organization',
+                'parameters' => $this->extractOrganizationParameters($message),
+            ];
+        }
+        
         return null;
     }
 
@@ -771,6 +780,66 @@ class AddyCommandParser
 
         if (preg_match('/ref(?:erence)?\s+([a-z0-9\-]+)/i', $message, $matches)) {
             $params['payment_reference'] = strtoupper($matches[1]);
+        }
+
+        return $params;
+    }
+
+    /**
+     * Extract organization parameters from message
+     */
+    protected function extractOrganizationParameters(string $message): array
+    {
+        $params = [];
+        $originalMessage = $message; // Keep original for better extraction
+        $message = trim($message);
+
+        // Try to extract organization name
+        // Patterns: "create organization called X", "create company X", "new business named X", etc.
+        
+        // Pattern 1: "called X", "named X", "for X", "with name X"
+        if (preg_match('/(?:called|named|for|with name|with the name)\s+["\']?([^"\']+?)(?:\s|$|["\'])/i', $message, $matches)) {
+            $params['name'] = trim($matches[1]);
+        } 
+        // Pattern 2: "create organization X", "make company X", "new business X" (name comes after the type)
+        elseif (preg_match('/(?:create|make|new|start)\s+(?:organization|organisation|company|business)\s+["\']?([^"\']+?)(?:\s|$|["\'])/i', $message, $matches)) {
+            $params['name'] = trim($matches[1]);
+        } 
+        // Pattern 3: "organization X", "company X", "business X" (standalone)
+        elseif (preg_match('/(?:organization|organisation|company|business)\s+["\']?([^"\']+?)(?:\s|$|["\'])/i', $message, $matches)) {
+            $params['name'] = trim($matches[1]);
+        }
+        // Pattern 4: "create X organization", "make X company" (name comes before the type)
+        elseif (preg_match('/(?:create|make|new|start)\s+["\']?([a-z0-9\s]+?)\s+(?:organization|organisation|company|business)/i', $message, $matches)) {
+            $name = trim($matches[1]);
+            // Only use if it's not just the action word itself
+            if (strlen($name) > 2 && !in_array(strtolower($name), ['a', 'an', 'the', 'new'])) {
+                $params['name'] = $name;
+            }
+        }
+        // Pattern 5: "create a new X" or "create X" where X is the name
+        elseif (preg_match('/(?:create|make|start)\s+(?:a\s+)?(?:new\s+)?["\']?([a-z0-9\s]+?)(?:\s+(?:organization|organisation|company|business)|$)/i', $message, $matches)) {
+            $name = trim($matches[1]);
+            // Filter out common words
+            $filterWords = ['a', 'an', 'the', 'new', 'organization', 'organisation', 'company', 'business'];
+            $nameParts = explode(' ', $name);
+            $nameParts = array_filter($nameParts, function($part) use ($filterWords) {
+                return !in_array(strtolower($part), $filterWords) && strlen($part) > 0;
+            });
+            if (!empty($nameParts)) {
+                $params['name'] = implode(' ', $nameParts);
+            }
+        }
+
+        // Clean up the name
+        if (isset($params['name'])) {
+            $params['name'] = trim($params['name'], ' "\'.,;');
+            // Remove common trailing words
+            $params['name'] = preg_replace('/\s+(organization|organisation|company|business)$/i', '', $params['name']);
+            // Remove empty result
+            if (empty($params['name'])) {
+                unset($params['name']);
+            }
         }
 
         return $params;

@@ -37,12 +37,56 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $unreadNotificationCount = 0;
+        $organizations = [];
+        $currentOrganization = null;
         
         if ($user) {
-            $unreadNotificationCount = \App\Models\Notification::where('user_id', $user->id)
-                ->where('organization_id', $user->organization_id)
-                ->where('is_read', false)
-                ->count();
+            $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+            
+            // Get user's organizations ordered by joined_at (ascending) to determine first company
+            $allOrganizations = $user->organizations()
+                ->wherePivot('is_active', true)
+                ->orderBy('organization_user.joined_at', 'asc')
+                ->get();
+            
+            $organizations = $allOrganizations->map(function ($org, $index) use ($user, $currentOrgId) {
+                return [
+                    'id' => $org->id,
+                    'name' => $org->name,
+                    'slug' => $org->slug,
+                    'role' => $user->getRoleInOrganization($org->id),
+                    'is_current' => $org->id === $currentOrgId,
+                    'index' => $index, // 0 = first company, 1 = second, etc.
+                ];
+            })->toArray();
+            
+            // Get current organization
+            if ($currentOrgId) {
+                $currentOrganization = $allOrganizations->firstWhere('id', $currentOrgId);
+            }
+            
+            // Fallback to first organization if no current
+            if (!$currentOrganization) {
+                $currentOrganization = $allOrganizations->first();
+                if ($currentOrganization) {
+                    session(['current_organization_id' => $currentOrganization->id]);
+                }
+            }
+            
+            // Determine organization index for theme (0 = first company)
+            $organizationIndex = $currentOrganization 
+                ? $allOrganizations->search(function ($org) use ($currentOrganization) {
+                    return $org->id === $currentOrganization->id;
+                })
+                : 0;
+            
+            // Get notification count for current organization
+            if ($currentOrganization) {
+                $unreadNotificationCount = \App\Models\Notification::where('user_id', $user->id)
+                    ->where('organization_id', $currentOrganization->id)
+                    ->where('is_read', false)
+                    ->count();
+            }
         }
 
         return [
@@ -52,10 +96,12 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'organization' => $user->organization ? [
-                        'id' => $user->organization->id,
-                        'name' => $user->organization->name,
+                    'organization' => $currentOrganization ? [
+                        'id' => $currentOrganization->id,
+                        'name' => $currentOrganization->name,
+                        'theme_index' => $organizationIndex ?? 0, // 0 = first company (default theme)
                     ] : null,
+                    'organizations' => $organizations,
                 ] : null,
             ],
             'flash' => [

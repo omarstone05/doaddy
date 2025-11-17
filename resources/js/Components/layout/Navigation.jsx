@@ -320,7 +320,9 @@ export function Navigation() {
               </button>
               
               {/* Dropdown Menu */}
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className={`absolute right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ${
+                auth?.user?.organizations && auth.user.organizations.length > 1 ? 'w-64' : 'w-48'
+              }`}>
                 <div className="py-2">
                   <div className="px-4 py-2 border-b border-gray-200">
                     <p className="text-sm font-medium text-gray-900">{auth?.user?.name}</p>
@@ -328,6 +330,44 @@ export function Navigation() {
                       {auth?.user?.organization?.name || 'Organization'}
                     </p>
                   </div>
+                  
+                  {/* Organization Switcher */}
+                  {auth?.user?.organizations && auth.user.organizations.length > 1 && (
+                    <div className="px-4 py-2 border-b border-gray-200">
+                      <p className="text-xs font-medium text-gray-500 uppercase mb-2">Switch Organization</p>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {auth.user.organizations.map((org) => (
+                          <button
+                            key={org.id}
+                            onClick={() => {
+                              router.post(`/organizations/${org.id}/switch`, {}, {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                  window.location.reload();
+                                },
+                              });
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${
+                              org.is_current
+                                ? 'bg-teal-50 text-teal-700 font-medium'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="truncate">{org.name}</span>
+                              {org.is_current && (
+                                <span className="ml-2 text-teal-600">✓</span>
+                              )}
+                            </div>
+                            {org.role && (
+                              <span className="text-xs text-gray-500 capitalize">{org.role}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <Link
                     href="/settings"
                     className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

@@ -88,15 +88,42 @@ export default function AddyChat() {
                 },
             });
 
+            // Check for error in response
+            if (response.data.error) {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'assistant',
+                    content: response.data.error,
+                    created_at: new Date().toISOString(),
+                }]);
+                return;
+            }
+
             // Add assistant response
-            setMessages(prev => [...prev, response.data.message]);
+            if (response.data.message) {
+                setMessages(prev => [...prev, response.data.message]);
+            }
+
+            // Handle organization creation redirect
+            if (response.data.organization_created && response.data.redirect) {
+                // Close chat and redirect to onboarding
+                closeAddy();
+                setTimeout(() => {
+                    router.visit(response.data.redirect);
+                }, 1000); // Small delay to show the success message
+            }
         } catch (error) {
             console.error('Failed to send message:', error);
-            // Add error message
+            // Add error message with more details
+            const errorMessage = error.response?.data?.error 
+                || error.response?.data?.message 
+                || error.message 
+                || "Sorry, I'm having trouble responding right now. Please try again.";
+            
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: "Sorry, I'm having trouble responding right now. Please try again.",
+                content: errorMessage,
                 created_at: new Date().toISOString(),
             }]);
         } finally {

@@ -42,4 +42,17 @@ return [
         'api_name' => env('LENCO_API_NAME', 'Addy'),
     ],
 
+    'whatsapp' => [
+        'provider' => env('WHATSAPP_PROVIDER', 'custom'),
+        'api_url' => env('WHATSAPP_API_URL'),
+        'api_key' => env('WHATSAPP_API_KEY'),
+        'phone_id' => env('WHATSAPP_PHONE_ID'),
+    ],
+
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
+    ],
+
 ];

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { InsightsCard } from '@/Components/dashboard/InsightsCard';
+import { getOrganizationTheme } from '@/utils/themeColors';
 import { 
   TrendingUp, 
   Zap, 
@@ -31,7 +32,7 @@ const formatCurrency = (amount, currency = 'ZMW') => {
 };
 
 // Card Components with real data
-const RevenueCard = ({ onRemove, stats }) => {
+const RevenueCard = ({ onRemove, stats, theme }) => {
   const revenue = stats?.total_revenue || 0;
   const previousRevenue = stats?.previous_revenue || 0;
   const revenueTrend = stats?.revenue_trend || 0;
@@ -40,7 +41,7 @@ const RevenueCard = ({ onRemove, stats }) => {
     : 0;
 
   return (
-    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`bg-gradient-to-br ${theme.primaryGradient} text-white p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/30 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
@@ -57,12 +58,12 @@ const RevenueCard = ({ onRemove, stats }) => {
   );
 };
 
-const QuickActionsCard = ({ onRemove }) => (
-  <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+const QuickActionsCard = ({ onRemove, theme }) => (
+  <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
     <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
       <X size={16} />
     </button>
-    <Zap size={28} className="mb-4 text-amber-500" />
+    <Zap size={28} className={`mb-4 ${theme.iconColor}`} />
     <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
     <div className="space-y-2">
       <button 
@@ -87,15 +88,15 @@ const QuickActionsCard = ({ onRemove }) => (
   </div>
 );
 
-const RecentTransactionsCard = ({ onRemove, stats }) => {
+const RecentTransactionsCard = ({ onRemove, stats, theme }) => {
   const recentSales = stats?.recent_sales || [];
   
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
-      <Receipt size={28} className="mb-4 text-blue-500" />
+      <Receipt size={28} className={`mb-4 ${theme.iconColor}`} />
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Recent Sales</h3>
       <div className="space-y-3">
         {recentSales.length > 0 ? (
@@ -113,12 +114,12 @@ const RecentTransactionsCard = ({ onRemove, stats }) => {
   );
 };
 
-const InventoryCard = ({ onRemove, stats }) => {
+const InventoryCard = ({ onRemove, stats, theme }) => {
   const lowStock = stats?.low_stock_products || [];
   const totalProducts = stats?.total_products || 0;
   
   return (
-    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`bg-gradient-to-br ${theme.secondaryGradient} text-white p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/30 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
@@ -135,16 +136,16 @@ const InventoryCard = ({ onRemove, stats }) => {
   );
 };
 
-const CustomersCard = ({ onRemove, stats }) => {
+const CustomersCard = ({ onRemove, stats, theme }) => {
   const totalCustomers = stats?.total_customers || 0;
   const customerGrowth = stats?.customer_growth_rate || 0;
   
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
-      <Users size={28} className="mb-4 text-indigo-500" />
+      <Users size={28} className={`mb-4 ${theme.iconColor}`} />
       <h3 className="text-sm font-semibold text-gray-700 mb-1">Customers</h3>
       <p className="text-3xl font-bold text-gray-900">{totalCustomers}</p>
       {customerGrowth > 0 && (
@@ -154,7 +155,7 @@ const CustomersCard = ({ onRemove, stats }) => {
   );
 };
 
-const ExpensesCard = ({ onRemove, stats }) => {
+const ExpensesCard = ({ onRemove, stats, theme }) => {
   const expenses = stats?.total_expenses || 0;
   const previousExpenses = stats?.previous_expenses || 0;
   const percentageChange = previousExpenses > 0 
@@ -162,11 +163,11 @@ const ExpensesCard = ({ onRemove, stats }) => {
     : 0;
 
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
-      <DollarSign size={28} className="mb-4 text-red-500" />
+      <DollarSign size={28} className={`mb-4 ${theme.iconColor}`} />
       <h3 className="text-sm font-semibold text-gray-700 mb-1">Expenses</h3>
       <p className="text-3xl font-bold text-gray-900">{formatCurrency(expenses)}</p>
       {percentageChange !== 0 && (
@@ -178,15 +179,15 @@ const ExpensesCard = ({ onRemove, stats }) => {
   );
 };
 
-const PendingInvoicesCard = ({ onRemove, stats }) => {
+const PendingInvoicesCard = ({ onRemove, stats, theme }) => {
   const pendingInvoices = stats?.pending_invoices || [];
   
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
-      <FileText size={28} className="mb-4 text-orange-500" />
+      <FileText size={28} className={`mb-4 ${theme.iconColor}`} />
       <h3 className="text-sm font-semibold text-gray-700 mb-1">Pending Invoices</h3>
       <p className="text-3xl font-bold text-gray-900">{pendingInvoices.length}</p>
       {pendingInvoices.length > 0 && (
@@ -196,7 +197,7 @@ const PendingInvoicesCard = ({ onRemove, stats }) => {
   );
 };
 
-const PerformanceCard = ({ onRemove, stats }) => {
+const PerformanceCard = ({ onRemove, stats, theme }) => {
   const netBalance = stats?.net_balance || 0;
   const revenue = stats?.total_revenue || 0;
   const expenses = stats?.total_expenses || 0;
@@ -205,11 +206,11 @@ const PerformanceCard = ({ onRemove, stats }) => {
   const expenseRatio = revenue > 0 ? ((expenses / revenue) * 100).toFixed(1) : 0;
 
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full">
+    <div className={`${theme.cardBg} border ${theme.cardBorder} ${theme.cardHover} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
       <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
         <X size={16} />
       </button>
-      <BarChart3 size={28} className="mb-4 text-cyan-500" />
+      <BarChart3 size={28} className={`mb-4 ${theme.iconColor}`} />
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Performance</h3>
       <div className="space-y-2">
         <div>
@@ -238,12 +239,13 @@ const PerformanceCard = ({ onRemove, stats }) => {
   );
 };
 
-const AddyInsightsCard = ({ onRemove, userName, stats }) => {
+const AddyInsightsCard = ({ onRemove, userName, stats, organizationName }) => {
   // Addy Insights card is non-removable, so onRemove is ignored
   return (
     <div className="relative h-full">
       <InsightsCard 
         userName={userName || 'User'}
+        organizationName={organizationName}
         message={stats?.net_balance >= 0 
           ? `You're looking good, there's a few things that we need to do though...`
           : `You have ${formatCurrency(Math.abs(stats?.net_balance || 0))} in expenses. Consider reviewing your budget.`
@@ -255,6 +257,12 @@ const AddyInsightsCard = ({ onRemove, userName, stats }) => {
 
 // Main Dashboard Component
 const BentoDashboard = ({ stats, user }) => {
+  const { props } = usePage();
+  // Get organization name from auth.user.organization if available, otherwise from user prop
+  const organizationName = props?.auth?.user?.organization?.name || user?.organization?.name;
+  const themeIndex = props?.auth?.user?.organization?.theme_index ?? 0;
+  const theme = getOrganizationTheme(themeIndex);
+  
   // Define card components map - components can't be serialized to localStorage
   const cardComponents = {
     'addy-insights': AddyInsightsCard,
@@ -403,9 +411,14 @@ const BentoDashboard = ({ stats, user }) => {
                 className={`${sizeClasses[card.size]} min-h-[200px] group`}
               >
                 {card.id === 'addy-insights' ? (
-                  <CardComponent onRemove={() => removeCard(card.id)} userName={user?.name} stats={stats} />
+                  <CardComponent 
+                    onRemove={() => removeCard(card.id)} 
+                    userName={user?.name} 
+                    organizationName={organizationName}
+                    stats={stats} 
+                  />
                 ) : (
-                  <CardComponent onRemove={() => removeCard(card.id)} stats={stats} />
+                  <CardComponent onRemove={() => removeCard(card.id)} stats={stats} theme={theme} />
                 )}
               </div>
             );
