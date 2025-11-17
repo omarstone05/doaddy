@@ -92,14 +92,24 @@ class EnhancedDataUploadController extends Controller
         $organizationId = session('current_organization_id') ?? $user->current_organization_id;
         $data = $request->data;
 
+        // Determine document type - check multiple possible fields
+        $docType = $data['document_type'] ?? $data['type'] ?? $request->document_type ?? 'unknown';
+        
+        \Log::info('Importing OCR reviewed data', [
+            'document_type_param' => $request->document_type,
+            'data_type' => $data['type'] ?? null,
+            'data_document_type' => $data['document_type'] ?? null,
+            'resolved_type' => $docType,
+        ]);
+
         // Import based on document type
-        $result = match($data['type'] ?? $request->document_type) {
+        $result = match(strtolower($docType)) {
             'receipt', 'expense' => $this->importReceipt($user, $organizationId, $data),
             'income' => $this->importIncome($user, $organizationId, $data),
             'invoice' => $this->importInvoice($user, $organizationId, $data),
             'mobile_money' => $this->importMobileMoneyTransaction($user, $organizationId, $data),
             'bank_statement' => $this->importBankTransaction($user, $organizationId, $data),
-            default => ['success' => false, 'message' => 'Unknown document type'],
+            default => ['success' => false, 'message' => "Unknown document type: {$docType}"],
         };
 
         // Clean up temp file
@@ -432,46 +442,113 @@ class EnhancedDataUploadController extends Controller
     }
 
     /**
-     * Import bank transaction
+     * Import bank transaction(s) from bank statement
      */
     protected function importBankTransaction($user, $organizationId, array $data): array
     {
         try {
             // Get or create bank account
-            $account = MoneyAccount::where('organization_id', $organizationId)
-                ->where('type', 'bank')
-                ->first();
+            $accountNumber = $data['account_number'] ?? null;
+            $account = null;
+            
+            if ($accountNumber) {
+                $account = MoneyAccount::where('organization_id', $organizationId)
+                    ->where('account_number', $accountNumber)
+                    ->where('type', 'bank')
+                    ->first();
+            }
+            
+            if (!$account) {
+                $account = MoneyAccount::where('organization_id', $organizationId)
+                    ->where('type', 'bank')
+                    ->first();
+            }
 
             if (!$account) {
                 $account = MoneyAccount::create([
                     'id' => \Illuminate\Support\Str::uuid(),
                     'organization_id' => $organizationId,
                     'name' => $data['bank_name'] ?? 'Bank Account',
+                    'account_number' => $accountNumber,
                     'type' => 'bank',
                     'currency' => $data['currency'] ?? 'ZMW',
                 ]);
             }
 
-            $type = $data['type'] ?? 'expense';
-            $movement = MoneyMovement::create([
-                'id' => \Illuminate\Support\Str::uuid(),
-                'organization_id' => $organizationId,
-                'flow_type' => $type,
-                'amount' => abs($data['amount'] ?? 0),
-                'currency' => $data['currency'] ?? 'ZMW',
-                'transaction_date' => isset($data['date']) ? Carbon::parse($data['date']) : now(),
-                'to_account_id' => $type === 'income' ? $account->id : null,
-                'from_account_id' => $type === 'expense' ? $account->id : null,
-                'description' => $data['description'] ?? 'Bank transaction',
-                'category' => $data['category'] ?? 'Banking',
-                'status' => 'completed',
-                'created_by_id' => $user->id,
-            ]);
+            // Check if we have multiple transactions (bank statement) or single transaction
+            $transactions = $data['transactions'] ?? [];
+            
+            if (empty($transactions)) {
+                // Single transaction import
+                $type = $data['flow_type'] ?? ($data['type'] === 'credit' ? 'income' : 'expense');
+                $movement = MoneyMovement::create([
+                    'id' => \Illuminate\Support\Str::uuid(),
+                    'organization_id' => $organizationId,
+                    'flow_type' => $type,
+                    'amount' => abs($data['amount'] ?? 0),
+                    'currency' => $data['currency'] ?? 'ZMW',
+                    'transaction_date' => isset($data['date']) ? Carbon::parse($data['date']) : now(),
+                    'to_account_id' => $type === 'income' ? $account->id : null,
+                    'from_account_id' => $type === 'expense' ? $account->id : null,
+                    'description' => $data['description'] ?? 'Bank transaction',
+                    'category' => $data['category'] ?? 'Banking',
+                    'status' => 'completed',
+                    'created_by_id' => $user->id,
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Bank transaction imported successfully',
+                    'movement_id' => $movement->id,
+                ];
+            }
+
+            // Multiple transactions (bank statement)
+            $imported = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($transactions as $tx) {
+                try {
+                    $flowType = $tx['flow_type'] ?? ($tx['type'] === 'credit' ? 'income' : 'expense');
+                    $amount = abs($tx['amount'] ?? 0);
+                    
+                    if ($amount <= 0) {
+                        continue; // Skip zero or negative amounts
+                    }
+
+                    $movement = MoneyMovement::create([
+                        'id' => \Illuminate\Support\Str::uuid(),
+                        'organization_id' => $organizationId,
+                        'flow_type' => $flowType,
+                        'amount' => $amount,
+                        'currency' => $data['currency'] ?? 'ZMW',
+                        'transaction_date' => isset($tx['date']) ? Carbon::parse($tx['date']) : now(),
+                        'to_account_id' => $flowType === 'income' ? $account->id : null,
+                        'from_account_id' => $flowType === 'expense' ? $account->id : null,
+                        'description' => $tx['description'] ?? 'Bank statement transaction',
+                        'category' => $tx['category'] ?? 'Banking',
+                        'status' => 'completed',
+                        'created_by_id' => $user->id,
+                    ]);
+                    
+                    $imported++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = "Transaction failed: " . $e->getMessage();
+                    \Log::error('Bank statement transaction import failed', [
+                        'error' => $e->getMessage(),
+                        'transaction' => $tx,
+                    ]);
+                }
+            }
 
             return [
                 'success' => true,
-                'message' => 'Bank transaction imported successfully',
-                'movement_id' => $movement->id,
+                'message' => "Bank statement imported: {$imported} transactions imported" . ($failed > 0 ? ", {$failed} failed" : ""),
+                'imported' => $imported,
+                'failed' => $failed,
+                'errors' => $errors,
             ];
         } catch (\Exception $e) {
             \Log::error('Bank transaction import failed', ['error' => $e->getMessage()]);

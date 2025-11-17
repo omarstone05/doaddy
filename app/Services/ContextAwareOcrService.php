@@ -282,16 +282,30 @@ class ContextAwareOcrService extends ImprovedOcrService
     ): array {
         $questions = [];
 
+        // For bank statements, skip certain fields that don't make sense
+        $skipFields = [];
+        if ($documentType === 'bank_statement') {
+            // Don't ask about total amount for bank statements (they have multiple transactions)
+            $skipFields = ['amount', 'total'];
+        }
+
         foreach ($uncertainFields as $field) {
+            // Skip fields that don't apply to this document type
+            if (in_array($field['field'], $skipFields)) {
+                continue;
+            }
+            
             $question = $this->generateFieldQuestion($field, $data, $documentType, $userContext);
             if ($question) {
                 $questions[] = $question;
             }
         }
 
-        // Add contextual questions
-        $contextualQuestions = $this->generateContextualQuestions($data, $documentType, $userContext);
-        $questions = array_merge($questions, $contextualQuestions);
+        // Add contextual questions (but skip for bank statements)
+        if ($documentType !== 'bank_statement') {
+            $contextualQuestions = $this->generateContextualQuestions($data, $documentType, $userContext);
+            $questions = array_merge($questions, $contextualQuestions);
+        }
 
         return $questions;
     }
