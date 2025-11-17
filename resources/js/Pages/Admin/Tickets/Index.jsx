@@ -2,7 +2,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
 import { Link, router } from '@inertiajs/react';
-import { Ticket, Search, Eye, AlertCircle } from 'lucide-react';
+import { Ticket, Search, Eye, AlertCircle, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Index({ tickets, filters }) {
@@ -49,11 +49,19 @@ export default function Index({ tickets, filters }) {
         <AdminLayout title="Support Tickets">
             <div className="space-y-6">
                 {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Support Tickets</h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Manage and respond to support tickets
-                    </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Support Tickets</h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Manage and respond to support tickets
+                        </p>
+                    </div>
+                    <Link href="/admin/tickets/create">
+                        <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Support Ticket
+                        </Button>
+                    </Link>
                 </div>
 
                 {/* Filters */}

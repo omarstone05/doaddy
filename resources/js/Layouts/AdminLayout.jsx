@@ -12,6 +12,7 @@ import {
     X,
     User
 } from 'lucide-react';
+import Footer from '@/Components/layout/Footer';
 
 export default function AdminLayout({ children, title }) {
     const { auth } = usePage().props;
@@ -119,7 +120,7 @@ export default function AdminLayout({ children, title }) {
             )}
 
             {/* Main content */}
-            <div className="lg:pl-64">
+            <div className="lg:pl-64 flex flex-col min-h-screen">
                 {/* Top bar */}
                 <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
                     <div className="flex items-center justify-between h-16 px-6">
@@ -142,9 +143,11 @@ export default function AdminLayout({ children, title }) {
                 </header>
 
                 {/* Page content */}
-                <main className="p-6">
+                <main className="p-6 flex-1">
                     {children}
                 </main>
+                
+                <Footer />
             </div>
         </div>
     );
