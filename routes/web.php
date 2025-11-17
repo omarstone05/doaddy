@@ -66,6 +66,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/register/whatsapp', [RegisterController::class, 'storeWithWhatsApp'])->name('register.whatsapp');
 });
 
+// Google Drive OAuth Callback (must be accessible without auth for Google redirect)
+Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
+
 Route::middleware('auth')->group(function () {
     // Organization switching
     Route::post('/organizations/{organization}/switch', [\App\Http\Controllers\OrganizationSwitchController::class, 'switch'])->name('organizations.switch');
@@ -354,7 +357,6 @@ Route::middleware('auth')->group(function () {
     
     // Google Drive Authentication
     Route::get('/auth/google', [\App\Http\Controllers\GoogleAuthController::class, 'redirect'])->name('google.auth');
-    Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
     
     // Addy Settings
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');

@@ -9,7 +9,13 @@ class GoogleAuthController extends Controller
 {
     public function redirect(GoogleDriveService $driveService)
     {
-        return redirect($driveService->getAuthUrl());
+        try {
+            $authUrl = $driveService->getAuthUrl();
+            return redirect($authUrl);
+        } catch (\Exception $e) {
+            \Log::error('Google Drive redirect failed', ['error' => $e->getMessage()]);
+            return redirect('/settings')->with('error', 'Failed to initialize Google Drive authentication: ' . $e->getMessage());
+        }
     }
 
     public function callback(Request $request, GoogleDriveService $driveService)
@@ -17,14 +23,24 @@ class GoogleAuthController extends Controller
         $code = $request->get('code');
 
         if (!$code) {
-            return redirect('/settings')->with('error', 'Failed to connect Google Drive: No authorization code received');
+            \Log::warning('Google Drive callback missing code', ['request' => $request->all()]);
+            return redirect('/login')->with('error', 'Failed to connect Google Drive: No authorization code received. Please try again.');
         }
 
-        if ($driveService->handleCallback($code)) {
-            return redirect('/settings')->with('success', 'Google Drive connected successfully!');
-        }
+        try {
+            if ($driveService->handleCallback($code)) {
+                // Check if user is authenticated, redirect accordingly
+                if (auth()->check()) {
+                    return redirect('/settings')->with('success', 'Google Drive connected successfully!');
+                }
+                return redirect('/login')->with('success', 'Google Drive connected successfully! Please log in.');
+            }
 
-        return redirect('/settings')->with('error', 'Failed to connect Google Drive');
+            return redirect('/login')->with('error', 'Failed to connect Google Drive');
+        } catch (\Exception $e) {
+            \Log::error('Google Drive callback failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return redirect('/login')->with('error', 'Failed to connect Google Drive: ' . $e->getMessage());
+        }
     }
 }
 
