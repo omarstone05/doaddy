@@ -90,7 +90,31 @@ class AddyResponseGenerator
             if (empty($intent['parameters']) || (!isset($intent['parameters']['amount']) && !isset($intent['parameters']['transactions']))) {
                 $intent = $this->enrichActionFromHistory($intent, $chatHistory, $userMessage, $extractedData);
             }
+            
+            // Check if this is a bank statement/document upload request that needs OCR processing
+            $isBankStatementRequest = $this->isBankStatementUploadRequest($userMessage, $extractedData);
+            if ($isBankStatementRequest && $intent['action_type'] === 'create_transaction' && 
+                !isset($intent['parameters']['amount']) && !isset($intent['parameters']['transactions'])) {
+                // User wants to upload bank statements but we don't have transaction data
+                // Suggest the upload center instead
+                return $this->suggestUploadCenterForBankStatement($userMessage);
+            }
+            
             $response = $this->handleActionRequest($intent, $userMessage);
+            
+            // Check if the response indicates an error (missing parameters, etc.)
+            $isErrorResponse = !isset($response['action']) && 
+                              isset($response['content']) && 
+                              (str_contains($response['content'], "couldn't prepare") || 
+                               str_contains($response['content'], "Invalid parameters") ||
+                               str_contains($response['content'], "Missing required"));
+            
+            // If it's an error and user wants to upload bank statements, suggest upload center
+            if ($isErrorResponse && ($isBankStatementRequest || $shouldShowUploadCenter || 
+                $this->shouldSuggestUploadCenter($userMessage, $intent))) {
+                return $this->suggestUploadCenterForBankStatement($userMessage);
+            }
+            
             // Add upload center button if needed
             if ($shouldShowUploadCenter && isset($response['quick_actions'])) {
                 $response['quick_actions'][] = [
@@ -98,6 +122,7 @@ class AddyResponseGenerator
                     'url' => '/data-upload',
                 ];
             }
+            
             return $response;
         }
         
@@ -1702,5 +1727,70 @@ class AddyResponseGenerator
         $message .= "Remember: You're having a conversation, not just answering questions. Be engaging, helpful, and personable!";
         
         return $message;
+    }
+    
+    /**
+     * Check if user is requesting to upload bank statements or similar documents
+     */
+    protected function isBankStatementUploadRequest(string $userMessage, array $extractedData = []): bool
+    {
+        $message = strtolower($userMessage);
+        
+        // Check for bank statement keywords
+        $bankStatementKeywords = ['bank statement', 'bank statements', 'old bank', 'historical bank', 'upload old', 'import old'];
+        foreach ($bankStatementKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+        
+        // Check if extracted data indicates a bank statement but no transaction data
+        if (!empty($extractedData)) {
+            foreach ($extractedData as $data) {
+                $docType = $data['document_type'] ?? 'unknown';
+                if ($docType === 'bank_statement' && !isset($data['amount']) && !isset($data['transactions'])) {
+                    return true;
+                }
+                // If it's an image/screenshot and user mentions bank statement
+                if (($docType === 'unknown' || $docType === 'image') && 
+                    (str_contains($message, 'statement') || str_contains($message, 'bank'))) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Suggest the upload center for bank statement uploads
+     */
+    protected function suggestUploadCenterForBankStatement(string $userMessage): array
+    {
+        $culturalEngine = new \App\Services\Addy\AddyCulturalEngine(
+            $this->organization,
+            auth()->user()
+        );
+        
+        $response = "I see you want to upload bank statements! For processing bank statements and other historical documents, ";
+        $response .= "I recommend using our **Upload Center** which has specialized tools for:\n\n";
+        $response .= "• **OCR Processing** - Automatically extracts transaction data from bank statements\n";
+        $response .= "• **Batch Import** - Upload multiple statements at once\n";
+        $response .= "• **Data Review** - Review and verify extracted data before importing\n";
+        $response .= "• **Historical Data** - Perfect for importing old transactions\n\n";
+        $response .= "The Upload Center will help you process your bank statements more efficiently and accurately!";
+        
+        // Apply cultural tone
+        $response = $culturalEngine->adaptTone($response);
+        
+        return [
+            'message' => $response,
+            'quick_actions' => [
+                [
+                    'label' => '📤 Go to Upload Center',
+                    'url' => '/data-upload',
+                ],
+            ],
+        ];
     }
 }
