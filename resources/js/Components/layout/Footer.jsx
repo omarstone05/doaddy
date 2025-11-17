@@ -11,12 +11,12 @@ export default function Footer() {
                         <img 
                             src="/assets/logos/penda.png" 
                             alt="Penda Digital" 
-                            className="h-[54px] w-auto object-contain"
+                            className="h-8 w-auto object-contain"
                         />
-                        <div className="text-sm text-gray-600">
-                            <p className="font-medium">© {currentYear} All rights reserved.</p>
-                            <p className="text-gray-500">
-                                This is a product of <span className="font-semibold">Penda Digital</span>, a registered company in the Republic of Zambia.
+                        <div className="text-xs text-gray-500">
+                            <p>© {currentYear} All rights reserved.</p>
+                            <p>
+                                This is a product of Penda Digital, a registered company in the Republic of Zambia.
                             </p>
                         </div>
                     </div>
