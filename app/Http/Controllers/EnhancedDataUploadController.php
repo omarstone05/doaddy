@@ -37,7 +37,7 @@ class EnhancedDataUploadController extends Controller
     {
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,pdf,jpg,jpeg,png|max:10240',
-            'is_historical' => 'nullable|in:true,false,1,0,"true","false","1","0"',
+            'is_historical' => 'nullable',
         ]);
 
         $file = $request->file('file');
