@@ -37,7 +37,7 @@ class EnhancedDataUploadController extends Controller
     {
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,pdf,jpg,jpeg,png|max:10240',
-            'is_historical' => 'boolean',
+            'is_historical' => 'nullable|in:true,false,1,0,"true","false","1","0"',
         ]);
 
         $file = $request->file('file');
@@ -46,7 +46,8 @@ class EnhancedDataUploadController extends Controller
 
         $extension = $file->getClientOriginalExtension();
         $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'pdf']);
-        $isHistorical = $request->boolean('is_historical', false);
+        // Handle boolean conversion from FormData (which sends strings)
+        $isHistorical = filter_var($request->input('is_historical', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($isImage) {
             // Use context-aware OCR
