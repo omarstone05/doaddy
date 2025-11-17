@@ -117,7 +117,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get user's role in an organization
+     * Get user's role in an organization (returns role string for backward compatibility)
      */
     public function getRoleInOrganization(string $organizationId): ?string
     {
@@ -125,7 +125,74 @@ class User extends Authenticatable
             ->where('organizations.id', $organizationId)
             ->first()?->pivot;
         
-        return $pivot?->role;
+        // Return role string if exists, otherwise get from role_id
+        if ($pivot?->role) {
+            return $pivot->role;
+        }
+        
+        if ($pivot?->role_id) {
+            $role = \App\Models\OrganizationRole::find($pivot->role_id);
+            return $role?->slug;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get user's OrganizationRole in an organization
+     */
+    public function getOrganizationRole(string $organizationId): ?\App\Models\OrganizationRole
+    {
+        $pivot = $this->organizations()
+            ->where('organizations.id', $organizationId)
+            ->first()?->pivot;
+        
+        // Check role_id first, then fallback to role string
+        if ($pivot) {
+            if ($pivot->role_id) {
+                return \App\Models\OrganizationRole::find($pivot->role_id);
+            }
+            
+            // Fallback: try to find role by slug if role_id is null
+            if ($pivot->role) {
+                return \App\Models\OrganizationRole::where('slug', $pivot->role)->first();
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Assign a role to user in an organization
+     */
+    public function assignRoleInOrganization(string $organizationId, string $roleSlug): bool
+    {
+        $role = \App\Models\OrganizationRole::where('slug', $roleSlug)->first();
+        
+        if (!$role) {
+            return false;
+        }
+
+        $this->organizations()->updateExistingPivot($organizationId, [
+            'role_id' => $role->id,
+            'role' => $role->slug, // Keep for backward compatibility
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Check if user has permission in an organization
+     */
+    public function hasPermissionInOrganization(string $organizationId, string $permission): bool
+    {
+        $role = $this->getOrganizationRole($organizationId);
+        
+        if (!$role) {
+            return false;
+        }
+
+        return $role->hasPermission($permission);
     }
 
     /**
@@ -178,6 +245,35 @@ class User extends Authenticatable
             ->pluck('permissions')
             ->flatten()
             ->contains($permission);
+    }
+
+    /**
+     * Find user by phone number with flexible format matching
+     * Handles various phone number formats (with/without country code, leading 0, etc.)
+     */
+    public static function findByPhoneNumber(string $phoneNumber): ?self
+    {
+        $whatsappService = new \App\Services\WhatsAppService();
+        $normalizedPhone = $whatsappService->formatPhoneNumberForApi($phoneNumber);
+        
+        // Remove non-numeric characters for comparison
+        $cleanInput = preg_replace('/[^0-9]/', '', $phoneNumber);
+        $cleanInputNoZero = ltrim($cleanInput, '0');
+        
+        return static::where(function($query) use ($normalizedPhone, $phoneNumber, $cleanInput, $cleanInputNoZero) {
+            // Try normalized format (260973660337)
+            $query->where('phone_number', $normalizedPhone)
+                  // Try original input (0973660337)
+                  ->orWhere('phone_number', $phoneNumber)
+                  // Try without leading 0 (973660337)
+                  ->orWhere('phone_number', $cleanInputNoZero)
+                  // Try with + prefix
+                  ->orWhere('phone_number', '+' . $normalizedPhone)
+                  // Try with spaces (260 973 660 337)
+                  ->orWhere('phone_number', preg_replace('/(\d{3})(\d{3})(\d{3})(\d{3})/', '$1 $2 $3 $4', $normalizedPhone))
+                  // Try clean numeric input
+                  ->orWhere('phone_number', $cleanInput);
+        })->first();
     }
 
     public function canImpersonate(): bool

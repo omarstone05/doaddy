@@ -13,7 +13,15 @@ class DocumentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Document::where('organization_id', Auth::user()->organization_id);
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.view')) {
+            abort(403, 'You do not have permission to view documents.');
+        }
+        
+        $query = Document::where('organization_id', $orgId);
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -52,11 +60,27 @@ class DocumentController extends Controller
 
     public function create()
     {
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.create')) {
+            abort(403, 'You do not have permission to create documents.');
+        }
+        
         return Inertia::render('Compliance/Documents/Create');
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.create')) {
+            abort(403, 'You do not have permission to create documents.');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -77,7 +101,15 @@ class DocumentController extends Controller
 
     public function show($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.view')) {
+            abort(403, 'You do not have permission to view documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->with(['createdBy', 'versions', 'attachments'])
             ->findOrFail($id);
 
@@ -88,7 +120,15 @@ class DocumentController extends Controller
 
     public function edit($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.update')) {
+            abort(403, 'You do not have permission to edit documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         return Inertia::render('Compliance/Documents/Edit', [
@@ -98,7 +138,15 @@ class DocumentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.update')) {
+            abort(403, 'You do not have permission to update documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -116,7 +164,15 @@ class DocumentController extends Controller
 
     public function destroy($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.delete')) {
+            abort(403, 'You do not have permission to delete documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         $document->delete();

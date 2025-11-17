@@ -93,14 +93,19 @@ class LoginController extends Controller
             $whatsappService = new WhatsAppService();
             $normalizedPhone = $whatsappService->formatPhoneNumberForApi($phoneNumber);
             
-            // Check if user exists with this phone number
-            $user = User::where('phone_number', $normalizedPhone)->first();
+            // Check if user exists with this phone number (flexible format matching)
+            $user = User::findByPhoneNumber($phoneNumber);
             
             if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No account found with this phone number. Please register first.',
                 ], 404);
+            }
+            
+            // Update phone number to normalized format if it's different
+            if ($user->phone_number !== $normalizedPhone) {
+                $user->update(['phone_number' => $normalizedPhone]);
             }
 
             // Create verification code
@@ -158,14 +163,19 @@ class LoginController extends Controller
             $whatsappService = new WhatsAppService();
             $normalizedPhone = $whatsappService->formatPhoneNumberForApi($phoneNumber);
             
-            // Find user
-            $user = User::where('phone_number', $normalizedPhone)->first();
+            // Find user (flexible format matching)
+            $user = User::findByPhoneNumber($phoneNumber);
             
             if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No account found with this phone number.',
                 ], 404);
+            }
+            
+            // Update phone number to normalized format if it's different
+            if ($user->phone_number !== $normalizedPhone) {
+                $user->update(['phone_number' => $normalizedPhone]);
             }
 
             // Find valid verification code

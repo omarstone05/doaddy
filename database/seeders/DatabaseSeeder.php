@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
+            OrganizationRoleSeeder::class, // Create organization roles (owner, admin, member, etc.)
             DashboardCardSeeder::class,
             TestUserSeeder::class,
             TestDataSeeder::class, // Seed comprehensive test data

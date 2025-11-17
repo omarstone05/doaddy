@@ -111,6 +111,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/toggle-active', [\App\Http\Controllers\Admin\AdminUserController::class, 'toggleActive'])->name('users.toggle-active');
         Route::post('/users/{user}/change-password', [\App\Http\Controllers\Admin\AdminUserController::class, 'changePassword'])->name('users.change-password');
         Route::post('/users/{user}/send-password-reset', [\App\Http\Controllers\Admin\AdminUserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
+        Route::post('/users/{user}/change-organization-role', [\App\Http\Controllers\Admin\AdminUserController::class, 'changeOrganizationRole'])->name('users.change-organization-role');
+        
+        // Role Management
+        Route::resource('roles', \App\Http\Controllers\OrganizationRoleController::class);
         
         // Support Tickets
         Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show']);

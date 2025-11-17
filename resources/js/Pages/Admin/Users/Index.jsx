@@ -161,21 +161,27 @@ export default function Index({ users, filters }) {
                                                     </span>
                                                 )}
                                                 {user.organizations && user.organizations.length > 0 ? (
-                                                    user.organizations.slice(0, 2).map((org) => {
+                                                    user.organizations.slice(0, 3).map((org) => {
                                                         const role = org.pivot?.role || 'member';
                                                         const roleColors = {
-                                                            owner: 'bg-teal-100 text-teal-800',
-                                                            admin: 'bg-blue-100 text-blue-800',
-                                                            member: 'bg-gray-100 text-gray-800',
+                                                            owner: 'bg-teal-100 text-teal-800 border-teal-200',
+                                                            admin: 'bg-blue-100 text-blue-800 border-blue-200',
+                                                            manager: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+                                                            member: 'bg-gray-100 text-gray-800 border-gray-200',
+                                                            viewer: 'bg-yellow-100 text-yellow-800 border-yellow-200',
                                                         };
                                                         return (
-                                                            <span
-                                                                key={org.id}
-                                                                className={`px-2 py-1 text-xs font-medium rounded-full ${roleColors[role] || roleColors.member}`}
-                                                                title={`${org.name}: ${role}`}
-                                                            >
-                                                                {role.charAt(0).toUpperCase() + role.slice(1)}
-                                                            </span>
+                                                            <div key={org.id} className="flex flex-col gap-0.5">
+                                                                <span
+                                                                    className={`px-2 py-1 text-xs font-medium rounded-full border ${roleColors[role] || roleColors.member}`}
+                                                                    title={`${org.name}: ${role}`}
+                                                                >
+                                                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 truncate max-w-[100px]" title={org.name}>
+                                                                    {org.name}
+                                                                </span>
+                                                            </div>
                                                         );
                                                     })
                                                 ) : (
@@ -184,6 +190,11 @@ export default function Index({ users, filters }) {
                                                             No Role
                                                         </span>
                                                     )
+                                                )}
+                                                {user.organizations && user.organizations.length > 3 && (
+                                                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                                        +{user.organizations.length - 3} more
+                                                    </span>
                                                 )}
                                             </div>
                                         </td>
