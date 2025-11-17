@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { useAddy } from '@/Contexts/AddyContext';
 import { InsightsCard } from '@/Components/dashboard/InsightsCard';
 import { 
   TrendingUp, 
@@ -256,16 +255,29 @@ const AddyInsightsCard = ({ onRemove, userName, stats }) => {
 
 // Main Dashboard Component
 const BentoDashboard = ({ stats, user }) => {
+  // Define card components map - components can't be serialized to localStorage
+  const cardComponents = {
+    'addy-insights': AddyInsightsCard,
+    'revenue': RevenueCard,
+    'quick-actions': QuickActionsCard,
+    'transactions': RecentTransactionsCard,
+    'expenses': ExpensesCard,
+    'inventory': InventoryCard,
+    'customers': CustomersCard,
+    'pending-invoices': PendingInvoicesCard,
+    'performance': PerformanceCard,
+  };
+
   const [availableCards, setAvailableCards] = useState([
-    { id: 'addy-insights', component: AddyInsightsCard, active: true, size: 'large' },
-    { id: 'revenue', component: RevenueCard, active: true, size: 'large' },
-    { id: 'quick-actions', component: QuickActionsCard, active: true, size: 'medium' },
-    { id: 'transactions', component: RecentTransactionsCard, active: true, size: 'medium' },
-    { id: 'expenses', component: ExpensesCard, active: true, size: 'medium' },
-    { id: 'inventory', component: InventoryCard, active: true, size: 'medium' },
-    { id: 'customers', component: CustomersCard, active: true, size: 'small' },
-    { id: 'pending-invoices', component: PendingInvoicesCard, active: true, size: 'small' },
-    { id: 'performance', component: PerformanceCard, active: true, size: 'medium' },
+    { id: 'addy-insights', active: true, size: 'large' },
+    { id: 'revenue', active: true, size: 'large' },
+    { id: 'quick-actions', active: true, size: 'medium' },
+    { id: 'transactions', active: true, size: 'medium' },
+    { id: 'expenses', active: true, size: 'medium' },
+    { id: 'inventory', active: true, size: 'medium' },
+    { id: 'customers', active: true, size: 'small' },
+    { id: 'pending-invoices', active: true, size: 'small' },
+    { id: 'performance', active: true, size: 'medium' },
   ]);
 
   const [showCardManager, setShowCardManager] = useState(false);
@@ -276,20 +288,33 @@ const BentoDashboard = ({ stats, user }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Merge with default cards to handle new cards
+        // Only restore active state and size, not component references
         setAvailableCards(prev => {
-          const savedMap = new Map(parsed.map(c => [c.id, c]));
-          return prev.map(card => savedMap.get(card.id) || card);
+          const savedMap = new Map(parsed.map(c => [c.id, { active: c.active, size: c.size }]));
+          return prev.map(card => {
+            const saved = savedMap.get(card.id);
+            if (saved) {
+              return { ...card, active: saved.active, size: saved.size };
+            }
+            return card;
+          });
         });
       } catch (e) {
         console.error('Failed to parse saved cards:', e);
+        // Clear corrupted data
+        localStorage.removeItem('addy-bento-dashboard-cards');
       }
     }
   }, []);
 
-  // Save card preferences to localStorage
+  // Save card preferences to localStorage (only active state and size, not components)
   useEffect(() => {
-    localStorage.setItem('addy-bento-dashboard-cards', JSON.stringify(availableCards));
+    const cardsToSave = availableCards.map(card => ({
+      id: card.id,
+      active: card.active,
+      size: card.size,
+    }));
+    localStorage.setItem('addy-bento-dashboard-cards', JSON.stringify(cardsToSave));
   }, [availableCards]);
 
   const removeCard = (cardId) => {
@@ -357,7 +382,13 @@ const BentoDashboard = ({ stats, user }) => {
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
           {activeCards.map(card => {
-            const CardComponent = card.component;
+            const CardComponent = cardComponents[card.id];
+            
+            // Skip if component not found (shouldn't happen, but safety check)
+            if (!CardComponent) {
+              console.warn(`Card component not found for id: ${card.id}`);
+              return null;
+            }
             
             // Dynamic sizing based on card size property
             const sizeClasses = {
