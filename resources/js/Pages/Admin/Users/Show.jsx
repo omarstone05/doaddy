@@ -193,13 +193,29 @@ export default function Show({ user, stats }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card className="p-6">
                         <div className="flex items-center justify-between">
-                            <div>
+                            <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-600">
-                                    Organization
+                                    Organizations ({user.organizations?.length || 0})
                                 </p>
-                                <p className="mt-2 text-2xl font-bold text-gray-900">
-                                    {user.organization?.name || 'N/A'}
-                                </p>
+                                <div className="mt-2 space-y-1">
+                                    {user.organizations && user.organizations.length > 0 ? (
+                                        user.organizations.slice(0, 3).map((org) => (
+                                            <div key={org.id} className="text-sm font-medium text-gray-900">
+                                                {org.name}
+                                                {org.pivot?.role && (
+                                                    <span className="ml-2 text-xs text-gray-500">({org.pivot.role})</span>
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-gray-500">No organizations</p>
+                                    )}
+                                    {user.organizations && user.organizations.length > 3 && (
+                                        <p className="text-xs text-gray-500">
+                                            +{user.organizations.length - 3} more
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                             <Building2 className="w-8 h-8 text-blue-500" />
                         </div>
@@ -233,9 +249,22 @@ export default function Show({ user, stats }) {
                             <dd className="mt-1 text-sm text-gray-900">{user.email}</dd>
                         </div>
                         <div>
-                            <dt className="text-sm font-medium text-gray-500">Organization</dt>
-                            <dd className="mt-1 text-sm text-gray-900">
-                                {user.organization?.name || 'N/A'}
+                            <dt className="text-sm font-medium text-gray-500">Organizations</dt>
+                            <dd className="mt-1">
+                                {user.organizations && user.organizations.length > 0 ? (
+                                    <div className="space-y-1">
+                                        {user.organizations.map((org) => (
+                                            <div key={org.id} className="text-sm text-gray-900">
+                                                {org.name}
+                                                {org.pivot?.role && (
+                                                    <span className="ml-2 text-xs text-gray-500">({org.pivot.role})</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-gray-500">No organizations</span>
+                                )}
                             </dd>
                         </div>
                         <div>

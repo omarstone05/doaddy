@@ -86,7 +86,22 @@ export default function Index({ users, filters }) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {user.organization?.name || 'N/A'}
+                                            {user.organizations && user.organizations.length > 0 ? (
+                                                <div className="space-y-1">
+                                                    {user.organizations.slice(0, 2).map((org, idx) => (
+                                                        <div key={org.id} className="text-sm">
+                                                            {org.name}
+                                                        </div>
+                                                    ))}
+                                                    {user.organizations.length > 2 && (
+                                                        <div className="text-xs text-gray-500">
+                                                            +{user.organizations.length - 2} more
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                'N/A'
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.is_super_admin ? (

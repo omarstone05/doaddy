@@ -15,7 +15,10 @@ class AdminUserController extends Controller
     public function index(Request $request)
     {
         $users = User::query()
-            ->with('organizations')
+            ->with(['organizations' => function($query) {
+                $query->select('organizations.id', 'organizations.name', 'organizations.slug')
+                      ->withPivot('role', 'is_active', 'joined_at');
+            }])
             ->when($request->search, function ($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -42,7 +45,11 @@ class AdminUserController extends Controller
     public function show(User $user)
     {
         $user->load([
-            'organizations',
+            'organizations' => function($query) {
+                $query->select('organizations.id', 'organizations.name', 'organizations.slug')
+                      ->withPivot('role', 'is_active', 'joined_at')
+                      ->orderBy('organization_user.joined_at', 'asc');
+            },
         ]);
 
         return Inertia::render('Admin/Users/Show', [
