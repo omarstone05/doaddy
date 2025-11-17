@@ -47,9 +47,8 @@ return new class extends Migration
             $table->index(['status', 'created_at'], 'dpj_status_created_idx');
             $table->index('user_id', 'dpj_user_id_idx');
             
-            // Foreign keys
-            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            // Note: Foreign keys removed to avoid type compatibility issues
+            // Relationships are handled at application level
         });
     }
 
