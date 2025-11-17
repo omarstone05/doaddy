@@ -6,6 +6,7 @@ use App\Jobs\ProcessDocumentJob;
 use App\Models\DocumentProcessingJob as ProcessingJobModel;
 use App\Models\MoneyMovement;
 use App\Models\MoneyAccount;
+use App\Services\FileManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,7 +28,7 @@ class AgentDataUploadController extends Controller
     /**
      * Upload and queue document for processing
      */
-    public function upload(Request $request)
+    public function upload(Request $request, FileManager $fileManager)
     {
         $request->validate([
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
@@ -37,11 +38,16 @@ class AgentDataUploadController extends Controller
         $user = $request->user();
         $organizationId = session('current_organization_id') ?? $user->current_organization_id;
         
-        // Store file temporarily
+        // Upload file to Google Drive or local storage
         $file = $request->file('file');
-        $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $filePath = $file->storeAs('temp/uploads', $fileName);
-        $fullPath = Storage::path($filePath);
+        $uploadedFile = $fileManager->upload($file, $user, 'document', $organizationId);
+        
+        // For processing, we need a local path - download if from Google Drive
+        if ($uploadedFile->storage_driver === 'google') {
+            $fullPath = $fileManager->download($uploadedFile);
+        } else {
+            $fullPath = Storage::disk('public')->path($uploadedFile->storage_path);
+        }
 
         // Create job ID
         $jobId = Str::uuid();
@@ -61,6 +67,9 @@ class AgentDataUploadController extends Controller
                 'original_name' => $file->getClientOriginalName(),
                 'is_historical' => filter_var($request->input('is_historical', false), FILTER_VALIDATE_BOOLEAN),
                 'uploaded_at' => now()->toIso8601String(),
+                'uploaded_file_id' => $uploadedFile->id,
+                'storage_driver' => $uploadedFile->storage_driver,
+                'storage_path' => $uploadedFile->storage_path,
             ],
             'started_at' => now(),
         ]);

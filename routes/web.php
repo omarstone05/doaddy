@@ -352,6 +352,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/cancel/{id}', [\App\Http\Controllers\AgentDataUploadController::class, 'cancel'])->name('cancel');
     });
     
+    // Google Drive Authentication
+    Route::get('/auth/google', [\App\Http\Controllers\GoogleAuthController::class, 'redirect'])->name('google.auth');
+    Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
+    
     // Addy Settings
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');
     Route::post('/settings/addy', [AddySettingsController::class, 'update'])->name('settings.addy.update');
