@@ -9,12 +9,15 @@ The error "Access blocked: doaddy.com has not completed the Google verification 
 1. Visit: https://console.cloud.google.com/
 2. Select project: **addy-businiess** (or your project name)
 
-### Step 2: Configure OAuth Consent Screen
-1. Go to **APIs & Services** → **OAuth consent screen**
-2. Scroll down to **Test users** section
-3. Click **+ ADD USERS**
+### Step 2: Navigate to Audience (OAuth Consent Screen)
+From the OAuth Overview page you're currently on:
+
+1. In the **left sidebar**, click **"Audience"** (person icon)
+   - This is the OAuth consent screen settings
+2. Scroll down to **"Test users"** section
+3. Click **"+ ADD USERS"**
 4. Add your email: **addydigital25@gmail.com**
-5. Click **ADD**
+5. Click **"ADD"**
 
 ### Step 3: Try Again
 1. Visit: https://doaddy.com/auth/google
