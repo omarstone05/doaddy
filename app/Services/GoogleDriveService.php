@@ -2,20 +2,25 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Google_Client;
 use Google_Service_Drive;
 use Google_Service_Drive_DriveFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
 
 class GoogleDriveService
 {
     protected Google_Client $client;
     protected ?Google_Service_Drive $drive = null;
     protected string $folderId;
+    protected ?User $user = null;
 
-    public function __construct()
+    public function __construct(?User $user = null)
     {
+        $this->user = $user ?? auth()->user();
+        
         $this->client = new Google_Client();
         $this->client->setClientId(config('services.google.client_id'));
         $this->client->setClientSecret(config('services.google.client_secret'));
@@ -28,17 +33,35 @@ class GoogleDriveService
 
         $this->folderId = config('services.google.drive_folder_id', '');
 
-        // Load token if exists
-        $tokenPath = storage_path('app/google-drive-token.json');
-        if (file_exists($tokenPath)) {
-            $accessToken = json_decode(file_get_contents($tokenPath), true);
-            $this->client->setAccessToken($accessToken);
+        // Load token from user if available
+        if ($this->user && $this->user->google_drive_token) {
+            try {
+                $accessToken = json_decode(Crypt::decryptString($this->user->google_drive_token), true);
+                $this->client->setAccessToken($accessToken);
 
-            // Refresh token if expired
-            if ($this->client->isAccessTokenExpired()) {
-                if ($this->client->getRefreshToken()) {
-                    $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
-                    $this->saveToken();
+                // Refresh token if expired
+                if ($this->client->isAccessTokenExpired()) {
+                    if ($this->client->getRefreshToken()) {
+                        $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                        $this->saveToken();
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to decrypt Google Drive token', ['error' => $e->getMessage()]);
+            }
+        } else {
+            // Fallback: Try old shared token file (for backward compatibility)
+            $tokenPath = storage_path('app/google-drive-token.json');
+            if (file_exists($tokenPath)) {
+                $accessToken = json_decode(file_get_contents($tokenPath), true);
+                $this->client->setAccessToken($accessToken);
+
+                // Refresh token if expired
+                if ($this->client->isAccessTokenExpired()) {
+                    if ($this->client->getRefreshToken()) {
+                        $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                        $this->saveToken();
+                    }
                 }
             }
         }
@@ -60,8 +83,15 @@ class GoogleDriveService
     /**
      * Handle OAuth callback
      */
-    public function handleCallback(string $code): bool
+    public function handleCallback(string $code, ?User $user = null): bool
     {
+        $user = $user ?? $this->user ?? auth()->user();
+        
+        if (!$user) {
+            Log::error('Google Drive callback: No user found');
+            return false;
+        }
+
         try {
             $accessToken = $this->client->fetchAccessTokenWithAuthCode($code);
             $this->client->setAccessToken($accessToken);
@@ -71,7 +101,14 @@ class GoogleDriveService
                 return false;
             }
 
+            $this->user = $user;
             $this->saveToken();
+            
+            // Update user's connection timestamp
+            $user->update([
+                'google_drive_connected_at' => now(),
+            ]);
+            
             return true;
         } catch (\Exception $e) {
             Log::error('Google Drive callback error', ['error' => $e->getMessage()]);
@@ -84,11 +121,22 @@ class GoogleDriveService
      */
     protected function saveToken(): void
     {
-        $tokenPath = storage_path('app/google-drive-token.json');
-        if (!file_exists(dirname($tokenPath))) {
-            mkdir(dirname($tokenPath), 0700, true);
+        $token = $this->client->getAccessToken();
+        
+        if ($this->user) {
+            // Save encrypted token to user record
+            $this->user->update([
+                'google_drive_token' => Crypt::encryptString(json_encode($token)),
+                'google_drive_connected_at' => now(),
+            ]);
+        } else {
+            // Fallback: Save to file (for backward compatibility)
+            $tokenPath = storage_path('app/google-drive-token.json');
+            if (!file_exists(dirname($tokenPath))) {
+                mkdir(dirname($tokenPath), 0700, true);
+            }
+            file_put_contents($tokenPath, json_encode($token, JSON_PRETTY_PRINT));
         }
-        file_put_contents($tokenPath, json_encode($this->client->getAccessToken(), JSON_PRETTY_PRINT));
     }
 
     /**
@@ -96,29 +144,56 @@ class GoogleDriveService
      */
     public function isAuthenticated(): bool
     {
-        $tokenPath = storage_path('app/google-drive-token.json');
-        if (!file_exists($tokenPath)) {
-            return false;
-        }
+        // Check user's token first
+        if ($this->user && $this->user->google_drive_token) {
+            try {
+                $accessToken = json_decode(Crypt::decryptString($this->user->google_drive_token), true);
+                $this->client->setAccessToken($accessToken);
 
-        $accessToken = json_decode(file_get_contents($tokenPath), true);
-        $this->client->setAccessToken($accessToken);
-
-        if ($this->client->isAccessTokenExpired()) {
-            if ($this->client->getRefreshToken()) {
-                try {
-                    $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
-                    $this->saveToken();
-                    return true;
-                } catch (\Exception $e) {
-                    Log::error('Failed to refresh Google Drive token', ['error' => $e->getMessage()]);
+                if ($this->client->isAccessTokenExpired()) {
+                    if ($this->client->getRefreshToken()) {
+                        try {
+                            $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                            $this->saveToken();
+                            return true;
+                        } catch (\Exception $e) {
+                            Log::error('Failed to refresh Google Drive token', ['error' => $e->getMessage()]);
+                            return false;
+                        }
+                    }
                     return false;
                 }
+
+                return true;
+            } catch (\Exception $e) {
+                Log::error('Failed to decrypt Google Drive token', ['error' => $e->getMessage()]);
             }
-            return false;
         }
 
-        return true;
+        // Fallback: Check old shared token file
+        $tokenPath = storage_path('app/google-drive-token.json');
+        if (file_exists($tokenPath)) {
+            $accessToken = json_decode(file_get_contents($tokenPath), true);
+            $this->client->setAccessToken($accessToken);
+
+            if ($this->client->isAccessTokenExpired()) {
+                if ($this->client->getRefreshToken()) {
+                    try {
+                        $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                        $this->saveToken();
+                        return true;
+                    } catch (\Exception $e) {
+                        Log::error('Failed to refresh Google Drive token', ['error' => $e->getMessage()]);
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

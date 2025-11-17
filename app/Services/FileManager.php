@@ -10,12 +10,22 @@ use Illuminate\Support\Str;
 
 class FileManager
 {
-    protected GoogleDriveService $driveService;
+    protected ?GoogleDriveService $driveService = null;
     protected bool $useGoogleDrive;
 
-    public function __construct(GoogleDriveService $driveService)
+    public function __construct(?GoogleDriveService $driveService = null)
     {
-        $this->driveService = $driveService;
+        $user = auth()->user();
+        
+        // Determine which Drive to use based on user preference
+        if ($user && $user->use_own_drive && $user->google_drive_token) {
+            // User wants to use their own Drive
+            $this->driveService = $driveService ?? new GoogleDriveService($user);
+        } else {
+            // Use shared Drive (fallback to old token file)
+            $this->driveService = $driveService ?? new GoogleDriveService(null);
+        }
+        
         $this->useGoogleDrive = config('services.google.drive_folder_id') && $this->driveService->isAuthenticated();
     }
 

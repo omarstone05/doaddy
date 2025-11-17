@@ -64,6 +64,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/register/whatsapp/send-code', [RegisterController::class, 'sendRegistrationWhatsAppCode'])->name('register.whatsapp.send-code');
     Route::post('/register/whatsapp/verify', [RegisterController::class, 'verifyRegistrationWhatsAppCode'])->name('register.whatsapp.verify');
     Route::post('/register/whatsapp', [RegisterController::class, 'storeWithWhatsApp'])->name('register.whatsapp');
+    
+    // Google OAuth Login
+    Route::get('/auth/google/login', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('google.login');
+    Route::get('/auth/google/login/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('google.login.callback');
 });
 
 // Google Drive OAuth Callback (must be accessible without auth for Google redirect)
@@ -335,6 +339,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/logo', [SettingsController::class, 'updateLogo'])->name('settings.update-logo');
+    Route::post('/settings/drive-preference', [SettingsController::class, 'updateDrivePreference'])->name('settings.drive-preference');
+    Route::post('/settings/disconnect-drive', [SettingsController::class, 'disconnectDrive'])->name('settings.disconnect-drive');
     
     // Support Tickets
     Route::prefix('support/tickets')->name('support.tickets.')->group(function () {

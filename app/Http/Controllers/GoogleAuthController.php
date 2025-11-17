@@ -7,9 +7,15 @@ use Illuminate\Http\Request;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect(GoogleDriveService $driveService)
+    public function redirect()
     {
         try {
+            $user = auth()->user();
+            if (!$user) {
+                return redirect('/login')->with('error', 'Please log in to connect Google Drive.');
+            }
+
+            $driveService = new GoogleDriveService($user);
             $authUrl = $driveService->getAuthUrl();
             return redirect($authUrl);
         } catch (\Exception $e) {
@@ -18,7 +24,7 @@ class GoogleAuthController extends Controller
         }
     }
 
-    public function callback(Request $request, GoogleDriveService $driveService)
+    public function callback(Request $request)
     {
         $code = $request->get('code');
 
@@ -28,18 +34,22 @@ class GoogleAuthController extends Controller
         }
 
         try {
-            if ($driveService->handleCallback($code)) {
-                // Check if user is authenticated, redirect accordingly
-                if (auth()->check()) {
-                    return redirect('/settings')->with('success', 'Google Drive connected successfully!');
-                }
-                return redirect('/login')->with('success', 'Google Drive connected successfully! Please log in.');
+            $user = auth()->user();
+            if (!$user) {
+                return redirect('/login')->with('error', 'Please log in to connect Google Drive.');
             }
 
-            return redirect('/login')->with('error', 'Failed to connect Google Drive');
+            // Create service instance with current user
+            $driveService = new GoogleDriveService($user);
+            
+            if ($driveService->handleCallback($code, $user)) {
+                return redirect('/settings')->with('success', 'Google Drive connected successfully!');
+            }
+
+            return redirect('/settings')->with('error', 'Failed to connect Google Drive');
         } catch (\Exception $e) {
             \Log::error('Google Drive callback failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return redirect('/login')->with('error', 'Failed to connect Google Drive: ' . $e->getMessage());
+            return redirect('/settings')->with('error', 'Failed to connect Google Drive: ' . $e->getMessage());
         }
     }
 }

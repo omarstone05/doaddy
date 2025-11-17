@@ -14,7 +14,8 @@ class SettingsController extends Controller
 {
     public function index()
     {
-        $organization = Organization::findOrFail(Auth::user()->organization_id);
+        $user = Auth::user();
+        $organization = Organization::findOrFail($user->organization_id);
 
         $organization->logo_url = ($organization->logo && Storage::disk('public')->exists($organization->logo))
             ? Storage::disk('public')->url($organization->logo)
@@ -22,6 +23,11 @@ class SettingsController extends Controller
 
         return Inertia::render('Settings/Index', [
             'organization' => $organization,
+            'user' => [
+                'google_drive_connected' => !empty($user->google_drive_token),
+                'google_drive_connected_at' => $user->google_drive_connected_at,
+                'use_own_drive' => $user->use_own_drive ?? false,
+            ],
         ]);
     }
 
@@ -219,6 +225,32 @@ class SettingsController extends Controller
         }
 
         return $slug;
+    }
+
+    public function updateDrivePreference(Request $request)
+    {
+        $validated = $request->validate([
+            'use_own_drive' => 'required|boolean',
+        ]);
+
+        $user = Auth::user();
+        $user->update([
+            'use_own_drive' => $validated['use_own_drive'],
+        ]);
+
+        return back()->with('message', 'Drive preference updated successfully');
+    }
+
+    public function disconnectDrive()
+    {
+        $user = Auth::user();
+        $user->update([
+            'google_drive_token' => null,
+            'google_drive_connected_at' => null,
+            'use_own_drive' => false,
+        ]);
+
+        return back()->with('message', 'Google Drive disconnected successfully');
     }
 
     private function syncAddyToneSetting(Organization $organization): void

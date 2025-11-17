@@ -31,6 +31,11 @@ class User extends Authenticatable
         'is_super_admin',
         'admin_notes',
         'last_active_at',
+        'google_drive_token',
+        'google_drive_connected_at',
+        'google_id',
+        'avatar',
+        'use_own_drive',
     ];
 
     /**
@@ -41,6 +46,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google_drive_token', // Hide encrypted token from JSON
     ];
 
     /**
