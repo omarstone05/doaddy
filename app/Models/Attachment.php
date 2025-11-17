@@ -22,6 +22,7 @@ class Attachment extends Model
         'file_name',
         'file_size',
         'mime_type',
+        'url',
         'uploaded_by_id',
     ];
 
@@ -45,6 +46,11 @@ class Attachment extends Model
             $i++;
         }
         return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    public function isLink(): bool
+    {
+        return !empty($this->url) || $this->mime_type === 'application/link';
     }
 }
 

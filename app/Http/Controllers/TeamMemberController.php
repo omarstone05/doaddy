@@ -95,7 +95,7 @@ class TeamMemberController extends Controller
     public function show($id)
     {
         $teamMember = TeamMember::where('organization_id', Auth::user()->organization_id)
-            ->with(['user', 'department', 'sales'])
+            ->with(['user', 'department', 'sales', 'attachments.uploadedBy', 'documents.createdBy', 'documents.attachments'])
             ->findOrFail($id);
 
         return Inertia::render('Team/Show', [

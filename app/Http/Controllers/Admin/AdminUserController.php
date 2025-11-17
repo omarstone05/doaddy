@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AdminActivityLog;
+use App\Services\UserMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -34,12 +35,15 @@ class AdminUserController extends Controller
             ->when($request->is_super_admin !== null, function ($query) use ($request) {
                 $query->where('is_super_admin', $request->is_super_admin);
             })
+            ->when($request->is_active !== null, function ($query) use ($request) {
+                $query->where('is_active', $request->is_active === 'true' || $request->is_active === true);
+            })
             ->orderBy($request->sort ?? 'created_at', $request->direction ?? 'desc')
             ->paginate(20);
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
-            'filters' => $request->only(['search', 'organization_id', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'organization_id', 'sort', 'direction', 'is_active']),
         ]);
     }
 
@@ -53,9 +57,16 @@ class AdminUserController extends Controller
             },
         ]);
 
+        $metricsService = app(UserMetricsService::class);
+        $stats = $metricsService->getUserStats($user);
+        $activityTimeline = $metricsService->getActivityTimeline($user, 30);
+        $loginChart = $metricsService->getDailyMetrics($user, 'login', 30);
+
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,
-            'stats' => [],
+            'stats' => $stats,
+            'activityTimeline' => $activityTimeline,
+            'loginChart' => $loginChart,
         ]);
     }
 
@@ -141,6 +152,24 @@ class AdminUserController extends Controller
         }
 
         return back()->with('error', 'Failed to send password reset email. Please try again.');
+    }
+
+    public function toggleActive(Request $request, User $user)
+    {
+        $oldStatus = $user->is_active;
+        $user->update(['is_active' => !$user->is_active]);
+        
+        AdminActivityLog::log('user_active_toggled', $user, ['is_active' => $oldStatus], [
+            'is_active' => $user->is_active,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'is_active' => $user->is_active,
+            'message' => $user->is_active 
+                ? 'User activated successfully' 
+                : 'User deactivated successfully'
+        ]);
     }
 }
 

@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
-import { ArrowLeft, FileText, Calendar, User, Tag } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, Tag, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 export default function DocumentsShow({ document }) {
     const getStatusBadge = (status) => {
@@ -26,11 +26,32 @@ export default function DocumentsShow({ document }) {
                 <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-teal-600" />
+                            {document.type === 'link' ? (
+                                <LinkIcon className="h-8 w-8 text-teal-600" />
+                            ) : (
+                                <FileText className="h-8 w-8 text-teal-600" />
+                            )}
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">{document.name}</h1>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-2xl font-bold text-gray-900">{document.name}</h1>
+                                    {document.type === 'link' && document.description && (
+                                        <a
+                                            href={document.description.replace('Link: ', '')}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-teal-600 hover:text-teal-700"
+                                        >
+                                            <ExternalLink className="h-5 w-5" />
+                                        </a>
+                                    )}
+                                </div>
                                 {document.description && (
-                                    <p className="text-gray-500 mt-1">{document.description}</p>
+                                    <p className="text-gray-500 mt-1">
+                                        {document.type === 'link' 
+                                            ? document.description.replace('Link: ', '')
+                                            : document.description
+                                        }
+                                    </p>
                                 )}
                             </div>
                         </div>

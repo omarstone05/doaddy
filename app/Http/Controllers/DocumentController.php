@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\TeamMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -121,6 +122,52 @@ class DocumentController extends Controller
         $document->delete();
 
         return redirect()->route('compliance.documents.index')->with('message', 'Document deleted successfully');
+    }
+
+    /**
+     * Assign document to team members
+     */
+    public function assignToTeamMembers(Request $request, $id)
+    {
+        $document = Document::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'team_member_ids' => 'required|array',
+            'team_member_ids.*' => 'required|uuid|exists:team_members,id',
+        ]);
+
+        // Verify all team members belong to the same organization
+        $teamMemberIds = TeamMember::where('organization_id', Auth::user()->organization_id)
+            ->whereIn('id', $validated['team_member_ids'])
+            ->pluck('id')
+            ->toArray();
+
+        $document->teamMembers()->sync($teamMemberIds);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document assigned to team members successfully',
+        ]);
+    }
+
+    /**
+     * Unassign document from team member
+     */
+    public function unassignFromTeamMember(Request $request, $id, $teamMemberId)
+    {
+        $document = Document::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        $teamMember = TeamMember::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($teamMemberId);
+
+        $document->teamMembers()->detach($teamMember->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document unassigned from team member successfully',
+        ]);
     }
 }
 

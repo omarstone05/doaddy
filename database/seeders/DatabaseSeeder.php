@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             DashboardCardSeeder::class,
             TestUserSeeder::class,
-            // TestDataSeeder::class, // Uncomment to seed test data
+            TestDataSeeder::class, // Seed comprehensive test data
         ]);
     }
 }

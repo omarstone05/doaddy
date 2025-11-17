@@ -29,6 +29,7 @@ class User extends Authenticatable
         'phone_number',
         'organization_id',
         'is_super_admin',
+        'is_active',
         'admin_notes',
         'last_active_at',
     ];
@@ -54,6 +55,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'is_active' => 'boolean',
             'last_active_at' => 'datetime',
         ];
     }
@@ -191,5 +193,10 @@ class User extends Authenticatable
     public function assignedTickets(): HasMany
     {
         return $this->hasMany(SupportTicket::class, 'assigned_to');
+    }
+
+    public function metrics(): HasMany
+    {
+        return $this->hasMany(UserMetric::class);
     }
 }

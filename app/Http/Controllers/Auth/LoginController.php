@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WhatsAppVerification;
 use App\Services\WhatsAppService;
+use App\Services\UserMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,13 @@ class LoginController extends Controller
             $request->session()->regenerate();
             
             $user = Auth::user();
+            
+            // Track login metric
+            try {
+                app(UserMetricsService::class)->trackLogin($user);
+            } catch (\Exception $e) {
+                Log::warning('Failed to track user login metric', ['error' => $e->getMessage()]);
+            }
             
             // Set current organization in session (use first organization or existing session)
             $currentOrgId = session('current_organization_id') 
@@ -180,6 +188,13 @@ class LoginController extends Controller
             // Log the user in
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
+
+            // Track login metric
+            try {
+                app(UserMetricsService::class)->trackLogin($user);
+            } catch (\Exception $e) {
+                Log::warning('Failed to track user login metric', ['error' => $e->getMessage()]);
+            }
 
             // Set current organization in session
             $currentOrgId = session('current_organization_id') 
