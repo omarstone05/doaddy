@@ -704,6 +704,9 @@ class AddyResponseGenerator
                     'filter' => $intent['type'] ?? 'all',
                 ];
             
+            case 'query_document_status':
+                return $this->getDocumentStatusData($intent);
+            
             case 'query_sales':
                 $agent = new SalesAgent($this->organization);
                 $data = $agent->perceive();
@@ -1480,10 +1483,37 @@ class AddyResponseGenerator
                 return "I can help you with invoices. Check the Sales section for invoice details.";
             case 'query_sales':
                 return "I can help you with sales information. View sales performance in the Sales section.";
+            case 'query_document_status':
+                if ($dataContext && isset($dataContext['jobs'])) {
+                    $jobs = $dataContext['jobs'];
+                    if (empty($jobs)) {
+                        return "You don't have any document processing jobs yet. Upload a document to get started!";
+                    }
+                    
+                    $response = "Here are your recent document processing jobs:\n\n";
+                    foreach ($jobs as $job) {
+                        $status = ucfirst($job['status']);
+                        $fileName = $job['file_name'];
+                        $progress = $job['progress'];
+                        $response .= "• **{$fileName}** - {$status} ({$progress}%)\n";
+                        if ($job['status_message']) {
+                            $response .= "  {$job['status_message']}\n";
+                        }
+                        if ($job['document_type']) {
+                            $response .= "  Type: {$job['document_type']}\n";
+                        }
+                        if ($job['is_complete'] && $job['document_type']) {
+                            $response .= "  ✓ Processed successfully\n";
+                        }
+                        $response .= "\n";
+                    }
+                    return $response;
+                }
+                return "I can check the status of your document processing jobs. Upload a document to get started!";
             case 'greeting':
                 return "Hello! I'm Addy, your AI business assistant. How can I help you today?";
             default:
-                return "I'm here to help! You can ask me about your cash position, budgets, expenses, invoices, sales, or team information.";
+                return "I'm here to help! You can ask me about your cash position, budgets, expenses, invoices, sales, team information, or document processing status.";
         }
     }
     
@@ -1727,6 +1757,55 @@ class AddyResponseGenerator
         $message .= "Remember: You're having a conversation, not just answering questions. Be engaging, helpful, and personable!";
         
         return $message;
+    }
+    
+    /**
+     * Get document status data for queries
+     */
+    protected function getDocumentStatusData(array $intent): array
+    {
+        $user = $this->user;
+        $organizationId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        $params = $intent['parameters'] ?? [];
+        $limit = $params['limit'] ?? 10;
+        $statusFilter = $params['status'] ?? null;
+        $jobId = $params['job_id'] ?? null;
+        
+        $query = \App\Models\DocumentProcessingJob::where('user_id', $user->id)
+            ->where('organization_id', $organizationId);
+        
+        if ($jobId) {
+            $query->where('id', $jobId);
+        }
+        
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
+        }
+        
+        $jobs = $query->latest()->limit($limit)->get();
+        
+        return [
+            'type' => 'document_status',
+            'jobs' => $jobs->map(function ($job) {
+                return [
+                    'id' => $job->id,
+                    'file_name' => $job->file_name ?? ($job->metadata['original_name'] ?? 'Unknown'),
+                    'status' => $job->status,
+                    'status_message' => $job->status_message,
+                    'progress' => $job->progress,
+                    'document_type' => $job->result['document_type'] ?? null,
+                    'confidence' => $job->result['confidence'] ?? null,
+                    'requires_review' => $job->result['requires_review'] ?? false,
+                    'created_at' => $job->created_at->diffForHumans(),
+                    'completed_at' => $job->completed_at?->diffForHumans(),
+                    'processing_time' => $job->processing_time,
+                    'is_complete' => $job->isComplete(),
+                    'is_failed' => $job->isFailed(),
+                ];
+            })->toArray(),
+            'total' => $jobs->count(),
+        ];
     }
     
     /**

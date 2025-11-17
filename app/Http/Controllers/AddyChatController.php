@@ -31,62 +31,59 @@ class AddyChatController extends Controller
             return response()->json(['error' => 'No organization found'], 400);
         }
 
-        // Process file uploads if any
+        // Process file uploads if any - queue for background processing
         $attachments = [];
         $extractedData = [];
+        $queuedJobs = [];
         
         if ($request->hasFile('files')) {
-            $processor = new DocumentProcessorService();
-            $storageService = new DocumentStorageService();
+            $organizationId = session('current_organization_id') ?? $organization->id;
             
             foreach ($request->file('files') as $file) {
                 try {
-                    $processed = $processor->processFile($file, $organization->id);
-                    $attachments[] = [
-                        'file_path' => $processed['file_path'],
-                        'file_name' => $processed['file_name'],
-                        'file_size' => $processed['file_size'],
-                        'mime_type' => $processed['mime_type'],
-                        'extracted_data' => $processed['extracted_data'] ?? null,
-                        'extracted_text' => $processed['extracted_text'] ?? null,
-                    ];
+                    // Queue file for background processing via agent
+                    $controller = new \App\Http\Controllers\AgentDataUploadController();
+                    $uploadRequest = new \Illuminate\Http\Request();
+                    $uploadRequest->files->set('file', $file);
+                    $uploadRequest->merge(['is_historical' => false]);
+                    $uploadRequest->setUserResolver(function () use ($user) {
+                        return $user;
+                    });
                     
-                if (!empty($processed['extracted_data'])) {
-                    $extractedData[] = $processed['extracted_data'];
-                    \Log::info('Extracted structured data from file', [
-                        'file_name' => $processed['file_name'],
-                        'document_type' => $processed['extracted_data']['document_type'] ?? 'unknown',
-                        'has_amount' => isset($processed['extracted_data']['amount']),
-                        'amount' => $processed['extracted_data']['amount'] ?? null,
-                    ]);
-                } elseif (!empty($processed['extracted_text'])) {
-                    // If we have extracted text but no structured data, include it
-                    $extractedData[] = [
-                        'raw_text' => $processed['extracted_text'],
-                        'document_type' => 'unknown',
-                        'file_name' => $processed['file_name'],
-                    ];
-                    \Log::info('Using raw text extraction (no structured data)', [
-                        'file_name' => $processed['file_name'],
-                        'text_length' => strlen($processed['extracted_text']),
-                    ]);
-                }
+                    $uploadResponse = $controller->upload($uploadRequest);
+                    $responseData = json_decode($uploadResponse->getContent(), true);
+                    
+                    if ($responseData['success'] ?? false) {
+                        $jobId = $responseData['job_id'];
+                        $queuedJobs[] = $jobId;
+                        
+                        $attachments[] = [
+                            'file_path' => null, // File is being processed
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'job_id' => $jobId,
+                            'status' => 'queued',
+                        ];
+                        
+                        \Log::info('File queued for background processing', [
+                            'file_name' => $file->getClientOriginalName(),
+                            'job_id' => $jobId,
+                        ]);
+                    }
                 } catch (\Exception $e) {
-                    \Log::error('File processing error', [
+                    \Log::error('File upload error', [
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                         'file' => $file->getClientOriginalName(),
                     ]);
                     
-                    // Still save the file even if processing failed
                     $attachments[] = [
-                        'file_path' => $file->store("chat-attachments/{$organization->id}", 'public'),
+                        'file_path' => null,
                         'file_name' => $file->getClientOriginalName(),
                         'file_size' => $file->getSize(),
                         'mime_type' => $file->getMimeType(),
-                        'processing_error' => 'Failed to extract data: ' . $e->getMessage(),
-                        'extracted_data' => null,
-                        'extracted_text' => null,
+                        'processing_error' => 'Failed to queue file: ' . $e->getMessage(),
                     ];
                 }
             }
@@ -94,8 +91,13 @@ class AddyChatController extends Controller
 
         // Build message content
         $messageContent = $request->message ?? '';
-        if (!empty($extractedData)) {
-            $messageContent .= "\n\n[Document attached with extracted data]";
+        if (!empty($queuedJobs)) {
+            $messageContent .= "\n\n[Document(s) uploaded and queued for background processing]";
+            if (count($queuedJobs) === 1) {
+                $messageContent .= "\nJob ID: " . $queuedJobs[0];
+            } else {
+                $messageContent .= "\n" . count($queuedJobs) . " jobs queued";
+            }
         }
 
         // Save user message

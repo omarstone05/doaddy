@@ -98,6 +98,15 @@ class AddyCommandParser
             ];
         }
         
+        // Document status queries
+        if ($this->isDocumentStatusQuery($message)) {
+            return [
+                'intent' => 'query_document_status',
+                'parameters' => $this->extractDocumentStatusParameters($message),
+                'confidence' => 0.9,
+            ];
+        }
+        
         // Sales queries
         if ($this->isSalesQuery($message)) {
             return [
@@ -723,6 +732,67 @@ class AddyCommandParser
         }
 
         return null;
+    }
+
+    /**
+     * Check if message is asking about document processing status
+     */
+    protected function isDocumentStatusQuery(string $message): bool
+    {
+        $patterns = [
+            '/status.*document/i',
+            '/document.*status/i',
+            '/how.*document.*going/i',
+            '/where.*document/i',
+            '/check.*document/i',
+            '/document.*processing/i',
+            '/document.*done/i',
+            '/document.*ready/i',
+            '/upload.*status/i',
+            '/status.*upload/i',
+            '/recent.*documents/i',
+            '/my.*documents/i',
+            '/show.*documents/i',
+            '/list.*documents/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract parameters for document status query
+     */
+    protected function extractDocumentStatusParameters(string $message): array
+    {
+        $params = [];
+
+        // Check for specific job ID
+        if (preg_match('/job[_\s]*#?([a-z0-9\-]+)/i', $message, $matches)) {
+            $params['job_id'] = $matches[1];
+        }
+
+        // Check for "recent" or "latest"
+        if (preg_match('/(recent|latest|last)/i', $message)) {
+            $params['recent'] = true;
+        }
+
+        // Check for limit
+        if (preg_match('/(\d+)\s+(?:documents?|uploads?|files?)/i', $message, $matches)) {
+            $params['limit'] = (int) $matches[1];
+        }
+
+        // Check for status filter
+        if (preg_match('/(pending|processing|completed|failed|done)/i', $message, $matches)) {
+            $params['status'] = strtolower($matches[1]);
+        }
+
+        return $params;
     }
 
     protected function extractQuoteParameters(string $message): array

@@ -343,13 +343,13 @@ Route::middleware('auth')->group(function () {
     });
     
     // Data Upload (Context-Aware OCR)
+    // Data Upload (Agent-based background processing)
     Route::prefix('data-upload')->name('data-upload.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\EnhancedDataUploadController::class, 'index'])->name('index');
-        Route::post('/analyze', [\App\Http\Controllers\EnhancedDataUploadController::class, 'analyze'])->name('analyze');
-        Route::post('/import-ocr-reviewed', [\App\Http\Controllers\EnhancedDataUploadController::class, 'importOcrReviewed'])->name('import-ocr-reviewed');
-        Route::post('/batch-historical', [\App\Http\Controllers\EnhancedDataUploadController::class, 'batchHistorical'])->name('batch-historical');
-        Route::post('/auto-import-batch', [\App\Http\Controllers\EnhancedDataUploadController::class, 'autoImportBatch'])->name('auto-import-batch');
-        Route::get('/context', [\App\Http\Controllers\EnhancedDataUploadController::class, 'getContext'])->name('context');
+        Route::get('/', [\App\Http\Controllers\AgentDataUploadController::class, 'index'])->name('index');
+        Route::post('/upload', [\App\Http\Controllers\AgentDataUploadController::class, 'upload'])->name('upload');
+        Route::get('/status/{id}', [\App\Http\Controllers\AgentDataUploadController::class, 'status'])->name('status');
+        Route::post('/import-reviewed/{id}', [\App\Http\Controllers\AgentDataUploadController::class, 'importReviewed'])->name('import-reviewed');
+        Route::post('/cancel/{id}', [\App\Http\Controllers\AgentDataUploadController::class, 'cancel'])->name('cancel');
     });
     
     // Addy Settings
