@@ -2,10 +2,10 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
 import { Link, router, usePage } from '@inertiajs/react';
-import { User, Building2, Shield, ShieldCheck, Key, Mail } from 'lucide-react';
+import { User, Building2, Shield, ShieldCheck, Key, Mail, UserCog } from 'lucide-react';
 import { useState } from 'react';
 
-export default function Show({ user, stats }) {
+export default function Show({ user, stats, roles }) {
     const { flash } = usePage().props;
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [password, setPassword] = useState('');
@@ -62,6 +62,28 @@ export default function Show({ user, stats }) {
                 },
             });
         }
+    };
+
+    const handleChangeRole = (orgId, newRoleSlug) => {
+        if (confirm(`Change user's role in this organization?`)) {
+            router.post(`/admin/users/${user.id}/change-organization-role`, {
+                organization_id: orgId,
+                role_slug: newRoleSlug,
+            }, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const getRoleColor = (role) => {
+        const colors = {
+            owner: 'bg-teal-100 text-teal-800 border-teal-200',
+            admin: 'bg-blue-100 text-blue-800 border-blue-200',
+            manager: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+            member: 'bg-gray-100 text-gray-800 border-gray-200',
+            viewer: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        };
+        return colors[role] || colors.member;
     };
 
     return (
@@ -189,38 +211,65 @@ export default function Show({ user, stats }) {
                     </div>
                 )}
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-600">
-                                    Organizations ({user.organizations?.length || 0})
-                                </p>
-                                <div className="mt-2 space-y-1">
-                                    {user.organizations && user.organizations.length > 0 ? (
-                                        user.organizations.slice(0, 3).map((org) => (
-                                            <div key={org.id} className="text-sm font-medium text-gray-900">
-                                                {org.name}
-                                                {org.pivot?.role && (
-                                                    <span className="ml-2 text-xs text-gray-500">({org.pivot.role})</span>
+                {/* Roles & Organizations */}
+                <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <UserCog className="w-5 h-5" />
+                            Roles & Organizations
+                        </h3>
+                    </div>
+                    {user.organizations && user.organizations.length > 0 ? (
+                        <div className="space-y-4">
+                            {user.organizations.map((org) => {
+                                const currentRole = org.pivot?.role || 'member';
+                                return (
+                                    <div key={org.id} className="border border-gray-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <Building2 className="w-5 h-5 text-blue-500" />
+                                                    <h4 className="font-medium text-gray-900">{org.name}</h4>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-600">Current Role:</span>
+                                                    <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getRoleColor(currentRole)}`}>
+                                                        {currentRole.charAt(0).toUpperCase() + currentRole.slice(1)}
+                                                    </span>
+                                                </div>
+                                                {org.pivot?.joined_at && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Joined: {new Date(org.pivot.joined_at).toLocaleDateString()}
+                                                    </p>
                                                 )}
                                             </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-sm text-gray-500">No organizations</p>
-                                    )}
-                                    {user.organizations && user.organizations.length > 3 && (
-                                        <p className="text-xs text-gray-500">
-                                            +{user.organizations.length - 3} more
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                            <Building2 className="w-8 h-8 text-blue-500" />
+                                            {roles && roles.length > 0 && (
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={currentRole}
+                                                        onChange={(e) => handleChangeRole(org.id, e.target.value)}
+                                                        className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                                    >
+                                                        {roles.map((role) => (
+                                                            <option key={role.id} value={role.slug}>
+                                                                {role.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </Card>
+                    ) : (
+                        <p className="text-sm text-gray-500">User is not a member of any organizations</p>
+                    )}
+                </Card>
 
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
@@ -247,25 +296,6 @@ export default function Show({ user, stats }) {
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Email</dt>
                             <dd className="mt-1 text-sm text-gray-900">{user.email}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-500">Organizations</dt>
-                            <dd className="mt-1">
-                                {user.organizations && user.organizations.length > 0 ? (
-                                    <div className="space-y-1">
-                                        {user.organizations.map((org) => (
-                                            <div key={org.id} className="text-sm text-gray-900">
-                                                {org.name}
-                                                {org.pivot?.role && (
-                                                    <span className="ml-2 text-xs text-gray-500">({org.pivot.role})</span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <span className="text-sm text-gray-500">No organizations</span>
-                                )}
-                            </dd>
                         </div>
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Created</dt>

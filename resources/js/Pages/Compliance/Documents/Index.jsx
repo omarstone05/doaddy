@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { Plus, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 export default function DocumentsIndex({ documents, categories, filters }) {
     const handleDelete = (documentId) => {
@@ -103,11 +103,33 @@ export default function DocumentsIndex({ documents, categories, filters }) {
                                     <tr key={document.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4 text-gray-400" />
+                                                {document.type === 'link' ? (
+                                                    <LinkIcon className="h-4 w-4 text-teal-600" />
+                                                ) : (
+                                                    <FileText className="h-4 w-4 text-gray-400" />
+                                                )}
                                                 <div>
-                                                    <div className="font-medium text-gray-900">{document.name}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-gray-900">{document.name}</span>
+                                                        {document.type === 'link' && document.description && (
+                                                            <a
+                                                                href={document.description.replace('Link: ', '')}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-teal-600 hover:text-teal-700"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <ExternalLink className="h-3 w-3" />
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                     {document.description && (
-                                                        <div className="text-sm text-gray-500 mt-1">{document.description.substring(0, 50)}...</div>
+                                                        <div className="text-sm text-gray-500 mt-1">
+                                                            {document.type === 'link' 
+                                                                ? document.description.replace('Link: ', '').substring(0, 50)
+                                                                : document.description.substring(0, 50)
+                                                            }...
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

@@ -4,16 +4,52 @@ import { Button } from '@/Components/ui/Button';
 import { Link, router } from '@inertiajs/react';
 import { Users, Search, Eye } from 'lucide-react';
 import { useState } from 'react';
+import axios from 'axios';
 
 export default function Index({ users, filters }) {
     const [search, setSearch] = useState(filters.search || '');
+    const [activeFilter, setActiveFilter] = useState(filters.is_active ?? null);
+    const [togglingUsers, setTogglingUsers] = useState(new Set());
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get('/admin/users', { search }, {
+        router.get('/admin/users', { search, is_active: activeFilter }, {
             preserveState: true,
             preserveScroll: true,
         });
+    };
+
+    const handleFilterChange = (value) => {
+        setActiveFilter(value);
+        router.get('/admin/users', { search, is_active: value }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleToggleActive = async (userId, currentStatus) => {
+        if (togglingUsers.has(userId)) return;
+        
+        setTogglingUsers(prev => new Set(prev).add(userId));
+        
+        try {
+            const response = await axios.post(`/admin/users/${userId}/toggle-active`);
+            
+            // Reload the page to reflect changes
+            router.reload({
+                preserveState: true,
+                preserveScroll: true,
+            });
+        } catch (error) {
+            console.error('Error toggling user active status:', error);
+            alert('Failed to update user status. Please try again.');
+        } finally {
+            setTogglingUsers(prev => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+            });
+        }
     };
 
     return (
@@ -40,6 +76,17 @@ export default function Index({ users, filters }) {
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                             />
                         </div>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={activeFilter ?? ''}
+                                onChange={(e) => handleFilterChange(e.target.value || null)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            >
+                                <option value="">All Users</option>
+                                <option value="true">Active Only</option>
+                                <option value="false">Inactive Only</option>
+                            </select>
+                        </div>
                         <Button type="submit">Search</Button>
                     </form>
                 </Card>
@@ -58,6 +105,9 @@ export default function Index({ users, filters }) {
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Role
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Created
@@ -111,21 +161,27 @@ export default function Index({ users, filters }) {
                                                     </span>
                                                 )}
                                                 {user.organizations && user.organizations.length > 0 ? (
-                                                    user.organizations.slice(0, 2).map((org) => {
+                                                    user.organizations.slice(0, 3).map((org) => {
                                                         const role = org.pivot?.role || 'member';
                                                         const roleColors = {
-                                                            owner: 'bg-teal-100 text-teal-800',
-                                                            admin: 'bg-blue-100 text-blue-800',
-                                                            member: 'bg-gray-100 text-gray-800',
+                                                            owner: 'bg-teal-100 text-teal-800 border-teal-200',
+                                                            admin: 'bg-blue-100 text-blue-800 border-blue-200',
+                                                            manager: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+                                                            member: 'bg-gray-100 text-gray-800 border-gray-200',
+                                                            viewer: 'bg-yellow-100 text-yellow-800 border-yellow-200',
                                                         };
                                                         return (
-                                                            <span
-                                                                key={org.id}
-                                                                className={`px-2 py-1 text-xs font-medium rounded-full ${roleColors[role] || roleColors.member}`}
-                                                                title={`${org.name}: ${role}`}
-                                                            >
-                                                                {role.charAt(0).toUpperCase() + role.slice(1)}
-                                                            </span>
+                                                            <div key={org.id} className="flex flex-col gap-0.5">
+                                                                <span
+                                                                    className={`px-2 py-1 text-xs font-medium rounded-full border ${roleColors[role] || roleColors.member}`}
+                                                                    title={`${org.name}: ${role}`}
+                                                                >
+                                                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 truncate max-w-[100px]" title={org.name}>
+                                                                    {org.name}
+                                                                </span>
+                                                            </div>
                                                         );
                                                     })
                                                 ) : (
@@ -135,6 +191,32 @@ export default function Index({ users, filters }) {
                                                         </span>
                                                     )
                                                 )}
+                                                {user.organizations && user.organizations.length > 3 && (
+                                                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                                        +{user.organizations.length - 3} more
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                    user.is_active 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                    {user.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={user.is_active ?? true}
+                                                        onChange={() => handleToggleActive(user.id, user.is_active)}
+                                                        disabled={togglingUsers.has(user.id)}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                                                </label>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

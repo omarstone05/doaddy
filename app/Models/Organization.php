@@ -47,7 +47,7 @@ class Organization extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organization_user')
-            ->withPivot('role', 'is_active', 'joined_at')
+            ->withPivot('role', 'role_id', 'is_active', 'joined_at')
             ->withTimestamps()
             ->wherePivot('is_active', true)
             ->orderBy('joined_at', 'desc');
@@ -59,9 +59,58 @@ class Organization extends Model
     public function allMembers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organization_user')
-            ->withPivot('role', 'is_active', 'joined_at')
+            ->withPivot('role', 'role_id', 'is_active', 'joined_at')
             ->withTimestamps()
             ->orderBy('joined_at', 'desc');
+    }
+
+    /**
+     * Get all roles available for this organization
+     */
+    public function roles()
+    {
+        return OrganizationRole::all();
+    }
+
+    /**
+     * Assign a role to a user in this organization
+     */
+    public function assignRoleToUser(User $user, string $roleSlug): bool
+    {
+        $role = OrganizationRole::where('slug', $roleSlug)->first();
+        
+        if (!$role) {
+            return false;
+        }
+
+        $this->members()->syncWithoutDetaching([
+            $user->id => [
+                'role_id' => $role->id,
+                'role' => $role->slug, // Keep for backward compatibility
+                'is_active' => true,
+            ]
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Change a user's role in this organization
+     */
+    public function changeUserRole(User $user, string $roleSlug): bool
+    {
+        $role = OrganizationRole::where('slug', $roleSlug)->first();
+        
+        if (!$role) {
+            return false;
+        }
+
+        $this->members()->updateExistingPivot($user->id, [
+            'role_id' => $role->id,
+            'role' => $role->slug, // Keep for backward compatibility
+        ]);
+
+        return true;
     }
 
     /**
@@ -78,6 +127,13 @@ class Organization extends Model
      */
     public function owners(): BelongsToMany
     {
+        $ownerRole = OrganizationRole::where('slug', 'owner')->first();
+        
+        if ($ownerRole) {
+            return $this->members()->wherePivot('role_id', $ownerRole->id);
+        }
+        
+        // Fallback to string role for backward compatibility
         return $this->members()->wherePivot('role', 'owner');
     }
 

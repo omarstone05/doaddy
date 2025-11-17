@@ -47,7 +47,10 @@ echo "Testing Twilio API Connection:\n";
 echo "------------------------------\n";
 
 try {
-    $response = Http::withBasicAuth($accountSid, $authToken)
+    $response = Http::withOptions([
+        'verify' => false, // Disable SSL verification for local testing
+    ])
+    ->withBasicAuth($accountSid, $authToken)
         ->get("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}.json");
     
     if ($response->successful()) {
@@ -120,7 +123,10 @@ if ($sendTest) {
     echo "\nSending test message to whatsapp:+{$phoneNumber}...\n";
     
     try {
-        $response = Http::withBasicAuth($accountSid, $authToken)
+        $response = Http::withOptions([
+            'verify' => false, // Disable SSL verification for local testing
+        ])
+        ->withBasicAuth($accountSid, $authToken)
             ->asForm()
             ->post("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Messages.json", [
                 'From' => $whatsappFrom,

@@ -100,6 +100,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'index'])->name('settings.index');
         Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])->name('settings.update');
         
+        // Raw Query Management (Multi-tenancy with raw SQL)
+        // Accessible to super admins and organization owners (permission checked in controller)
+        Route::get('/raw-query', [\App\Http\Controllers\RawQueryController::class, 'index'])->name('raw-query.index');
+        Route::post('/raw-query/execute', [\App\Http\Controllers\RawQueryController::class, 'execute'])->name('raw-query.execute');
+        Route::post('/raw-query/execute-write', [\App\Http\Controllers\RawQueryController::class, 'executeWrite'])->name('raw-query.execute-write');
+        Route::get('/raw-query/tables', [\App\Http\Controllers\RawQueryController::class, 'getTableStructure'])->name('raw-query.tables');
+        
         // Organization Management
         Route::resource('organizations', \App\Http\Controllers\Admin\AdminOrganizationController::class);
         Route::post('/organizations/{organization}/suspend', [\App\Http\Controllers\Admin\AdminOrganizationController::class, 'suspend'])->name('organizations.suspend');
@@ -108,8 +115,13 @@ Route::middleware('auth')->group(function () {
         // User Management
         Route::resource('users', \App\Http\Controllers\Admin\AdminUserController::class);
         Route::post('/users/{user}/toggle-super-admin', [\App\Http\Controllers\Admin\AdminUserController::class, 'toggleSuperAdmin'])->name('users.toggle-super-admin');
+        Route::post('/users/{user}/toggle-active', [\App\Http\Controllers\Admin\AdminUserController::class, 'toggleActive'])->name('users.toggle-active');
         Route::post('/users/{user}/change-password', [\App\Http\Controllers\Admin\AdminUserController::class, 'changePassword'])->name('users.change-password');
         Route::post('/users/{user}/send-password-reset', [\App\Http\Controllers\Admin\AdminUserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
+        Route::post('/users/{user}/change-organization-role', [\App\Http\Controllers\Admin\AdminUserController::class, 'changeOrganizationRole'])->name('users.change-organization-role');
+        
+        // Role Management
+        Route::resource('roles', \App\Http\Controllers\OrganizationRoleController::class);
         
         // Support Tickets
         Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show', 'create', 'store']);
@@ -398,6 +410,8 @@ Route::middleware('auth')->group(function () {
         'update' => 'compliance.documents.update',
         'destroy' => 'compliance.documents.destroy',
     ]);
+    Route::post('compliance/documents/{id}/assign', [DocumentController::class, 'assignToTeamMembers'])->name('compliance.documents.assign');
+    Route::delete('compliance/documents/{id}/unassign/{teamMemberId}', [DocumentController::class, 'unassignFromTeamMember'])->name('compliance.documents.unassign');
     
     // Licenses
     Route::resource('compliance/licenses', LicenseController::class)->names([

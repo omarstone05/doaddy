@@ -25,6 +25,49 @@ class AttachmentController extends Controller
      */
     public function store(Request $request)
     {
+        $organization = $request->user()->organization;
+
+        // Handle link attachments
+        if ($request->has('url') && $request->url) {
+            $request->validate([
+                'url' => 'required|url|max:2048',
+                'name' => 'required|string|max:255',
+                'attachable_type' => 'required|string',
+                'attachable_id' => 'required|uuid',
+            ]);
+
+            $attachment = Attachment::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'organization_id' => $organization->id,
+                'attachable_type' => $request->attachable_type,
+                'attachable_id' => $request->attachable_id,
+                'name' => $request->name,
+                'url' => $request->url,
+                'mime_type' => 'application/link',
+                'uploaded_by_id' => Auth::id(),
+            ]);
+
+            // Also create a Document record for better organization
+            if ($request->category) {
+                \App\Models\Document::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'organization_id' => $organization->id,
+                    'name' => $request->name,
+                    'description' => "Link: {$request->url}",
+                    'category' => $request->category,
+                    'type' => 'link',
+                    'status' => 'active',
+                    'created_by_id' => Auth::id(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'attachment' => $attachment->load('uploadedBy'),
+            ]);
+        }
+
+        // Handle file attachments
         $request->validate([
             'file' => 'required|file|mimes:jpeg,jpg,png,gif,pdf,doc,docx,xls,xlsx,txt|max:10240', // 10MB max
             'attachable_type' => 'required|string', // e.g., 'App\Models\Customer'
@@ -32,7 +75,6 @@ class AttachmentController extends Controller
             'category' => 'nullable|string',
         ]);
 
-        $organization = $request->user()->organization;
         $file = $request->file('file');
 
         // Store the document
@@ -82,12 +124,17 @@ class AttachmentController extends Controller
         $attachment = Attachment::where('organization_id', Auth::user()->organization_id)
             ->findOrFail($id);
 
-        if (!Storage::disk('public')->exists($attachment->file_path)) {
+        // If it's a link, redirect to the URL
+        if ($attachment->url) {
+            return redirect($attachment->url);
+        }
+
+        if (!$attachment->file_path || !Storage::disk('public')->exists($attachment->file_path)) {
             abort(404, 'File not found');
         }
 
-        return Storage::disk('public')->download(
-            $attachment->file_path,
+        return response()->download(
+            Storage::disk('public')->path($attachment->file_path),
             $attachment->file_name
         );
     }

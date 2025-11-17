@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\TeamMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -12,7 +13,15 @@ class DocumentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Document::where('organization_id', Auth::user()->organization_id);
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.view')) {
+            abort(403, 'You do not have permission to view documents.');
+        }
+        
+        $query = Document::where('organization_id', $orgId);
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -51,11 +60,27 @@ class DocumentController extends Controller
 
     public function create()
     {
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.create')) {
+            abort(403, 'You do not have permission to create documents.');
+        }
+        
         return Inertia::render('Compliance/Documents/Create');
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.create')) {
+            abort(403, 'You do not have permission to create documents.');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -76,7 +101,15 @@ class DocumentController extends Controller
 
     public function show($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.view')) {
+            abort(403, 'You do not have permission to view documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->with(['createdBy', 'versions', 'attachments'])
             ->findOrFail($id);
 
@@ -87,7 +120,15 @@ class DocumentController extends Controller
 
     public function edit($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.update')) {
+            abort(403, 'You do not have permission to edit documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         return Inertia::render('Compliance/Documents/Edit', [
@@ -97,7 +138,15 @@ class DocumentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.update')) {
+            abort(403, 'You do not have permission to update documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -115,12 +164,66 @@ class DocumentController extends Controller
 
     public function destroy($id)
     {
-        $document = Document::where('organization_id', Auth::user()->organization_id)
+        $user = Auth::user();
+        $orgId = $user->organization_id;
+        
+        // Check permission
+        if (!$user->hasPermissionInOrganization($orgId, 'documents.delete')) {
+            abort(403, 'You do not have permission to delete documents.');
+        }
+        
+        $document = Document::where('organization_id', $orgId)
             ->findOrFail($id);
 
         $document->delete();
 
         return redirect()->route('compliance.documents.index')->with('message', 'Document deleted successfully');
+    }
+
+    /**
+     * Assign document to team members
+     */
+    public function assignToTeamMembers(Request $request, $id)
+    {
+        $document = Document::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'team_member_ids' => 'required|array',
+            'team_member_ids.*' => 'required|uuid|exists:team_members,id',
+        ]);
+
+        // Verify all team members belong to the same organization
+        $teamMemberIds = TeamMember::where('organization_id', Auth::user()->organization_id)
+            ->whereIn('id', $validated['team_member_ids'])
+            ->pluck('id')
+            ->toArray();
+
+        $document->teamMembers()->sync($teamMemberIds);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document assigned to team members successfully',
+        ]);
+    }
+
+    /**
+     * Unassign document from team member
+     */
+    public function unassignFromTeamMember(Request $request, $id, $teamMemberId)
+    {
+        $document = Document::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($id);
+
+        $teamMember = TeamMember::where('organization_id', Auth::user()->organization_id)
+            ->findOrFail($teamMemberId);
+
+        $document->teamMembers()->detach($teamMember->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document unassigned from team member successfully',
+        ]);
     }
 }
 

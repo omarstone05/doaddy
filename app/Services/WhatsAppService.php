@@ -233,7 +233,7 @@ class WhatsAppService
             $cleanMessage = trim($message);
             
             $response = Http::withOptions([
-                'verify' => env('APP_ENV') === 'production' ? true : false,
+                'verify' => env('APP_ENV') === 'production',
             ])
             ->withBasicAuth($accountSid, $authToken)
             ->asForm()

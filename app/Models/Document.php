@@ -7,6 +7,7 @@ use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -46,6 +47,12 @@ class Document extends Model
     public function getLatestVersionAttribute()
     {
         return $this->versions()->latest()->first();
+    }
+
+    public function teamMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(TeamMember::class, 'document_team_member')
+            ->withTimestamps();
     }
 }
 

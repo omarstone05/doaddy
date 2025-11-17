@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AdminActivityLog;
+use App\Models\OrganizationRole;
+use App\Services\UserMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -17,7 +19,7 @@ class AdminUserController extends Controller
         $users = User::query()
             ->with(['organizations' => function($query) {
                 $query->select('organizations.id', 'organizations.name', 'organizations.slug')
-                      ->withPivot('role', 'is_active', 'joined_at')
+                      ->withPivot('role', 'role_id', 'is_active', 'joined_at')
                       ->wherePivot('is_active', true); // Only show active organization memberships
             }])
             ->when($request->search, function ($query, $search) {
@@ -34,12 +36,15 @@ class AdminUserController extends Controller
             ->when($request->is_super_admin !== null, function ($query) use ($request) {
                 $query->where('is_super_admin', $request->is_super_admin);
             })
+            ->when($request->is_active !== null, function ($query) use ($request) {
+                $query->where('is_active', $request->is_active === 'true' || $request->is_active === true);
+            })
             ->orderBy($request->sort ?? 'created_at', $request->direction ?? 'desc')
             ->paginate(20);
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
-            'filters' => $request->only(['search', 'organization_id', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'organization_id', 'sort', 'direction', 'is_active']),
         ]);
     }
 
@@ -48,14 +53,23 @@ class AdminUserController extends Controller
         $user->load([
             'organizations' => function($query) {
                 $query->select('organizations.id', 'organizations.name', 'organizations.slug')
-                      ->withPivot('role', 'is_active', 'joined_at')
+                      ->withPivot('role', 'role_id', 'is_active', 'joined_at')
                       ->orderBy('organization_user.joined_at', 'asc');
             },
         ]);
 
+        $metricsService = app(UserMetricsService::class);
+        $stats = $metricsService->getUserStats($user);
+        $activityTimeline = $metricsService->getActivityTimeline($user, 30);
+        $loginChart = $metricsService->getDailyMetrics($user, 'login', 30);
+        $roles = OrganizationRole::orderBy('level', 'desc')->get();
+
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,
-            'stats' => [],
+            'stats' => $stats,
+            'activityTimeline' => $activityTimeline,
+            'loginChart' => $loginChart,
+            'roles' => $roles,
         ]);
     }
 
@@ -141,6 +155,56 @@ class AdminUserController extends Controller
         }
 
         return back()->with('error', 'Failed to send password reset email. Please try again.');
+    }
+
+    public function toggleActive(Request $request, User $user)
+    {
+        $oldStatus = $user->is_active;
+        $user->update(['is_active' => !$user->is_active]);
+        
+        AdminActivityLog::log('user_active_toggled', $user, ['is_active' => $oldStatus], [
+            'is_active' => $user->is_active,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'is_active' => $user->is_active,
+            'message' => $user->is_active 
+                ? 'User activated successfully' 
+                : 'User deactivated successfully'
+        ]);
+    }
+
+    /**
+     * Change user's role in an organization
+     */
+    public function changeOrganizationRole(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'organization_id' => 'required|uuid|exists:organizations,id',
+            'role_slug' => 'required|string|exists:organization_roles,slug',
+        ]);
+
+        $organization = \App\Models\Organization::findOrFail($validated['organization_id']);
+        
+        // Check if user belongs to organization
+        if (!$user->belongsToOrganization($validated['organization_id'])) {
+            return back()->with('error', 'User does not belong to this organization');
+        }
+
+        $success = $organization->changeUserRole($user, $validated['role_slug']);
+
+        if ($success) {
+            AdminActivityLog::log('user_role_changed', $user, null, [
+                'organization_id' => $validated['organization_id'],
+                'role_slug' => $validated['role_slug'],
+                'changed_by' => $request->user()->email,
+            ]);
+
+            return back()->with('success', 'User role updated successfully');
+        }
+
+        return back()->with('error', 'Failed to update user role');
     }
 }
 
