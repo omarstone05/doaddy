@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
 
@@ -368,6 +368,13 @@ export function Navigation() {
                     </div>
                   )}
                   
+                  <Link
+                    href="/support/tickets"
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Ticket className="h-4 w-4" />
+                    Support Tickets
+                  </Link>
                   <Link
                     href="/settings"
                     className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

@@ -15,7 +15,7 @@ class AdminUserController extends Controller
     public function index(Request $request)
     {
         $users = User::query()
-            ->with('organization')
+            ->with('organizations')
             ->when($request->search, function ($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -23,7 +23,9 @@ class AdminUserController extends Controller
                 });
             })
             ->when($request->organization_id, function ($query, $orgId) {
-                $query->where('organization_id', $orgId);
+                $query->whereHas('organizations', function($q) use ($orgId) {
+                    $q->where('organizations.id', $orgId);
+                });
             })
             ->when($request->is_super_admin !== null, function ($query) use ($request) {
                 $query->where('is_super_admin', $request->is_super_admin);
@@ -40,7 +42,7 @@ class AdminUserController extends Controller
     public function show(User $user)
     {
         $user->load([
-            'organization',
+            'organizations',
         ]);
 
         return Inertia::render('Admin/Users/Show', [

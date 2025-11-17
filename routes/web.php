@@ -333,6 +333,15 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/logo', [SettingsController::class, 'updateLogo'])->name('settings.update-logo');
     
+    // Support Tickets
+    Route::prefix('support/tickets')->name('support.tickets.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SupportTicketController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\SupportTicketController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\SupportTicketController::class, 'store'])->name('store');
+        Route::get('/{ticket}', [\App\Http\Controllers\SupportTicketController::class, 'show'])->name('show');
+        Route::post('/{ticket}/messages', [\App\Http\Controllers\SupportTicketController::class, 'addMessage'])->name('messages.store');
+    });
+    
     // Addy Settings
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');
     Route::post('/settings/addy', [AddySettingsController::class, 'update'])->name('settings.addy.update');
