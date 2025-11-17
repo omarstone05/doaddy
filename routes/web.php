@@ -105,7 +105,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/send-password-reset', [\App\Http\Controllers\Admin\AdminUserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
         
         // Support Tickets
-        Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show']);
+        Route::resource('tickets', \App\Http\Controllers\Admin\AdminTicketController::class)->only(['index', 'show', 'create', 'store']);
         Route::post('/tickets/{ticket}/assign', [\App\Http\Controllers\Admin\AdminTicketController::class, 'assign'])->name('tickets.assign');
         Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\Admin\AdminTicketController::class, 'updateStatus'])->name('tickets.update-status');
         Route::post('/tickets/{ticket}/messages', [\App\Http\Controllers\Admin\AdminTicketController::class, 'addMessage'])->name('tickets.add-message');

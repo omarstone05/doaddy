@@ -49,6 +49,45 @@ class AdminTicketController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $users = \App\Models\User::with('organizations')->get();
+        $organizations = \App\Models\Organization::all();
+
+        return Inertia::render('Admin/Tickets/Create', [
+            'users' => $users,
+            'organizations' => $organizations,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'description' => 'required|string|min:10',
+            'priority' => 'required|in:low,medium,high,urgent',
+            'category' => 'required|in:technical,billing,feature_request,bug,other',
+            'user_id' => 'required|exists:users,id',
+            'organization_id' => 'required|exists:organizations,id',
+        ]);
+
+        $ticket = SupportTicket::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'ticket_number' => 'TKT-' . strtoupper(uniqid()),
+            'organization_id' => $validated['organization_id'],
+            'user_id' => $validated['user_id'],
+            'subject' => $validated['subject'],
+            'description' => $validated['description'],
+            'priority' => $validated['priority'],
+            'category' => $validated['category'],
+            'status' => 'open',
+            'assigned_to' => auth()->id(), // Auto-assign to admin who created it
+        ]);
+
+        return redirect()->route('admin.tickets.show', $ticket->id)
+            ->with('success', 'Support ticket created successfully! Ticket number: ' . $ticket->ticket_number);
+    }
+
     public function show(SupportTicket $ticket)
     {
         $ticket->load([

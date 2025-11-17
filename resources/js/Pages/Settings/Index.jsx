@@ -1,7 +1,8 @@
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { Save, Building2, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Card } from '@/Components/ui/Card';
+import { Save, Building2, Upload, X, Image as ImageIcon, Ticket } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function SettingsIndex({ organization }) {
@@ -9,7 +10,15 @@ export default function SettingsIndex({ organization }) {
     const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
     const [logoFile, setLogoFile] = useState(null);
     const [logoUploading, setLogoUploading] = useState(false);
+    const [showSupportModal, setShowSupportModal] = useState(false);
     const fileInputRef = useRef(null);
+    
+    const supportForm = useForm({
+        subject: '',
+        description: '',
+        priority: 'medium',
+        category: 'other',
+    });
     const form = useForm({
         name: organization.name || '',
         slug: organization.slug || '',
@@ -96,6 +105,18 @@ export default function SettingsIndex({ organization }) {
                 if (formErrors) {
                     console.error('Full error details:', JSON.stringify(formErrors, null, 2));
                 }
+            },
+        });
+    };
+
+    const handleSupportSubmit = (e) => {
+        e.preventDefault();
+        supportForm.post('/support/tickets', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowSupportModal(false);
+                supportForm.reset();
+                router.visit('/support/tickets');
             },
         });
     };
@@ -312,7 +333,149 @@ export default function SettingsIndex({ organization }) {
                         </div>
                     </form>
                 </div>
+
+                {/* Support Section */}
+                <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">Need Help?</h3>
+                            <p className="text-sm text-gray-500">Create a support ticket and we'll get back to you as soon as possible</p>
+                        </div>
+                        <Button onClick={() => setShowSupportModal(true)}>
+                            <Ticket className="h-4 w-4 mr-2" />
+                            Create Support Ticket
+                        </Button>
+                    </div>
+                </div>
             </div>
+
+            {/* Support Ticket Modal */}
+            {showSupportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900">Create Support Ticket</h2>
+                                <button
+                                    onClick={() => {
+                                        setShowSupportModal(false);
+                                        supportForm.reset();
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSupportSubmit} className="space-y-6">
+                                {/* Subject */}
+                                <div>
+                                    <label htmlFor="modal-subject" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Subject <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="modal-subject"
+                                        value={supportForm.data.subject}
+                                        onChange={(e) => supportForm.setData('subject', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder="Brief description of your issue"
+                                        required
+                                    />
+                                    {supportForm.errors.subject && (
+                                        <p className="mt-1 text-sm text-red-600">{supportForm.errors.subject}</p>
+                                    )}
+                                </div>
+
+                                {/* Category */}
+                                <div>
+                                    <label htmlFor="modal-category" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Category <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="modal-category"
+                                        value={supportForm.data.category}
+                                        onChange={(e) => supportForm.setData('category', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="technical">Technical Issue</option>
+                                        <option value="billing">Billing Question</option>
+                                        <option value="feature_request">Feature Request</option>
+                                        <option value="bug">Bug Report</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    {supportForm.errors.category && (
+                                        <p className="mt-1 text-sm text-red-600">{supportForm.errors.category}</p>
+                                    )}
+                                </div>
+
+                                {/* Priority */}
+                                <div>
+                                    <label htmlFor="modal-priority" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Priority <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="modal-priority"
+                                        value={supportForm.data.priority}
+                                        onChange={(e) => supportForm.setData('priority', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                    {supportForm.errors.priority && (
+                                        <p className="mt-1 text-sm text-red-600">{supportForm.errors.priority}</p>
+                                    )}
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <label htmlFor="modal-description" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Description <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        id="modal-description"
+                                        value={supportForm.data.description}
+                                        onChange={(e) => supportForm.setData('description', e.target.value)}
+                                        rows={6}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder="Please provide as much detail as possible about your issue..."
+                                        required
+                                        minLength={10}
+                                    />
+                                    {supportForm.errors.description && (
+                                        <p className="mt-1 text-sm text-red-600">{supportForm.errors.description}</p>
+                                    )}
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Minimum 10 characters required
+                                    </p>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setShowSupportModal(false);
+                                            supportForm.reset();
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={supportForm.processing}>
+                                        {supportForm.processing ? 'Creating...' : 'Create Ticket'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </SectionLayout>
     );
 }

@@ -1,12 +1,15 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card } from '@/Components/ui/Card';
+import { Button } from '@/Components/ui/Button';
+import { Link } from '@inertiajs/react';
 import { 
     Building2, 
     Users, 
     Ticket,
     TrendingUp,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    Plus
 } from 'lucide-react';
 import {
     LineChart,
@@ -80,11 +83,19 @@ export default function Dashboard({ stats, charts, system_health }) {
         <AdminLayout title="Admin Dashboard">
             <div className="space-y-6">
                 {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        System overview and health monitoring
-                    </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            System overview and health monitoring
+                        </p>
+                    </div>
+                    <Link href="/admin/tickets/create">
+                        <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Support Ticket
+                        </Button>
+                    </Link>
                 </div>
 
                 {/* Stats Grid */}
