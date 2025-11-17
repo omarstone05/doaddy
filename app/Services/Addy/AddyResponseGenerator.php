@@ -53,6 +53,19 @@ class AddyResponseGenerator
             }
         }
         
+        // Check if user uploaded a document that's not a receipt or invoice
+        $shouldShowUploadCenter = false;
+        if (!empty($extractedData)) {
+            foreach ($extractedData as $data) {
+                $docType = $data['document_type'] ?? 'unknown';
+                // If it's not a receipt or invoice, suggest upload center
+                if (!in_array($docType, ['receipt', 'invoice', 'expense', 'income'])) {
+                    $shouldShowUploadCenter = true;
+                    break;
+                }
+            }
+        }
+        
         // If we have extracted data from files, try to create transaction action
         if (!empty($extractedData)) {
             $intent = $this->createIntentFromExtractedData($extractedData, $intent);
@@ -62,14 +75,30 @@ class AddyResponseGenerator
         if ($intent['intent'] === 'action') {
             // Handle bank statements with multiple transactions differently
             if ($intent['action_type'] === 'create_transaction' && isset($intent['parameters']['transactions']) && is_array($intent['parameters']['transactions'])) {
-                return $this->handleBankStatementTransactions($intent, $userMessage, $extractedData);
+                $response = $this->handleBankStatementTransactions($intent, $userMessage, $extractedData);
+                // Add upload center button if needed
+                if ($shouldShowUploadCenter && isset($response['quick_actions'])) {
+                    $response['quick_actions'][] = [
+                        'label' => '📤 Go to Upload Center',
+                        'url' => '/data-upload',
+                    ];
+                }
+                return $response;
             }
             
             // If parameters are missing, try to extract from chat history or extracted data
             if (empty($intent['parameters']) || (!isset($intent['parameters']['amount']) && !isset($intent['parameters']['transactions']))) {
                 $intent = $this->enrichActionFromHistory($intent, $chatHistory, $userMessage, $extractedData);
             }
-            return $this->handleActionRequest($intent, $userMessage);
+            $response = $this->handleActionRequest($intent, $userMessage);
+            // Add upload center button if needed
+            if ($shouldShowUploadCenter && isset($response['quick_actions'])) {
+                $response['quick_actions'][] = [
+                    'label' => '📤 Go to Upload Center',
+                    'url' => '/data-upload',
+                ];
+            }
+            return $response;
         }
         
         // For all other queries (including greetings, data queries, general conversation):
@@ -77,7 +106,70 @@ class AddyResponseGenerator
         // 2. Pass everything to OpenAI with cultural context to format conversationally
         $dataContext = $this->getDataContext($intent);
         
-        return $this->handleConversationalQuery($userMessage, $chatHistory, $intent, $dataContext);
+        $response = $this->handleConversationalQuery($userMessage, $chatHistory, $intent, $dataContext);
+        
+        // Add upload center button if user mentions uploading documents that aren't receipts/invoices
+        if ($shouldShowUploadCenter || $this->shouldSuggestUploadCenter($userMessage, $intent)) {
+            if (!isset($response['quick_actions'])) {
+                $response['quick_actions'] = [];
+            }
+            // Check if upload center button already exists
+            $hasUploadButton = false;
+            foreach ($response['quick_actions'] as $action) {
+                if (isset($action['url']) && str_contains($action['url'], 'data-upload')) {
+                    $hasUploadButton = true;
+                    break;
+                }
+            }
+            if (!$hasUploadButton) {
+                $response['quick_actions'][] = [
+                    'label' => '📤 Go to Upload Center',
+                    'url' => '/data-upload',
+                ];
+            }
+        }
+        
+        return $response;
+    }
+    
+    /**
+     * Check if we should suggest the upload center based on user message
+     */
+    protected function shouldSuggestUploadCenter(string $userMessage, array $intent): bool
+    {
+        $message = strtolower($userMessage);
+        
+        // Keywords that suggest user wants to upload documents
+        $uploadKeywords = ['upload', 'import', 'add document', 'add file', 'scan', 'photo', 'picture', 'image'];
+        $nonReceiptKeywords = ['contract', 'note', 'memo', 'statement', 'report', 'spreadsheet', 'excel', 'csv', 'list'];
+        
+        $hasUploadKeyword = false;
+        foreach ($uploadKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                $hasUploadKeyword = true;
+                break;
+            }
+        }
+        
+        $hasNonReceiptKeyword = false;
+        foreach ($nonReceiptKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                $hasNonReceiptKeyword = true;
+                break;
+            }
+        }
+        
+        // If user mentions uploading something that's not a receipt/invoice, suggest upload center
+        if ($hasUploadKeyword && $hasNonReceiptKeyword) {
+            return true;
+        }
+        
+        // If user mentions uploading but not specifically receipts/invoices
+        if ($hasUploadKeyword && !str_contains($message, 'receipt') && !str_contains($message, 'invoice')) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -1500,7 +1592,8 @@ class AddyResponseGenerator
         $message .= "- Use [link text](url) for clickable links when referencing pages or resources\n";
         $message .= "- Use proper line breaks and spacing for readability\n";
         $message .= "- Format numbers, dates, and amounts clearly\n";
-        $message .= "- Use bullet points (-) or numbered lists when presenting multiple items\n\n";
+        $message .= "- Use bullet points (-) or numbered lists when presenting multiple items\n";
+        $message .= "- If the user mentions uploading documents that aren't receipts or invoices (like contracts, notes, spreadsheets, lists, etc.), suggest they use the Upload Center at /data-upload for better processing\n\n";
         
         // Tone-specific instructions
         switch ($tone) {

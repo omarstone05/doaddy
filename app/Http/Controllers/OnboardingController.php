@@ -39,6 +39,7 @@ class OnboardingController extends Controller
             'industry' => 'required|string|max:255',
             'currency' => 'required|string|size:3',
             'tone_preference' => 'required|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
+            'wants_data_upload' => 'nullable|string|in:yes,no',
         ]);
 
         $user = Auth::user();
@@ -77,6 +78,11 @@ class OnboardingController extends Controller
             ]);
         }
 
+        // Redirect based on data upload preference
+        if ($request->wants_data_upload === 'yes') {
+            return redirect()->route('data-upload.index')->with('success', 'Welcome to Addy! Let\'s import your data.');
+        }
+        
         return redirect()->route('dashboard')->with('success', 'Welcome to Addy! Let\'s get started.');
     }
 }

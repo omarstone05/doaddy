@@ -10,6 +10,7 @@ export default function OnboardingConversation({ user, organization }) {
         industry: organization?.industry || '',
         currency: organization?.currency || 'ZMW',
         tone_preference: organization?.tone_preference || 'professional',
+        wants_data_upload: '',
     });
     const [inputValue, setInputValue] = useState('');
     const [messages, setMessages] = useState([]);
@@ -74,6 +75,16 @@ const onboardingSteps = [
             { value: 'motivational', label: 'Motivational - Pep talks and encouragement' },
             { value: 'sassy', label: 'Sassy - Bold with personality' },
             { value: 'technical', label: 'Technical - Detailed and precise' },
+        ],
+    },
+    {
+        id: 'data_upload',
+        addy: "Do you have existing business data (receipts, invoices, transactions) from another system that you'd like to import?",
+        type: 'select',
+        field: 'wants_data_upload',
+        options: [
+            { value: 'yes', label: 'Yes, I want to import data' },
+            { value: 'no', label: 'No, I\'ll start fresh' },
         ],
     },
     {
@@ -145,7 +156,12 @@ const onboardingSteps = [
             // Complete onboarding
             router.post('/onboarding/complete', formData, {
                 onSuccess: () => {
-                    router.visit('/dashboard');
+                    // If user wants to upload data, redirect to upload page
+                    if (formData.wants_data_upload === 'yes') {
+                        router.visit('/data-upload');
+                    } else {
+                        router.visit('/dashboard');
+                    }
                 },
                 onError: (errors) => {
                     console.error('Onboarding completion error:', errors);

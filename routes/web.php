@@ -342,6 +342,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/{ticket}/messages', [\App\Http\Controllers\SupportTicketController::class, 'addMessage'])->name('messages.store');
     });
     
+    // Data Upload (Context-Aware OCR)
+    Route::prefix('data-upload')->name('data-upload.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\EnhancedDataUploadController::class, 'index'])->name('index');
+        Route::post('/analyze', [\App\Http\Controllers\EnhancedDataUploadController::class, 'analyze'])->name('analyze');
+        Route::post('/import-ocr-reviewed', [\App\Http\Controllers\EnhancedDataUploadController::class, 'importOcrReviewed'])->name('import-ocr-reviewed');
+        Route::post('/batch-historical', [\App\Http\Controllers\EnhancedDataUploadController::class, 'batchHistorical'])->name('batch-historical');
+        Route::post('/auto-import-batch', [\App\Http\Controllers\EnhancedDataUploadController::class, 'autoImportBatch'])->name('auto-import-batch');
+        Route::get('/context', [\App\Http\Controllers\EnhancedDataUploadController::class, 'getContext'])->name('context');
+    });
+    
     // Addy Settings
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');
     Route::post('/settings/addy', [AddySettingsController::class, 'update'])->name('settings.addy.update');
