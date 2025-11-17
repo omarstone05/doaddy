@@ -42,10 +42,10 @@ return new class extends Migration
             
             $table->timestamps();
 
-            // Indexes
-            $table->index(['organization_id', 'user_id', 'created_at']);
-            $table->index(['status', 'created_at']);
-            $table->index('user_id');
+            // Indexes (shortened names to avoid MySQL 64 char limit)
+            $table->index(['organization_id', 'user_id', 'created_at'], 'dpj_org_user_created_idx');
+            $table->index(['status', 'created_at'], 'dpj_status_created_idx');
+            $table->index('user_id', 'dpj_user_id_idx');
             
             // Foreign keys
             $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
