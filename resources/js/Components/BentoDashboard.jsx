@@ -319,7 +319,9 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
         // Only restore active state and size, not component references
         setAvailableCards(prev => {
           const savedMap = new Map(parsed.map(c => [c.id, { active: c.active, size: c.size }]));
-          // Merge saved cards with new modular cards
+          const existingIds = new Set(prev.map(c => c.id));
+          
+          // Merge saved cards with existing cards
           const merged = prev.map(card => {
             const saved = savedMap.get(card.id);
             if (saved) {
@@ -328,9 +330,9 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
             return card;
           });
           
-          // Add any new modular cards that weren't in saved data
+          // Add any new modular cards that weren't in saved data AND aren't already in prev
           initialModularCards.forEach(modularCard => {
-            if (!savedMap.has(modularCard.id)) {
+            if (!savedMap.has(modularCard.id) && !existingIds.has(modularCard.id)) {
               merged.push(modularCard);
             }
           });
@@ -343,11 +345,14 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
         localStorage.removeItem('addy-bento-dashboard-cards');
       }
     } else {
-      // First time - merge modular cards
+      // First time - merge modular cards (only if they don't already exist)
       setAvailableCards(prev => {
         const existingIds = new Set(prev.map(c => c.id));
         const newModular = initialModularCards.filter(c => !existingIds.has(c.id));
-        return [...prev, ...newModular];
+        if (newModular.length > 0) {
+          return [...prev, ...newModular];
+        }
+        return prev;
       });
     }
   }, [initialModularCards]);
@@ -375,16 +380,22 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
 
   const addCard = (cardId) => {
     setAvailableCards(prev => {
+      // Check if card already exists in the list
       const cardExists = prev.find(c => c.id === cardId);
       if (cardExists) {
+        // Just activate it if it exists
         return prev.map(card =>
           card.id === cardId ? { ...card, active: true } : card
         );
       } else {
-        // Add new modular card
+        // Card doesn't exist, try to find it in modular cards
         const modularCard = initialModularCards.find(c => c.id === cardId);
         if (modularCard) {
-          return [...prev, { ...modularCard, active: true }];
+          // Double-check it's not already in prev (shouldn't happen, but safety check)
+          const alreadyExists = prev.some(c => c.id === cardId);
+          if (!alreadyExists) {
+            return [...prev, { ...modularCard, active: true }];
+          }
         }
         return prev;
       }
