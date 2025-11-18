@@ -191,6 +191,31 @@ class Project extends Model
         return $this->budget_total - $this->total_expenses;
     }
 
+    public function getCompletedTasksCountAttribute()
+    {
+        return $this->tasks()->where('status', 'completed')->count();
+    }
+
+    public function getTotalTasksCountAttribute()
+    {
+        return $this->tasks()->count();
+    }
+
+    public function getTotalBillableHoursAttribute()
+    {
+        return $this->timeEntries()
+            ->where('billable', true)
+            ->sum('minutes') / 60;
+    }
+
+    public function getTotalBillableAmountAttribute()
+    {
+        return $this->timeEntries()
+            ->where('billable', true)
+            ->selectRaw('SUM(minutes * hourly_rate / 60) as total')
+            ->value('total') ?? 0;
+    }
+
     public function getIsDelayedAttribute()
     {
         if (!$this->end_date) {
