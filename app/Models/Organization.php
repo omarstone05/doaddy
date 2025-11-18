@@ -29,14 +29,27 @@ class Organization extends Model
         'suspension_reason',
         'billing_plan',
         'mrr',
+        'business_description',
+        'business_category',
+        'team_size',
+        'income_pattern',
+        'priorities',
+        'enabled_modules',
+        'recommended_dashboard_cards',
+        'default_monthly_budget',
+        'onboarding_completed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'settings' => 'array',
+            'priorities' => 'array',
+            'enabled_modules' => 'array',
+            'recommended_dashboard_cards' => 'array',
             'trial_ends_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
             'mrr' => 'decimal:2',
         ];
     }

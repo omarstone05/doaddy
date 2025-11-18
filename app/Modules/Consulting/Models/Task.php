@@ -22,6 +22,7 @@ class Task extends Model
         'order',
         'assigned_to',
         'assigned_team',
+        'created_by',
         'status',
         'progress_percentage',
         'priority',
@@ -72,6 +73,42 @@ class Task extends Model
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function assignedTeam()
+    {
+        return $this->belongsToMany(User::class, 'consulting_task_assignees', 'task_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'consulting_task_followers', 'task_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(TaskComment::class, 'task_id')
+            ->whereNull('parent_comment_id')
+            ->orderBy('created_at', 'asc');
+    }
+
+    public function allComments()
+    {
+        return $this->hasMany(TaskComment::class, 'task_id')
+            ->orderBy('created_at', 'asc');
+    }
+
+    public function steps()
+    {
+        return $this->hasMany(TaskStep::class, 'task_id')
+            ->orderBy('order', 'asc');
     }
 
     public function dependencies()

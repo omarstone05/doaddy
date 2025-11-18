@@ -2,87 +2,154 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Organization;
-use App\Models\User;
+use App\Services\Onboarding\BusinessClassifierService;
+use App\Services\Onboarding\OnboardingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class OnboardingController extends Controller
 {
-    public function show()
+    protected OnboardingService $onboardingService;
+    protected BusinessClassifierService $classifierService;
+
+    public function __construct(
+        OnboardingService $onboardingService,
+        BusinessClassifierService $classifierService
+    ) {
+        $this->onboardingService = $onboardingService;
+        $this->classifierService = $classifierService;
+    }
+
+    /**
+     * Show onboarding page
+     */
+    public function index(Request $request)
     {
-        // Check if user has already completed onboarding
-        $user = Auth::user();
-        if ($user && $user->organization) {
-            // Check if organization has been configured
+        // Check if user already has organization and completed onboarding
+        $user = $request->user();
+        
+        if ($user->current_organization_id) {
             $org = $user->organization;
-            // Check if all required onboarding fields are set
-            if ($org->industry && $org->currency && $org->tone_preference && $org->industry !== 'retail') {
-                // If industry is set to something other than default, onboarding is complete
+            if ($org && $org->onboarding_completed_at) {
                 return redirect()->route('dashboard');
             }
         }
 
-        return Inertia::render('Onboarding/Conversation', [
+        // Check for existing session
+        $session = $this->onboardingService->getSession($user->id);
+
+        return Inertia::render('Onboarding/AddyOnboarding', [
             'user' => $user,
-            'organization' => $user->organization ?? null,
+            'session' => $session,
         ]);
     }
 
-    public function complete(Request $request)
+    /**
+     * Legacy show method for backward compatibility
+     */
+    public function show()
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'business_name' => 'required|string|max:255',
-            'industry' => 'required|string|max:255',
-            'currency' => 'required|string|size:3',
-            'tone_preference' => 'required|in:professional,casual,motivational,sassy,technical,formal,conversational,friendly',
-            'wants_data_upload' => 'nullable|string|in:yes,no',
+        return $this->index(request());
+    }
+
+    /**
+     * Classify business description using AI
+     */
+    public function classify(Request $request)
+    {
+        $request->validate([
+            'description' => 'required|string|max:500',
         ]);
 
-        $user = Auth::user();
-        
-        if (!$user) {
-            return redirect()->route('login');
-        }
+        $category = $this->classifierService->classify($request->description);
 
-        // Update user name if provided
-        if (isset($validated['name'])) {
-            $user->update(['name' => $validated['name']]);
-        }
+        return response()->json([
+            'category' => $category,
+            'confidence' => 0.85, // You can add confidence scoring
+        ]);
+    }
 
-        // Update organization with onboarding data
-        if ($user->organization) {
-            // Generate unique slug - allows duplicate company names but ensures unique slugs in DB
-            // Multiple companies can have the same name, but each gets a unique slug (e.g., "my-company", "my-company-1", "my-company-2")
-            $baseSlug = Str::slug($validated['business_name']);
-            $slug = $baseSlug;
-            $counter = 1;
-            
-            // Check if slug already exists (excluding current organization)
-            while (Organization::where('slug', $slug)
-                ->where('id', '!=', $user->organization->id)
-                ->exists()) {
-                $slug = $baseSlug . '-' . $counter;
-                $counter++;
+    /**
+     * Save onboarding progress
+     */
+    public function saveProgress(Request $request)
+    {
+        $request->validate([
+            'phase' => 'required|string',
+            'data' => 'required|array',
+        ]);
+
+        $user = $request->user();
+
+        $session = $this->onboardingService->saveProgress(
+            $user->id,
+            $request->phase,
+            $request->data
+        );
+
+        return response()->json([
+            'success' => true,
+            'session' => $session,
+        ]);
+    }
+
+    /**
+     * Complete onboarding and create organization
+     */
+    public function complete(Request $request)
+    {
+        $request->validate([
+            'business_description' => 'required|string',
+            'confirmed_category' => 'required|string',
+            'priorities' => 'array',
+            'team_size' => 'required|string',
+            'income_pattern' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $result = $this->onboardingService->completeOnboarding(
+                $user,
+                $request->all()
+            );
+
+            // Redirect based on data upload preference
+            if ($request->wants_data_upload === 'yes') {
+                return response()->json([
+                    'success' => true,
+                    'organization' => $result['organization'],
+                    'redirect' => route('data-upload.index'),
+                    'message' => 'Welcome to Addy! Let\'s import your data.',
+                ]);
             }
 
-            $user->organization->update([
-                'name' => $validated['business_name'], // Name can be duplicated
-                'slug' => $slug, // Slug must be unique
-                'industry' => $validated['industry'],
-                'currency' => $validated['currency'],
-                'tone_preference' => $validated['tone_preference'],
+            return response()->json([
+                'success' => true,
+                'organization' => $result['organization'],
+                'redirect' => route('dashboard'),
+                'message' => 'Welcome to Addy! Let\'s get started.',
             ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
         }
+    }
 
-        // Redirect based on data upload preference
-        if ($request->wants_data_upload === 'yes') {
-            return redirect()->route('data-upload.index')->with('success', 'Welcome to Addy! Let\'s import your data.');
-        }
+    /**
+     * Get onboarding session
+     */
+    public function getSession(Request $request)
+    {
+        $user = $request->user();
         
-        return redirect()->route('dashboard')->with('success', 'Welcome to Addy! Let\'s get started.');
+        $session = $this->onboardingService->getSession($user->id);
+
+        return response()->json([
+            'session' => $session,
+        ]);
     }
 }
