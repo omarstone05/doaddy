@@ -13,7 +13,8 @@ import {
     Clock,
     AlertTriangle,
     Package,
-    MessageSquare
+    MessageSquare,
+    Plus
 } from 'lucide-react';
 
 export default function Show({ auth, project }) {
@@ -275,7 +276,14 @@ export default function Show({ auth, project }) {
                                         className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                                     >
                                         <CheckSquare size={16} />
-                                        Manage Tasks
+                                        View All Tasks
+                                    </button>
+                                    <button
+                                        onClick={() => router.visit(route('consulting.projects.tasks.create', project.id))}
+                                        className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                    >
+                                        <Plus size={16} />
+                                        Create New Task
                                     </button>
                                     <button
                                         className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"

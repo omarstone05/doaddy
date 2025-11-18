@@ -3,7 +3,7 @@ import { Head, useForm, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ArrowLeft, Save, Clock } from 'lucide-react';
 
-export default function Edit({ auth, project, task }) {
+export default function Edit({ auth, project, task, users = [] }) {
     const { data, setData, put, processing, errors } = useForm({
         title: task.title || '',
         description: task.description || '',
@@ -133,6 +133,24 @@ export default function Edit({ auth, project, task }) {
                                             onChange={(e) => setData('estimated_hours', e.target.value)}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign To
+                                        </label>
+                                        <select
+                                            value={data.assigned_to_id || ''}
+                                            onChange={(e) => setData('assigned_to_id', e.target.value || null)}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        >
+                                            <option value="">Unassigned</option>
+                                            {users.map((user) => (
+                                                <option key={user.id} value={user.id}>
+                                                    {user.name} {user.email && `(${user.email})`}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                             </div>

@@ -39,8 +39,18 @@ class TaskController extends Controller
 
     public function create(Request $request, Project $project)
     {
+        // Get users from the same organization
+        $organizationId = $request->user()->organization_id;
+        $users = \App\Models\User::whereHas('organizations', function($query) use ($organizationId) {
+            $query->where('organizations.id', $organizationId)
+                  ->where('organization_user.is_active', true);
+        })
+        ->orderBy('name')
+        ->get(['id', 'name', 'email']);
+
         return Inertia::render('Consulting/Tasks/Create', [
             'project' => $project->only(['id', 'name', 'code']),
+            'users' => $users,
         ]);
     }
 
@@ -67,6 +77,15 @@ class TaskController extends Controller
 
     public function edit(Request $request, Project $project, Task $task)
     {
+        // Get users from the same organization
+        $organizationId = $request->user()->organization_id;
+        $users = \App\Models\User::whereHas('organizations', function($query) use ($organizationId) {
+            $query->where('organizations.id', $organizationId)
+                  ->where('organization_user.is_active', true);
+        })
+        ->orderBy('name')
+        ->get(['id', 'name', 'email']);
+
         return Inertia::render('Consulting/Tasks/Edit', [
             'project' => $project->only(['id', 'name', 'code']),
             'task' => [
@@ -77,8 +96,9 @@ class TaskController extends Controller
                 'priority' => $task->priority,
                 'due_date' => $task->due_date,
                 'estimated_hours' => $task->estimated_hours,
-                'assigned_to_id' => $task->assigned_to_id,
+                'assigned_to_id' => $task->assigned_to,
             ],
+            'users' => $users,
         ]);
     }
 
