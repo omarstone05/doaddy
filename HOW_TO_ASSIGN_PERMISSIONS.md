@@ -214,3 +214,5 @@ $user->hasPermissionInOrganization($org->id, 'documents.view');
    $user->organization_id; // Make sure this matches
    ```
 
+
+

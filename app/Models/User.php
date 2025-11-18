@@ -295,4 +295,111 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserMetric::class);
     }
+
+    /**
+     * Get all tasks assigned to this user
+     */
+    public function assignedTasks(): HasMany
+    {
+        return $this->hasMany(ProjectTask::class, 'assigned_to_id');
+    }
+
+    /**
+     * Get tasks currently being worked on by this user
+     */
+    public function activeTasks(): HasMany
+    {
+        return $this->hasMany(ProjectTask::class, 'assigned_to_id')
+            ->where('status', 'in_progress')
+            ->whereNotNull('started_working_at');
+    }
+
+    /**
+     * Get all tasks assigned to this user in a specific organization
+     */
+    public function assignedTasksInOrganization(string $organizationId): HasMany
+    {
+        return $this->assignedTasks()
+            ->where('organization_id', $organizationId);
+    }
+
+    /**
+     * Get active tasks in a specific organization
+     */
+    public function activeTasksInOrganization(string $organizationId): HasMany
+    {
+        return $this->activeTasks()
+            ->where('organization_id', $organizationId);
+    }
+
+    /**
+     * Get task statistics for this user
+     */
+    public function getTaskStats(?string $organizationId = null): array
+    {
+        $query = $this->assignedTasks();
+        
+        if ($organizationId) {
+            $query->where('organization_id', $organizationId);
+        }
+
+        return [
+            'total' => (clone $query)->count(),
+            'todo' => (clone $query)->where('status', 'todo')->count(),
+            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
+            'review' => (clone $query)->where('status', 'review')->count(),
+            'done' => (clone $query)->where('status', 'done')->count(),
+            'blocked' => (clone $query)->where('status', 'blocked')->count(),
+            'active' => (clone $query)->where('status', 'in_progress')
+                ->whereNotNull('started_working_at')
+                ->count(),
+        ];
+    }
+
+    /**
+     * Many-to-many relationship with tasks (task assignments with privileges)
+     */
+    public function assignedTasksWithPrivileges(): BelongsToMany
+    {
+        return $this->belongsToMany(ProjectTask::class, 'task_user', 'user_id', 'task_id')
+            ->withPivot([
+                'assigned_by_id',
+                'can_edit',
+                'can_delete',
+                'can_assign',
+                'can_view_time',
+                'can_manage_subtasks',
+                'can_change_status',
+                'can_change_priority',
+                'assigned_at',
+            ])
+            ->withTimestamps()
+            ->orderBy('assigned_at', 'desc');
+    }
+
+    /**
+     * Get user's privileges for a specific task
+     */
+    public function getTaskPrivileges(string $taskId): ?array
+    {
+        $assignment = $this->assignedTasksWithPrivileges()
+            ->where('project_tasks.id', $taskId)
+            ->first();
+        
+        if (!$assignment) {
+            return null;
+        }
+
+        return [
+            'can_edit' => $assignment->pivot->can_edit,
+            'can_delete' => $assignment->pivot->can_delete,
+            'can_assign' => $assignment->pivot->can_assign,
+            'can_view_time' => $assignment->pivot->can_view_time,
+            'can_manage_subtasks' => $assignment->pivot->can_manage_subtasks,
+            'can_change_status' => $assignment->pivot->can_change_status,
+            'can_change_priority' => $assignment->pivot->can_change_priority,
+            'assigned_at' => $assignment->pivot->assigned_at,
+            'assigned_by_id' => $assignment->pivot->assigned_by_id,
+        ];
+    }
 }

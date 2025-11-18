@@ -402,9 +402,29 @@ class DashboardController extends Controller
                         'status' => $project->status ?? 'in_progress',
                     ];
                 });
+            
+            // Project stats
+            $projectStats = [
+                'total_projects' => \App\Models\Project::where('organization_id', $organizationId)->count(),
+                'active_projects' => \App\Models\Project::where('organization_id', $organizationId)
+                    ->where('status', 'active')->count(),
+                'completed_projects' => \App\Models\Project::where('organization_id', $organizationId)
+                    ->where('status', 'completed')->count(),
+                'overdue_projects' => \App\Models\Project::where('organization_id', $organizationId)
+                    ->where('status', 'active')
+                    ->where('target_completion_date', '<', Carbon::now())
+                    ->whereNotNull('target_completion_date')
+                    ->count(),
+            ];
         } catch (\Exception $e) {
             \Log::warning('Projects query failed - table may not exist', ['error' => $e->getMessage()]);
             $projects = collect([]);
+            $projectStats = [
+                'total_projects' => 0,
+                'active_projects' => 0,
+                'completed_projects' => 0,
+                'overdue_projects' => 0,
+            ];
         }
         
         // Team stats (simplified) - handle missing tables gracefully
@@ -457,6 +477,7 @@ class DashboardController extends Controller
                 'total_customers' => $totalCustomers,
                 'customer_growth_rate' => $customerGrowthRate,
                 'projects' => $projects,
+                'project_stats' => $projectStats,
                 'team_stats' => $teamStats,
             ],
         ]);

@@ -46,3 +46,5 @@ If you continue to have terminal issues:
 3. Navigate to your project: `cd C:\Users\user\Desktop\addy\doaddy`
 4. Run: `php artisan migrate`
 
+
+

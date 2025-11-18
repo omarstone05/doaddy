@@ -225,6 +225,20 @@ Route::middleware('auth')->group(function () {
     // Decisions Section
     Route::get('/decisions', [App\Http\Controllers\DecisionsController::class, 'index'])->name('decisions.index');
     
+    // Projects Section
+    Route::get('/projects/section', [App\Http\Controllers\ProjectsController::class, 'index'])->name('projects.section.index');
+    
+    // Task Assignment
+    Route::get('/tasks/assignment', [App\Http\Controllers\TaskAssignmentController::class, 'index'])->name('tasks.assignment');
+    
+    // Project Reports
+    Route::prefix('projects/reports')->name('projects.reports.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ProjectReportController::class, 'index'])->name('index');
+        Route::get('/performance', [\App\Http\Controllers\ProjectReportController::class, 'performance'])->name('performance');
+        Route::get('/time-tracking', [\App\Http\Controllers\ProjectReportController::class, 'timeTracking'])->name('time-tracking');
+        Route::get('/budget', [\App\Http\Controllers\ProjectReportController::class, 'budget'])->name('budget');
+    });
+    
     // Compliance Section
     Route::get('/compliance', [App\Http\Controllers\ComplianceController::class, 'index'])->name('compliance.index');
     
@@ -459,4 +473,70 @@ Route::middleware('auth')->group(function () {
     
     // Projects
     Route::resource('projects', ProjectController::class);
+    
+    // Project Tasks - Granular View
+    Route::prefix('projects/{project}/tasks')->name('projects.tasks.')->group(function () {
+        Route::get('/{task}', [\App\Http\Controllers\ProjectTaskController::class, 'show'])->name('show');
+        Route::get('/{task}/assign', [\App\Http\Controllers\ProjectTaskController::class, 'showAssign'])->name('assign');
+    });
+    
+    // Project API endpoints
+    Route::prefix('api/projects')->group(function () {
+        Route::get('/list', [\App\Http\Controllers\ProjectController::class, 'list']);
+        Route::get('/budget-details', [\App\Http\Controllers\ProjectController::class, 'budgetDetails']);
+        Route::get('/time-details', [\App\Http\Controllers\ProjectController::class, 'timeDetails']);
+    });
+    
+    // Project Tasks
+    Route::prefix('api/projects/{project}')->group(function () {
+        Route::get('/tasks', [\App\Http\Controllers\ProjectTaskController::class, 'index']);
+        Route::post('/tasks', [\App\Http\Controllers\ProjectTaskController::class, 'store']);
+        Route::put('/tasks/{task}', [\App\Http\Controllers\ProjectTaskController::class, 'update']);
+        Route::delete('/tasks/{task}', [\App\Http\Controllers\ProjectTaskController::class, 'destroy']);
+        Route::post('/tasks/{task}/start-work', [\App\Http\Controllers\ProjectTaskController::class, 'startWork']);
+        Route::post('/tasks/{task}/stop-work', [\App\Http\Controllers\ProjectTaskController::class, 'stopWork']);
+        Route::post('/tasks/{task}/assign-users', [\App\Http\Controllers\ProjectTaskController::class, 'assignUsers']);
+        Route::delete('/tasks/{task}/unassign-user/{user}', [\App\Http\Controllers\ProjectTaskController::class, 'unassignUser']);
+        Route::put('/tasks/{task}/user/{user}/privileges', [\App\Http\Controllers\ProjectTaskController::class, 'updateUserPrivileges']);
+        
+        // Project Milestones
+        Route::get('/milestones', [\App\Http\Controllers\ProjectMilestoneController::class, 'index']);
+        Route::post('/milestones', [\App\Http\Controllers\ProjectMilestoneController::class, 'store']);
+        Route::put('/milestones/{milestone}', [\App\Http\Controllers\ProjectMilestoneController::class, 'update']);
+        Route::delete('/milestones/{milestone}', [\App\Http\Controllers\ProjectMilestoneController::class, 'destroy']);
+        
+        // Project Members
+        Route::get('/members', [\App\Http\Controllers\ProjectMemberController::class, 'index']);
+        Route::post('/members', [\App\Http\Controllers\ProjectMemberController::class, 'store']);
+        Route::put('/members/{member}', [\App\Http\Controllers\ProjectMemberController::class, 'update']);
+        Route::delete('/members/{member}', [\App\Http\Controllers\ProjectMemberController::class, 'destroy']);
+        
+        // Project Time Entries
+        Route::get('/time-entries', [\App\Http\Controllers\ProjectTimeEntryController::class, 'index']);
+        Route::post('/time-entries', [\App\Http\Controllers\ProjectTimeEntryController::class, 'store']);
+        Route::put('/time-entries/{timeEntry}', [\App\Http\Controllers\ProjectTimeEntryController::class, 'update']);
+        Route::delete('/time-entries/{timeEntry}', [\App\Http\Controllers\ProjectTimeEntryController::class, 'destroy']);
+        
+        // Project Budgets
+        Route::get('/budgets', [\App\Http\Controllers\ProjectBudgetController::class, 'index']);
+        Route::post('/budgets', [\App\Http\Controllers\ProjectBudgetController::class, 'store']);
+        Route::put('/budgets/{budget}', [\App\Http\Controllers\ProjectBudgetController::class, 'update']);
+        Route::delete('/budgets/{budget}', [\App\Http\Controllers\ProjectBudgetController::class, 'destroy']);
+    });
+    
+    // Project Reports
+    Route::prefix('projects/reports')->name('projects.reports.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ProjectReportController::class, 'index'])->name('index');
+        Route::get('/performance', [\App\Http\Controllers\ProjectReportController::class, 'performance'])->name('performance');
+        Route::get('/time-tracking', [\App\Http\Controllers\ProjectReportController::class, 'timeTracking'])->name('time-tracking');
+        Route::get('/budget', [\App\Http\Controllers\ProjectReportController::class, 'budget'])->name('budget');
+    });
+    
+    // User Tasks - Get tasks assigned to users
+    Route::prefix('api/tasks')->group(function () {
+        Route::get('/all', [\App\Http\Controllers\ProjectTaskController::class, 'all']);
+        Route::get('/my-tasks', [\App\Http\Controllers\ProjectTaskController::class, 'myTasks']);
+        Route::get('/my-active-tasks', [\App\Http\Controllers\ProjectTaskController::class, 'myActiveTasks']);
+        Route::get('/user/{user}/tasks', [\App\Http\Controllers\ProjectTaskController::class, 'userTasks']);
+    });
 });

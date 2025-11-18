@@ -20,6 +20,7 @@ import {
     FileCheck,
     Shield,
     Settings,
+    CheckSquare,
 } from 'lucide-react';
 
 export const navigation = [
@@ -86,8 +87,9 @@ export const navigation = [
             { name: 'Reports', href: '/reports', icon: BarChart3 },
             { name: 'OKRs', href: '/decisions/okrs', icon: Target },
             { name: 'Strategic Goals', href: '/decisions/goals', icon: Target },
+            { name: 'Project Management', href: '/projects/section', icon: FolderKanban },
+            { name: 'Task Assignment', href: '/tasks/assignment', icon: CheckSquare },
             { name: 'Valuation', href: '/decisions/valuation', icon: TrendingUp },
-            { name: 'Projects', href: '/projects', icon: FolderKanban },
         ],
     },
     {

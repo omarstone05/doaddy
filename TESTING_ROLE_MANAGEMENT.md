@@ -353,3 +353,5 @@ $role = $user->getOrganizationRole($orgId);
 dd($role->permissions); // Check if permission exists
 ```
 
+
+

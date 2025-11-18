@@ -263,6 +263,9 @@ const BentoDashboard = ({ stats, user }) => {
   const themeIndex = props?.auth?.user?.organization?.theme_index ?? 0;
   const theme = getOrganizationTheme(themeIndex);
   
+  // Import ProjectsOverviewCard
+  const ProjectsOverviewCard = React.lazy(() => import('./dashboard/ProjectsOverviewCard').then(module => ({ default: module.ProjectsOverviewCard })));
+
   // Define card components map - components can't be serialized to localStorage
   const cardComponents = {
     'addy-insights': AddyInsightsCard,
@@ -274,6 +277,7 @@ const BentoDashboard = ({ stats, user }) => {
     'customers': CustomersCard,
     'pending-invoices': PendingInvoicesCard,
     'performance': PerformanceCard,
+    'projects-overview': ProjectsOverviewCard,
   };
 
   const [availableCards, setAvailableCards] = useState([
@@ -286,6 +290,7 @@ const BentoDashboard = ({ stats, user }) => {
     { id: 'customers', active: true, size: 'small' },
     { id: 'pending-invoices', active: true, size: 'small' },
     { id: 'performance', active: true, size: 'medium' },
+    { id: 'projects-overview', active: false, size: 'medium' },
   ]);
 
   const [showCardManager, setShowCardManager] = useState(false);
@@ -417,6 +422,14 @@ const BentoDashboard = ({ stats, user }) => {
                     organizationName={organizationName}
                     stats={stats} 
                   />
+                ) : card.id === 'projects-overview' ? (
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <CardComponent 
+                      onRemove={() => removeCard(card.id)} 
+                      stats={stats?.project_stats} 
+                      theme={theme} 
+                    />
+                  </React.Suspense>
                 ) : (
                   <CardComponent onRemove={() => removeCard(card.id)} stats={stats} theme={theme} />
                 )}

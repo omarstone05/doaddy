@@ -1,0 +1,75 @@
+A	--short
+A	BelongsToBusiness.php
+A	Business.php
+A	BusinessController.php
+A	BusinessSwitcher.jsx
+A	CHANGES_SUMMARY.md
+A	HOW_TO_ASSIGN_PERMISSIONS.md
+A	MIGRATION_INSTRUCTIONS.md
+A	MULTI_TENANCY_GUIDE.md
+A	MULTI_TENANCY_QUICK_REF.md
+A	ROLE_MANAGEMENT_IMPLEMENTATION.md
+A	ROLE_VISIBILITY_UPDATE.md
+A	Role.php
+A	RolesSeeder.php
+A	SetBusinessContext.php
+A	TESTING_ROLE_MANAGEMENT.md
+A	USER_METRICS_IMPLEMENTATION.md
+A	User.php
+A	add-phone-to-user.php
+A	an migrate --no-interaction
+A	app/Console/Commands/GrantSuperAdmin.php
+M	app/Http/Controllers/Admin/AdminUserController.php
+M	app/Http/Controllers/AttachmentController.php
+M	app/Http/Controllers/Auth/LoginController.php
+M	app/Http/Controllers/DocumentController.php
+A	app/Http/Controllers/OrganizationRoleController.php
+A	app/Http/Controllers/RawQueryController.php
+M	app/Http/Controllers/TeamMemberController.php
+A	app/Http/Middleware/TrackUserActivity.php
+M	app/Models/Attachment.php
+M	app/Models/Document.php
+M	app/Models/Organization.php
+A	app/Models/OrganizationRole.php
+M	app/Models/TeamMember.php
+M	app/Models/User.php
+A	app/Models/UserMetric.php
+A	app/Services/RawQueryService.php
+A	app/Services/UserMetricsService.php
+M	app/Services/WhatsAppService.php
+M	bootstrap/app.php
+A	create_multi_tenancy_structure.php
+A	database/migrations/2025_11_17_150000_add_url_to_attachments_table.php
+A	database/migrations/2025_11_17_160000_add_is_active_to_users_table.php
+A	database/migrations/2025_11_17_173023_create_document_team_member_table.php
+A	database/migrations/2025_11_17_174106_create_user_metrics_table.php
+A	database/migrations/2025_11_17_181000_create_organization_roles_table.php
+A	database/migrations/2025_11_17_181032_add_role_id_to_organization_user_table.php
+M	database/seeders/DatabaseSeeder.php
+A	database/seeders/OrganizationRoleSeeder.php
+M	database/seeders/TestDataSeeder.php
+M	database/seeders/TestUserSeeder.php
+A	e HEAD
+A	login (1).php
+A	login (2).php
+A	login (3).php
+A	login (4).php
+A	login (5).php
+A	login (6).php
+A	login.php
+M	package-lock.json
+A	quick-login.php
+M	resources/js/Layouts/AdminLayout.jsx
+A	resources/js/Pages/Admin/RawQuery/Index.jsx
+M	resources/js/Pages/Admin/Users/Index.jsx
+M	resources/js/Pages/Admin/Users/Show.jsx
+M	resources/js/Pages/Compliance/Documents/Index.jsx
+M	resources/js/Pages/Compliance/Documents/Show.jsx
+M	resources/js/Pages/Team/Show.jsx
+M	routes/web.php
+A	run-migration.bat
+A	tatus
+A	test-twilio-quick.php
+M	test-twilio-whatsapp.php
+A	tests/Feature/RoleManagementTest.php
+A	upload-images.php
