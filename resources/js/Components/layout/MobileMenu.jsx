@@ -1,10 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { X, Search, Bell, Settings, LogOut, User, Building2, Ticket } from 'lucide-react';
+import { X, Search, Bell, Settings, LogOut, User, Building2, Ticket, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navigation } from '@/Layouts/navigation';
 
 export function MobileMenu({ isOpen, onClose, auth, unreadNotificationCount, onNotificationClick, onLogout }) {
+  const [expandedSections, setExpandedSections] = useState(new Set());
+
+  const toggleSection = (sectionName) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionName)) {
+      newExpanded.delete(sectionName);
+    } else {
+      newExpanded.add(sectionName);
+    }
+    setExpandedSections(newExpanded);
+  };
+
   if (!isOpen) return null;
 
   const isActive = (href) => {
@@ -60,56 +72,75 @@ export function MobileMenu({ isOpen, onClose, auth, unreadNotificationCount, onN
           </div>
 
           {/* Navigation Sections */}
-          <div className="px-6 py-6 space-y-6">
-            {navigation.map((section) => (
-              <div key={section.name} className="space-y-3">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <section.icon className="h-5 w-5 text-teal-600" />
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    {section.name}
-                  </h3>
+          <div className="px-6 py-6 space-y-2">
+            {navigation.map((section) => {
+              const isExpanded = expandedSections.has(section.name);
+              
+              return (
+                <div key={section.name} className="space-y-1">
+                  {/* Section Header - Clickable */}
+                  <button
+                    onClick={() => toggleSection(section.name)}
+                    className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white/60 hover:bg-white/80 transition-all duration-200 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <section.icon className="h-5 w-5 text-teal-600" />
+                      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        {section.name}
+                      </h3>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    )}
+                  </button>
+                  
+                  {/* Section Items - Collapsible */}
+                  {isExpanded && (
+                    <div className="space-y-1 pl-4 mt-1">
+                      {section.items.map((item) => {
+                        const active = isActive(item.href);
+                        const Icon = item.icon;
+                        
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200",
+                              active
+                                ? "bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-700 shadow-sm border border-teal-200/50"
+                                : "text-gray-700 hover:bg-white/60 hover:shadow-sm"
+                            )}
+                          >
+                            <div className={cn(
+                              "p-2 rounded-lg",
+                              active ? "bg-teal-500/20" : "bg-gray-100/80"
+                            )}>
+                              <Icon className={cn(
+                                "h-5 w-5",
+                                active ? "text-teal-600" : "text-gray-600"
+                              )} />
+                            </div>
+                            <span className={cn(
+                              "font-medium flex-1",
+                              active ? "text-teal-900" : "text-gray-800"
+                            )}>
+                              {item.name}
+                            </span>
+                            {active && (
+                              <div className="h-2 w-2 rounded-full bg-teal-500"></div>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const active = isActive(item.href);
-                    const Icon = item.icon;
-                    
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={onClose}
-                        className={cn(
-                          "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200",
-                          active
-                            ? "bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-700 shadow-sm border border-teal-200/50"
-                            : "text-gray-700 hover:bg-white/60 hover:shadow-sm"
-                        )}
-                      >
-                        <div className={cn(
-                          "p-2 rounded-lg",
-                          active ? "bg-teal-500/20" : "bg-gray-100/80"
-                        )}>
-                          <Icon className={cn(
-                            "h-5 w-5",
-                            active ? "text-teal-600" : "text-gray-600"
-                          )} />
-                        </div>
-                        <span className={cn(
-                          "font-medium flex-1",
-                          active ? "text-teal-900" : "text-gray-800"
-                        )}>
-                          {item.name}
-                        </span>
-                        {active && (
-                          <div className="h-2 w-2 rounded-full bg-teal-500"></div>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Quick Actions */}
