@@ -163,6 +163,9 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
+    // Dashboard Card Data API (with caching)
+    Route::get('/api/dashboard/card-data/{cardId}', [\App\Http\Controllers\DashboardCardDataController::class, 'getCardData'])->name('dashboard.card-data');
+    
     Route::post('/dashboard/cards/reorder', [DashboardCardController::class, 'updateOrder'])->name('dashboard.cards.reorder');
     Route::post('/dashboard/cards/layout', [DashboardCardController::class, 'updateLayout'])->name('dashboard.cards.layout');
     Route::post('/dashboard/cards/{id}/toggle', [DashboardCardController::class, 'toggleVisibility'])->name('dashboard.cards.toggle');
