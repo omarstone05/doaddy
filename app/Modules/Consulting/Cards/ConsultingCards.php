@@ -27,6 +27,7 @@ class ConsultingCards
         self::registerTaskCompletionCard();
         self::registerUpcomingDeadlinesCard();
         self::registerProjectProgressCard();
+        self::registerMyTasksCard();
     }
 
     protected static function registerActiveProjectsCard(): void
@@ -121,6 +122,25 @@ class ConsultingCards
             'tags' => 'projects progress consulting',
             'data_endpoint' => '/api/dashboard/card-data/consulting.project_progress',
             'refresh_interval' => 300,
+        ]);
+    }
+
+    protected static function registerMyTasksCard(): void
+    {
+        CardRegistry::register('consulting', [
+            'id' => 'consulting.my_tasks',
+            'name' => 'My Tasks',
+            'description' => 'Tasks assigned to you across all projects',
+            'component' => 'MyTasksCard',
+            'category' => 'list',
+            'size' => 'medium',
+            'icon' => 'CheckSquare',
+            'color' => '#00635D',
+            'priority' => 9,
+            'suitable_for' => ['consulting', 'general'],
+            'tags' => 'tasks assigned me personal consulting',
+            'data_endpoint' => '/api/dashboard/card-data/consulting.my_tasks',
+            'refresh_interval' => 180,
         ]);
     }
 }

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Modules\Consulting\Models\Project;
-use App\Modules\Consulting\Models\Task;
+use App\Modules\Consulting\Models\Task as ConsultingTask;
 
 class DashboardCardDataController extends Controller
 {
@@ -91,6 +91,7 @@ class DashboardCardDataController extends Controller
             'consulting.task_completion' => $this->getConsultingTaskCompletionData($organizationId),
             'consulting.upcoming_deadlines' => $this->getConsultingUpcomingDeadlinesData($organizationId),
             'consulting.project_progress' => $this->getConsultingProjectProgressData($organizationId),
+            'consulting.my_tasks' => $this->getConsultingMyTasksData($organizationId, Auth::id()),
             default => ['message' => 'No data available'],
         };
     }
@@ -453,6 +454,48 @@ class DashboardCardDataController extends Controller
         } catch (\Exception $e) {
             \Log::warning('Consulting project progress query failed', ['error' => $e->getMessage()]);
             return ['projects' => [], 'average_progress' => 0, 'total_projects' => 0];
+        }
+    }
+
+    protected function getConsultingMyTasksData(string $organizationId, string $userId): array
+    {
+        try {
+            $tasks = ConsultingTask::whereHas('project', function($query) use ($organizationId) {
+                $query->where('organization_id', $organizationId);
+            })
+            ->where('assigned_to', $userId)
+            ->where('status', '!=', 'done')
+            ->with('project:id,name,code')
+            ->orderBy('due_date', 'asc')
+            ->orderBy('priority', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'due_date' => $task->due_date?->toDateString(),
+                    'project_name' => $task->project->name,
+                    'project_id' => $task->project->id,
+                ];
+            });
+
+            $totalMyTasks = ConsultingTask::whereHas('project', function($query) use ($organizationId) {
+                $query->where('organization_id', $organizationId);
+            })
+            ->where('assigned_to', $userId)
+            ->where('status', '!=', 'done')
+            ->count();
+
+            return [
+                'tasks' => $tasks,
+                'total' => $totalMyTasks,
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting my tasks query failed', ['error' => $e->getMessage()]);
+            return ['tasks' => [], 'total' => 0];
         }
     }
 }

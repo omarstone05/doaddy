@@ -16,6 +16,7 @@ Route::middleware(['web', 'auth'])->prefix('consulting')->name('consulting.')->g
         Route::get('tasks/{task}', [TaskController::class, 'show'])->name('projects.tasks.show');
         Route::get('tasks/{task}/edit', [TaskController::class, 'edit'])->name('projects.tasks.edit');
         Route::put('tasks/{task}', [TaskController::class, 'update'])->name('projects.tasks.update');
+        Route::patch('tasks/{task}/mark-done', [TaskController::class, 'markAsDone'])->name('projects.tasks.mark-done');
         Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('projects.tasks.destroy');
     });
 });

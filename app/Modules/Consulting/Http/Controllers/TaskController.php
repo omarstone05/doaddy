@@ -34,6 +34,11 @@ class TaskController extends Controller
         return Inertia::render('Consulting/Tasks/Index', [
             'project' => $project->only(['id', 'name', 'code']),
             'tasks' => $tasks,
+            'auth' => [
+                'user' => [
+                    'id' => $request->user()->id,
+                ],
+            ],
         ]);
     }
 
@@ -155,6 +160,27 @@ class TaskController extends Controller
 
         return redirect()->route('consulting.projects.tasks.show', [$project->id, $task->id])
             ->with('success', 'Task updated successfully.');
+    }
+
+    public function markAsDone(Request $request, Project $project, Task $task)
+    {
+        $task->update([
+            'status' => 'done',
+            'completed_at' => now(),
+        ]);
+
+        // Update project progress
+        $project->updateProgress();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Task marked as done',
+            ]);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Task marked as done.');
     }
 
     public function destroy(Project $project, Task $task)

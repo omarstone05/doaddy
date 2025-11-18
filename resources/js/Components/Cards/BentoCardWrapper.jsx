@@ -16,6 +16,7 @@ import ProjectHealthCard from './ProjectHealthCard';
 import TaskCompletionCard from './TaskCompletionCard';
 import UpcomingDeadlinesCard from './UpcomingDeadlinesCard';
 import ProjectProgressCard from './ProjectProgressCard';
+import MyTasksCard from './MyTasksCard';
 
 const CARD_COMPONENTS = {
   'finance.revenue': RevenueCard,
@@ -31,6 +32,7 @@ const CARD_COMPONENTS = {
   'consulting.task_completion': TaskCompletionCard,
   'consulting.upcoming_deadlines': UpcomingDeadlinesCard,
   'consulting.project_progress': ProjectProgressCard,
+  'consulting.my_tasks': MyTasksCard,
 };
 
 const BentoCardWrapper = ({ cardId, onRemove, theme, preloadedData }) => {
