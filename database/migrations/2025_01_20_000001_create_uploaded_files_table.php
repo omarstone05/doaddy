@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('uploaded_files', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');
-            $table->unsignedBigInteger('user_id');
+            $table->uuid('user_id');
             $table->string('original_name');
             $table->string('file_name');
             $table->string('file_type')->default('document'); // receipt, invoice, csv, document, etc.
@@ -23,6 +23,12 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->json('processing_result')->nullable(); // OCR results, import results, etc.
             $table->timestamps();
+
+            // Foreign keys
+            $table->foreign('user_id')
+                  ->references('id')
+                  ->on('users')
+                  ->onDelete('cascade');
 
             // Indexes
             $table->index(['organization_id', 'user_id', 'created_at'], 'uf_org_user_created_idx');
