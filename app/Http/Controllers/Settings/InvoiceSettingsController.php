@@ -225,5 +225,3 @@ class InvoiceSettingsController extends Controller
         return redirect()->back()->with('success', 'Invoice settings updated successfully.');
     }
 }
-    }
-}
