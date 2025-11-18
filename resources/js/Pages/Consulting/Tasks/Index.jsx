@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Plus, CheckSquare, Calendar, User, Filter, Search, ArrowLeft } from 'lucide-react';
+import { Plus, CheckSquare, Calendar, User, Filter, Search, ArrowLeft, Clock } from 'lucide-react';
 
 export default function Index({ auth, project, tasks }) {
     const [searchTerm, setSearchTerm] = useState('');
