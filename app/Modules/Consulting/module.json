@@ -1,0 +1,48 @@
+{
+  "name": "Consulting",
+  "alias": "consulting",
+  "description": "Complete project management system for consulting, agencies, construction, and professional services",
+  "version": "1.0.0",
+  "enabled": true,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "keywords": [
+    "projects",
+    "consulting",
+    "agencies",
+    "construction",
+    "deliverables",
+    "time-tracking",
+    "client-portal"
+  ],
+  "providers": [
+    "App\\Modules\\Consulting\\Providers\\ConsultingServiceProvider"
+  ],
+  "features": [
+    "projects",
+    "tasks",
+    "deliverables",
+    "timeline",
+    "budget_tracking",
+    "expenses",
+    "time_tracking",
+    "client_portal",
+    "change_orders",
+    "risk_management",
+    "approvals",
+    "file_management",
+    "vendor_management",
+    "reporting"
+  ],
+  "suitable_for": [
+    "consulting",
+    "agencies",
+    "construction",
+    "architecture",
+    "engineering",
+    "creative_studios",
+    "marketing",
+    "ngo"
+  ]
+}
+
