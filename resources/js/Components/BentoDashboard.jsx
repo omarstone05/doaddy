@@ -294,6 +294,8 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
     }));
   }, [modularCards]);
 
+  // Initialize availableCards with legacy cards only
+  // Modular cards will be added in useEffect to avoid duplicates
   const [availableCards, setAvailableCards] = useState([
     { id: 'addy-insights', active: true, size: 'large', isModular: false },
     { id: 'revenue', active: true, size: 'large', isModular: false },
@@ -304,7 +306,6 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
     { id: 'customers', active: true, size: 'small', isModular: false },
     { id: 'pending-invoices', active: true, size: 'small', isModular: false },
     { id: 'performance', active: true, size: 'medium', isModular: false },
-    ...initialModularCards,
   ]);
 
   const [showCardManager, setShowCardManager] = useState(false);
