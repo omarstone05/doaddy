@@ -603,6 +603,7 @@ const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {}
                     cardId={card.id}
                     onRemove={() => removeCard(card.id)} 
                     theme={theme}
+                    preloadedData={preloadedCardData?.[card.id]}
                   />
                 ) : LegacyCardComponent ? (
                   // Render legacy card
