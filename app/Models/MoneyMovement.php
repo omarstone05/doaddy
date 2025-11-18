@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Cache;
 
 class MoneyMovement extends Model
 {
@@ -86,6 +87,40 @@ class MoneyMovement extends Model
                     }
                 }
             }
+            
+            // Invalidate dashboard card cache for this organization
+            static::invalidateDashboardCache($movement->organization_id);
         });
+
+        static::updated(function ($movement) {
+            // Invalidate dashboard card cache when movement is updated
+            static::invalidateDashboardCache($movement->organization_id);
+        });
+
+        static::deleted(function ($movement) {
+            // Invalidate dashboard card cache when movement is deleted
+            static::invalidateDashboardCache($movement->organization_id);
+        });
+    }
+
+    /**
+     * Invalidate all dashboard card caches for an organization
+     */
+    protected static function invalidateDashboardCache(string $organizationId): void
+    {
+        $cardIds = [
+            'finance.revenue',
+            'finance.expenses',
+            'finance.profit',
+            'finance.cash_flow',
+            'finance.revenue_chart',
+            'finance.expense_breakdown',
+            'finance.recent_transactions',
+            'finance.monthly_goal',
+        ];
+
+        foreach ($cardIds as $cardId) {
+            Cache::forget("dashboard.card_data.{$organizationId}.{$cardId}");
+        }
     }
 }
