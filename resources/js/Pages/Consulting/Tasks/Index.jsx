@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Plus, CheckSquare, Calendar, User, Filter, Search, ArrowLeft, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, CheckSquare, Calendar, User, Filter, Search, ArrowLeft, Clock, CheckCircle2, RotateCcw } from 'lucide-react';
 import axios from 'axios';
 
 export default function Index({ auth, project, tasks }) {
@@ -32,19 +32,22 @@ export default function Index({ auth, project, tasks }) {
         return colors[priority] || colors.medium;
     };
 
-    const handleMarkAsDone = async (taskId, e) => {
+    const handleToggleDone = async (taskId, currentStatus, e) => {
         e.stopPropagation(); // Prevent card click
         
         setUpdatingTasks(prev => new Set(prev).add(taskId));
         
         try {
-            await axios.patch(`/consulting/projects/${project.id}/tasks/${taskId}/mark-done`);
+            const newStatus = currentStatus === 'done' ? 'todo' : 'done';
+            await axios.patch(`/consulting/projects/${project.id}/tasks/${taskId}/toggle-status`, {
+                status: newStatus,
+            });
             
             // Reload the page to get updated data
             router.reload({ only: ['tasks'] });
         } catch (error) {
-            console.error('Error marking task as done:', error);
-            alert('Failed to mark task as done. Please try again.');
+            console.error('Error toggling task status:', error);
+            alert('Failed to update task status. Please try again.');
         } finally {
             setUpdatingTasks(prev => {
                 const newSet = new Set(prev);
@@ -227,17 +230,23 @@ export default function Index({ auth, project, tasks }) {
                                     key={task.id}
                                     className="bg-white/70 backdrop-blur-lg border border-white/20 rounded-xl p-5 hover:shadow-xl transition-all group relative"
                                 >
-                                    {/* Mark as Done Button */}
-                                    {task.status !== 'done' && (
-                                        <button
-                                            onClick={(e) => handleMarkAsDone(task.id, e)}
-                                            disabled={updatingTasks.has(task.id)}
-                                            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-green-100 hover:bg-green-200 rounded-lg disabled:opacity-50"
-                                            title="Mark as done"
-                                        >
+                                    {/* Toggle Done/Undo Button */}
+                                    <button
+                                        onClick={(e) => handleToggleDone(task.id, task.status, e)}
+                                        disabled={updatingTasks.has(task.id)}
+                                        className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg disabled:opacity-50 ${
+                                            task.status === 'done'
+                                                ? 'bg-gray-100 hover:bg-gray-200'
+                                                : 'bg-green-100 hover:bg-green-200'
+                                        }`}
+                                        title={task.status === 'done' ? 'Mark as not done' : 'Mark as done'}
+                                    >
+                                        {task.status === 'done' ? (
+                                            <RotateCcw size={18} className="text-gray-600" />
+                                        ) : (
                                             <CheckCircle2 size={18} className="text-green-600" />
-                                        </button>
-                                    )}
+                                        )}
+                                    </button>
 
                                     <div
                                         onClick={() => router.visit(route('consulting.projects.tasks.show', [project.id, task.id]))}

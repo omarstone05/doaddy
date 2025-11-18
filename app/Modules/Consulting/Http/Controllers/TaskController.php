@@ -183,6 +183,31 @@ class TaskController extends Controller
             ->with('success', 'Task marked as done.');
     }
 
+    public function toggleStatus(Request $request, Project $project, Task $task)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:todo,in_progress,review,done,blocked',
+        ]);
+
+        $task->update([
+            'status' => $validated['status'],
+            'completed_at' => $validated['status'] === 'done' ? now() : null,
+        ]);
+
+        // Update project progress
+        $project->updateProgress();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Task status updated',
+            ]);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Task status updated.');
+    }
+
     public function destroy(Project $project, Task $task)
     {
         $task->delete();
