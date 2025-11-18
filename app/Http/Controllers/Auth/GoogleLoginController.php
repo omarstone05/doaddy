@@ -73,6 +73,18 @@ class GoogleLoginController extends Controller
 
             // If new user and no organization, redirect to onboarding
             if ($isNewUser && !$currentOrgId) {
+                // Send welcome email for new Google users
+                try {
+                    // Create a temporary organization for welcome email (will be created in onboarding)
+                    // Or send welcome without organization
+                    $emailService = app(\App\Services\Admin\EmailService::class);
+                    // We'll send welcome email after organization is created in onboarding
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to send welcome email for Google user', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
                 return redirect()->route('onboarding');
             }
 

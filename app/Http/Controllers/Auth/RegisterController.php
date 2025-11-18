@@ -77,6 +77,18 @@ class RegisterController extends Controller
             // Set current organization in session
             session(['current_organization_id' => $organization->id]);
 
+            // Send welcome email
+            try {
+                $emailService = app(\App\Services\Admin\EmailService::class);
+                $emailService->sendWelcomeEmail($user, $organization);
+            } catch (\Exception $e) {
+                // Log but don't fail registration if email fails
+                \Log::warning('Failed to send welcome email', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Redirect to onboarding conversation
             return redirect()->route('onboarding');
         } catch (\Exception $e) {
@@ -355,6 +367,18 @@ class RegisterController extends Controller
             
             // Set current organization in session
             session(['current_organization_id' => $organization->id]);
+
+            // Send welcome email
+            try {
+                $emailService = app(\App\Services\Admin\EmailService::class);
+                $emailService->sendWelcomeEmail($user, $organization);
+            } catch (\Exception $e) {
+                // Log but don't fail registration if email fails
+                \Log::warning('Failed to send welcome email', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Redirect to onboarding conversation
             return redirect()->route('onboarding');

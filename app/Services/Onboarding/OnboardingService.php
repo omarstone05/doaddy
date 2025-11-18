@@ -124,6 +124,21 @@ class OnboardingService
         // Create default settings based on priorities
         $this->setupOrganizationDefaults($organization, $data);
 
+        // Send welcome email if user has a valid email
+        try {
+            if ($user->email && !str_ends_with($user->email, '@whatsapp.addy')) {
+                $emailService = app(\App\Services\Admin\EmailService::class);
+                $emailService->sendWelcomeEmail($user, $organization);
+            }
+        } catch (\Exception $e) {
+            // Log but don't fail onboarding if email fails
+            \Log::warning('Failed to send welcome email during onboarding', [
+                'user_id' => $user->id,
+                'organization_id' => $organization->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return [
             'organization' => $organization,
             'session' => $session,
