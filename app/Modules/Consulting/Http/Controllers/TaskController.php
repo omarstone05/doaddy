@@ -15,11 +15,70 @@ class TaskController extends Controller
         $tasks = $project->tasks()
             ->with(['assignedUser', 'parentTask'])
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'due_date' => $task->due_date,
+                    'estimated_hours' => $task->estimated_hours,
+                    'assigned_to_id' => $task->assigned_to,
+                    'assigned_to_name' => $task->assignedUser?->name,
+                    'created_at' => $task->created_at,
+                ];
+            });
 
         return Inertia::render('Consulting/Tasks/Index', [
-            'project' => $project,
+            'project' => $project->only(['id', 'name', 'code']),
             'tasks' => $tasks,
+        ]);
+    }
+
+    public function create(Request $request, Project $project)
+    {
+        return Inertia::render('Consulting/Tasks/Create', [
+            'project' => $project->only(['id', 'name', 'code']),
+        ]);
+    }
+
+    public function show(Request $request, Project $project, Task $task)
+    {
+        $task->load(['assignedUser', 'parentTask', 'project']);
+        
+        return Inertia::render('Consulting/Tasks/Show', [
+            'project' => $project->only(['id', 'name', 'code']),
+            'task' => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'due_date' => $task->due_date,
+                'estimated_hours' => $task->estimated_hours,
+                'assigned_to_id' => $task->assigned_to_id,
+                'assigned_to_name' => $task->assignedUser?->name,
+                'created_at' => $task->created_at,
+            ],
+        ]);
+    }
+
+    public function edit(Request $request, Project $project, Task $task)
+    {
+        return Inertia::render('Consulting/Tasks/Edit', [
+            'project' => $project->only(['id', 'name', 'code']),
+            'task' => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'due_date' => $task->due_date,
+                'estimated_hours' => $task->estimated_hours,
+                'assigned_to_id' => $task->assigned_to_id,
+            ],
         ]);
     }
 
@@ -28,19 +87,24 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'assigned_to' => 'nullable|uuid|exists:users,id',
+            'status' => 'nullable|string|in:todo,in_progress,review,done,blocked',
+            'assigned_to_id' => 'nullable|uuid|exists:users,id',
             'priority' => 'nullable|string|in:low,medium,high,urgent',
             'due_date' => 'nullable|date',
-            'estimated_hours' => 'nullable|integer|min:0',
-            'billable' => 'boolean',
+            'estimated_hours' => 'nullable|numeric|min:0',
         ]);
 
         $task = $project->tasks()->create([
-            ...$validated,
-            'status' => 'pending',
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'] ?? 'todo',
+            'assigned_to' => $validated['assigned_to_id'] ?? null,
+            'priority' => $validated['priority'] ?? 'medium',
+            'due_date' => $validated['due_date'] ?? null,
+            'estimated_hours' => $validated['estimated_hours'] ?? null,
         ]);
 
-        return redirect()->back()
+        return redirect()->route('consulting.projects.tasks.index', $project->id)
             ->with('success', 'Task created successfully.');
     }
 
@@ -49,19 +113,27 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'required|string|in:pending,in_progress,review,blocked,completed',
-            'assigned_to' => 'nullable|uuid|exists:users,id',
+            'status' => 'required|string|in:todo,in_progress,review,done,blocked',
+            'assigned_to_id' => 'nullable|uuid|exists:users,id',
             'priority' => 'nullable|string|in:low,medium,high,urgent',
             'due_date' => 'nullable|date',
-            'progress_percentage' => 'nullable|integer|min:0|max:100',
+            'estimated_hours' => 'nullable|numeric|min:0',
         ]);
 
-        $task->update($validated);
+        $task->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'],
+            'assigned_to' => $validated['assigned_to_id'] ?? null,
+            'priority' => $validated['priority'] ?? 'medium',
+            'due_date' => $validated['due_date'] ?? null,
+            'estimated_hours' => $validated['estimated_hours'] ?? null,
+        ]);
 
         // Update project progress
         $project->updateProgress();
 
-        return redirect()->back()
+        return redirect()->route('consulting.projects.tasks.show', [$project->id, $task->id])
             ->with('success', 'Task updated successfully.');
     }
 
@@ -72,7 +144,7 @@ class TaskController extends Controller
         // Update project progress
         $project->updateProgress();
 
-        return redirect()->back()
+        return redirect()->route('consulting.projects.tasks.index', $project->id)
             ->with('success', 'Task deleted successfully.');
     }
 }

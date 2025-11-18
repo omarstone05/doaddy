@@ -40,6 +40,12 @@ class ConsultingServiceProvider extends BaseModule
      */
     protected function bootModule(): void
     {
+        // Register services
+        $this->app->singleton(\App\Modules\Consulting\Services\ProjectService::class);
+        
+        // Register dashboard cards
+        \App\Modules\Consulting\Cards\ConsultingCards::register();
+        
         // Register policies (will be created later)
         // $this->registerPolicies();
         

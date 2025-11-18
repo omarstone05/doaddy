@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use App\Modules\Consulting\Models\Project;
+use App\Modules\Consulting\Models\Task;
 
 class DashboardCardDataController extends Controller
 {
@@ -84,6 +86,11 @@ class DashboardCardDataController extends Controller
             'finance.recent_transactions' => $this->getRecentTransactionsData($organizationId),
             'finance.monthly_goal' => $this->getMonthlyGoalData($organizationId),
             'pm.active_projects' => $this->getActiveProjectsData($organizationId),
+            'consulting.active_projects' => $this->getConsultingActiveProjectsData($organizationId),
+            'consulting.project_health' => $this->getConsultingProjectHealthData($organizationId),
+            'consulting.task_completion' => $this->getConsultingTaskCompletionData($organizationId),
+            'consulting.upcoming_deadlines' => $this->getConsultingUpcomingDeadlinesData($organizationId),
+            'consulting.project_progress' => $this->getConsultingProjectProgressData($organizationId),
             default => ['message' => 'No data available'],
         };
     }
@@ -293,6 +300,159 @@ class DashboardCardDataController extends Controller
         } catch (\Exception $e) {
             \Log::warning('Active projects query failed', ['error' => $e->getMessage()]);
             return ['count' => 0];
+        }
+    }
+
+    protected function getConsultingActiveProjectsData(string $organizationId): array
+    {
+        try {
+            $projects = \App\Modules\Consulting\Models\Project::where('organization_id', $organizationId)
+                ->where('status', 'active')
+                ->count();
+            return ['count' => $projects];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting active projects query failed', ['error' => $e->getMessage()]);
+            return ['count' => 0];
+        }
+    }
+
+    protected function getConsultingProjectHealthData(string $organizationId): array
+    {
+        try {
+            $projects = \App\Modules\Consulting\Models\Project::where('organization_id', $organizationId)
+                ->select('health_status', DB::raw('count(*) as count'))
+                ->groupBy('health_status')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'status' => $item->health_status,
+                        'count' => (int) $item->count,
+                    ];
+                });
+
+            return ['health' => $projects];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting project health query failed', ['error' => $e->getMessage()]);
+            return ['health' => []];
+        }
+    }
+
+    protected function getConsultingTaskCompletionData(string $organizationId): array
+    {
+        try {
+            $tasks = \App\Modules\Consulting\Models\Task::whereHas('project', function($query) use ($organizationId) {
+                $query->where('organization_id', $organizationId);
+            })
+            ->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'status' => $item->status,
+                    'count' => (int) $item->count,
+                ];
+            });
+
+            $total = $tasks->sum('count');
+            $completed = $tasks->where('status', 'done')->sum('count');
+            $completionRate = $total > 0 ? ($completed / $total) * 100 : 0;
+
+            return [
+                'tasks' => $tasks,
+                'total' => $total,
+                'completed' => $completed,
+                'completion_rate' => round($completionRate, 1),
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting task completion query failed', ['error' => $e->getMessage()]);
+            return ['tasks' => [], 'total' => 0, 'completed' => 0, 'completion_rate' => 0];
+        }
+    }
+
+    protected function getConsultingUpcomingDeadlinesData(string $organizationId): array
+    {
+        try {
+            $now = Carbon::now();
+            $nextWeek = $now->copy()->addWeek();
+
+            // Get tasks with upcoming deadlines
+            $tasks = \App\Modules\Consulting\Models\Task::whereHas('project', function($query) use ($organizationId) {
+                $query->where('organization_id', $organizationId);
+            })
+            ->whereNotNull('due_date')
+            ->where('due_date', '>=', $now)
+            ->where('due_date', '<=', $nextWeek)
+            ->where('status', '!=', 'done')
+            ->with('project:id,name')
+            ->orderBy('due_date')
+            ->limit(10)
+            ->get()
+            ->map(function($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'due_date' => $task->due_date->toDateString(),
+                    'project_name' => $task->project->name,
+                    'priority' => $task->priority,
+                ];
+            });
+
+            // Get projects with upcoming end dates
+            $projects = \App\Modules\Consulting\Models\Project::where('organization_id', $organizationId)
+                ->whereNotNull('end_date')
+                ->where('end_date', '>=', $now)
+                ->where('end_date', '<=', $nextWeek)
+                ->where('status', '!=', 'complete')
+                ->orderBy('end_date')
+                ->limit(5)
+                ->get()
+                ->map(function($project) {
+                    return [
+                        'id' => $project->id,
+                        'name' => $project->name,
+                        'end_date' => $project->end_date->toDateString(),
+                    ];
+                });
+
+            return [
+                'tasks' => $tasks,
+                'projects' => $projects,
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting upcoming deadlines query failed', ['error' => $e->getMessage()]);
+            return ['tasks' => [], 'projects' => []];
+        }
+    }
+
+    protected function getConsultingProjectProgressData(string $organizationId): array
+    {
+        try {
+            $projects = \App\Modules\Consulting\Models\Project::where('organization_id', $organizationId)
+                ->where('status', 'active')
+                ->select('id', 'name', 'progress_percentage', 'budget_total', 'budget_remaining')
+                ->orderBy('progress_percentage', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function($project) {
+                    return [
+                        'id' => $project->id,
+                        'name' => $project->name,
+                        'progress' => (float) $project->progress_percentage,
+                        'budget_total' => (float) $project->budget_total,
+                        'budget_remaining' => (float) $project->budget_remaining,
+                    ];
+                });
+
+            $avgProgress = $projects->avg('progress') ?? 0;
+
+            return [
+                'projects' => $projects,
+                'average_progress' => round($avgProgress, 1),
+                'total_projects' => $projects->count(),
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Consulting project progress query failed', ['error' => $e->getMessage()]);
+            return ['projects' => [], 'average_progress' => 0, 'total_projects' => 0];
         }
     }
 }
