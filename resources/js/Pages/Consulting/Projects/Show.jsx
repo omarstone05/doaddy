@@ -169,12 +169,21 @@ export default function Show({ auth, project }) {
                             <div className="bg-white/70 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-semibold text-gray-900">Recent Tasks</h3>
-                                    <Link
-                                        href={route('consulting.projects.tasks.index', project.id)}
-                                        className="text-sm text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                        View All
-                                    </Link>
+                                    <div className="flex items-center gap-3">
+                                        <Link
+                                            href={route('consulting.projects.tasks.create', project.id)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+                                        >
+                                            <Plus size={14} />
+                                            Create Task
+                                        </Link>
+                                        <Link
+                                            href={route('consulting.projects.tasks.index', project.id)}
+                                            className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                            View All
+                                        </Link>
+                                    </div>
                                 </div>
                                 
                                 {project.tasks && project.tasks.length > 0 ? (
@@ -271,19 +280,19 @@ export default function Show({ auth, project }) {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                                 
                                 <div className="space-y-2">
+                                    <Link
+                                        href={route('consulting.projects.tasks.create', project.id)}
+                                        className="w-full block px-4 py-2.5 bg-teal-600 text-white hover:bg-teal-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={16} />
+                                        Create New Task
+                                    </Link>
                                     <button
                                         onClick={() => router.visit(route('consulting.projects.tasks.index', project.id))}
                                         className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                                     >
                                         <CheckSquare size={16} />
                                         View All Tasks
-                                    </button>
-                                    <button
-                                        onClick={() => router.visit(route('consulting.projects.tasks.create', project.id))}
-                                        className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                    >
-                                        <Plus size={16} />
-                                        Create New Task
                                     </button>
                                     <button
                                         className="w-full text-left px-4 py-2 bg-white/60 hover:bg-white/90 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
