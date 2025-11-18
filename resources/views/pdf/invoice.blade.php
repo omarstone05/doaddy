@@ -124,6 +124,40 @@
             font-size: 10px;
             color: #666;
         }
+        .bank-details {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        .bank-details h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #0d9488;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .bank-details-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .bank-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        .bank-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 3px;
+            font-size: 10px;
+        }
+        .bank-item p {
+            margin: 0;
+            color: #666;
+            font-size: 10px;
+        }
         .status-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -194,7 +228,7 @@
     <table>
         <thead>
             <tr>
-                <th>Description</th>
+                <th>Product / Description</th>
                 <th class="text-right">Quantity</th>
                 <th class="text-right">Unit Price</th>
                 <th class="text-right">Total</th>
@@ -203,7 +237,19 @@
         <tbody>
             @foreach($invoice->items as $item)
                 <tr>
-                    <td>{{ $item->description }}</td>
+                    <td>
+                        @if($item->goodsService)
+                            <div style="font-weight: 600; margin-bottom: 3px;">{{ $item->goodsService->name }}</div>
+                            @if($item->goodsService->description)
+                                <div style="font-size: 10px; color: #666; margin-bottom: 3px;">{{ $item->goodsService->description }}</div>
+                            @endif
+                            @if($item->description && $item->description !== $item->goodsService->name)
+                                <div style="font-size: 10px; color: #666;">{{ $item->description }}</div>
+                            @endif
+                        @else
+                            <div>{{ $item->description }}</div>
+                        @endif
+                    </td>
                     <td class="text-right">{{ number_format($item->quantity, 2) }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $organization->currency ?? 'ZMW' }}</td>
                     <td class="text-right"><strong>{{ number_format($item->total, 2) }} {{ $organization->currency ?? 'ZMW' }}</strong></td>
@@ -261,6 +307,61 @@
         <div style="margin-top: 20px;">
             <h3 style="font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 8px;">Terms & Conditions</h3>
             <p style="color: #333;">{{ $invoice->terms }}</p>
+        </div>
+    @endif
+
+    @if(isset($bankDetails) && $bankDetails)
+        <div class="bank-details">
+            <h3>Payment Information</h3>
+            <div class="bank-details-grid">
+                @if(isset($bankDetails['bank_name']) && $bankDetails['bank_name'])
+                    <div class="bank-item">
+                        <strong>Bank Name:</strong>
+                        <p>{{ $bankDetails['bank_name'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['account_name']) && $bankDetails['account_name'])
+                    <div class="bank-item">
+                        <strong>Account Name:</strong>
+                        <p>{{ $bankDetails['account_name'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['account_number']) && $bankDetails['account_number'])
+                    <div class="bank-item">
+                        <strong>Account Number:</strong>
+                        <p>{{ $bankDetails['account_number'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['branch']) && $bankDetails['branch'])
+                    <div class="bank-item">
+                        <strong>Branch:</strong>
+                        <p>{{ $bankDetails['branch'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['swift_code']) && $bankDetails['swift_code'])
+                    <div class="bank-item">
+                        <strong>SWIFT Code:</strong>
+                        <p>{{ $bankDetails['swift_code'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['mobile_money']) && $bankDetails['mobile_money'])
+                    <div class="bank-item">
+                        <strong>Mobile Money:</strong>
+                        <p>{{ $bankDetails['mobile_money'] }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['payment_options']) && is_array($bankDetails['payment_options']) && count($bankDetails['payment_options']) > 0)
+                    <div class="bank-item" style="flex-basis: 100%;">
+                        <strong>Payment Options:</strong>
+                        <p>{{ implode(', ', $bankDetails['payment_options']) }}</p>
+                    </div>
+                @endif
+                @if(isset($bankDetails['notes']) && $bankDetails['notes'])
+                    <div class="bank-item" style="flex-basis: 100%; margin-top: 10px;">
+                        <p style="font-size: 9px; color: #666; font-style: italic;">{{ $bankDetails['notes'] }}</p>
+                    </div>
+                @endif
+            </div>
         </div>
     @endif
 

@@ -53,10 +53,15 @@ class InvoiceController extends Controller
                 ->find($quoteId);
         }
 
+        // Get organization bank details
+        $organization = \App\Models\Organization::find(Auth::user()->organization_id);
+        $bankDetails = $organization->settings['bank_details'] ?? null;
+
         return Inertia::render('Invoices/Create', [
             'customers' => $customers,
             'products' => $products,
             'quote' => $quote,
+            'bankDetails' => $bankDetails,
         ]);
     }
 
@@ -117,6 +122,7 @@ class InvoiceController extends Controller
                 'status' => 'draft',
                 'notes' => $validated['notes'] ?? null,
                 'terms' => $validated['terms'] ?? null,
+                'payment_details' => $validated['payment_details'] ?? null,
                 'quote_id' => $request->input('quote_id'),
                 'is_recurring' => $validated['is_recurring'] ?? false,
                 'recurrence_frequency' => $validated['recurrence_frequency'] ?? null,
@@ -169,7 +175,7 @@ class InvoiceController extends Controller
     public function downloadPdf($id)
     {
         $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
-            ->with(['customer', 'items', 'organization'])
+            ->with(['customer', 'items.goodsService', 'organization'])
             ->findOrFail($id);
 
         $organization = $invoice->organization;
@@ -179,6 +185,44 @@ class InvoiceController extends Controller
             $logoUrl = url(\Storage::disk('public')->url($organization->logo));
         }
 
+        // Get bank details - use invoice-specific if available, otherwise fall back to organization defaults
+        $bankDetails = null;
+        $organizationBankDetails = $organization->settings['bank_details'] ?? null;
+        
+        if ($invoice->payment_details && $organizationBankDetails) {
+            // Build bank details based on invoice payment_details selections
+            $bankDetails = [];
+            $paymentDetails = $invoice->payment_details;
+            
+            if (!empty($paymentDetails['show_bank_name']) && !empty($organizationBankDetails['bank_name'])) {
+                $bankDetails['bank_name'] = $organizationBankDetails['bank_name'];
+            }
+            if (!empty($paymentDetails['show_account_name']) && !empty($organizationBankDetails['account_name'])) {
+                $bankDetails['account_name'] = $organizationBankDetails['account_name'];
+            }
+            if (!empty($paymentDetails['show_account_number']) && !empty($organizationBankDetails['account_number'])) {
+                $bankDetails['account_number'] = $organizationBankDetails['account_number'];
+            }
+            if (!empty($paymentDetails['show_branch']) && !empty($organizationBankDetails['branch'])) {
+                $bankDetails['branch'] = $organizationBankDetails['branch'];
+            }
+            if (!empty($paymentDetails['show_swift_code']) && !empty($organizationBankDetails['swift_code'])) {
+                $bankDetails['swift_code'] = $organizationBankDetails['swift_code'];
+            }
+            if (!empty($paymentDetails['show_mobile_money']) && !empty($organizationBankDetails['mobile_money'])) {
+                $bankDetails['mobile_money'] = $organizationBankDetails['mobile_money'];
+            }
+            if (!empty($paymentDetails['show_payment_options']) && !empty($organizationBankDetails['payment_options'])) {
+                $bankDetails['payment_options'] = $organizationBankDetails['payment_options'];
+            }
+            if (!empty($paymentDetails['show_notes']) && !empty($organizationBankDetails['notes'])) {
+                $bankDetails['notes'] = $organizationBankDetails['notes'];
+            }
+        } elseif ($organizationBankDetails) {
+            // Fall back to showing all organization bank details if no invoice-specific selection
+            $bankDetails = $organizationBankDetails;
+        }
+
         $pdfService = new \App\Services\PDF\PdfService();
         $filename = 'Invoice-' . $invoice->invoice_number . '.pdf';
 
@@ -186,6 +230,7 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'organization' => $organization,
             'logoUrl' => $logoUrl,
+            'bankDetails' => $bankDetails,
         ], $filename);
     }
 
@@ -204,10 +249,15 @@ class InvoiceController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Get organization bank details
+        $organization = \App\Models\Organization::find(Auth::user()->organization_id);
+        $bankDetails = $organization->settings['bank_details'] ?? null;
+
         return Inertia::render('Invoices/Edit', [
             'invoice' => $invoice,
             'customers' => $customers,
             'products' => $products,
+            'bankDetails' => $bankDetails,
         ]);
     }
 
@@ -234,6 +284,15 @@ class InvoiceController extends Controller
             'discount_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
+            'payment_details' => 'nullable|array',
+            'payment_details.show_bank_name' => 'nullable|boolean',
+            'payment_details.show_account_name' => 'nullable|boolean',
+            'payment_details.show_account_number' => 'nullable|boolean',
+            'payment_details.show_branch' => 'nullable|boolean',
+            'payment_details.show_swift_code' => 'nullable|boolean',
+            'payment_details.show_mobile_money' => 'nullable|boolean',
+            'payment_details.show_payment_options' => 'nullable|boolean',
+            'payment_details.show_notes' => 'nullable|boolean',
             'is_recurring' => 'boolean',
             'recurrence_frequency' => 'nullable|in:weekly,monthly,quarterly,annually',
             'recurrence_day' => 'nullable|integer|min:1|max:31',
@@ -273,6 +332,7 @@ class InvoiceController extends Controller
                 'total_amount' => $totalAmount,
                 'notes' => $validated['notes'] ?? null,
                 'terms' => $validated['terms'] ?? null,
+                'payment_details' => $validated['payment_details'] ?? null,
                 'is_recurring' => $validated['is_recurring'] ?? false,
                 'recurrence_frequency' => $validated['recurrence_frequency'] ?? null,
                 'recurrence_day' => $validated['recurrence_day'] ?? null,

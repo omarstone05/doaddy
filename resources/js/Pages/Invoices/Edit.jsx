@@ -6,7 +6,7 @@ import QuickCreateCustomerModal from '@/Components/QuickCreateCustomerModal';
 import QuickCreateProductModal from '@/Components/QuickCreateProductModal';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
-export default function InvoicesEdit({ invoice, customers: initialCustomers, products: initialProducts }) {
+export default function InvoicesEdit({ invoice, customers: initialCustomers, products: initialProducts, bankDetails }) {
     const [customers, setCustomers] = useState(initialCustomers);
     const [products, setProducts] = useState(initialProducts);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -30,6 +30,16 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
         discount_amount: invoice?.discount_amount?.toString() || '0',
         notes: invoice?.notes || '',
         terms: invoice?.terms || '',
+        payment_details: invoice?.payment_details || {
+            show_bank_name: false,
+            show_account_name: false,
+            show_account_number: false,
+            show_branch: false,
+            show_swift_code: false,
+            show_mobile_money: false,
+            show_payment_options: false,
+            show_notes: false,
+        },
         is_recurring: invoice?.is_recurring || false,
         recurrence_frequency: invoice?.recurrence_frequency || '',
         recurrence_day: invoice?.recurrence_day?.toString() || '',
@@ -434,6 +444,136 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
                                 disabled={!canEdit}
                             />
                         </div>
+
+                        {/* Payment Details Selection */}
+                        {bankDetails && (
+                            <div className="border-t border-gray-200 pt-4">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-3">Payment Information on Invoice</h3>
+                                <p className="text-xs text-gray-500 mb-4">Select which payment details to display on the invoice footer</p>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {bankDetails.bank_name && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_bank_name || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_bank_name: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Bank Name</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.account_name && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_account_name || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_account_name: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Account Name</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.account_number && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_account_number || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_account_number: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Account Number</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.branch && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_branch || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_branch: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Branch</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.swift_code && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_swift_code || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_swift_code: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">SWIFT Code</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.mobile_money && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_mobile_money || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_mobile_money: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Mobile Money</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.payment_options && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_payment_options || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_payment_options: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Payment Options</span>
+                                        </label>
+                                    )}
+                                    {bankDetails.notes && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.payment_details?.show_notes || false}
+                                                onChange={(e) => setData('payment_details', {
+                                                    ...data.payment_details,
+                                                    show_notes: e.target.checked
+                                                })}
+                                                disabled={!canEdit}
+                                                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Payment Notes</span>
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Total */}
                         <div className="border-t border-gray-200 pt-4">
