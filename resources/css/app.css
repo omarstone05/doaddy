@@ -177,4 +177,50 @@
     .animate-move-circle {
         animation: moveInCircle 20s ease infinite;
     }
+    
+    /* Dashboard Background Gradient */
+    .dashboard-background {
+        background: linear-gradient(
+            135deg,
+            #E6F5F4 0%,
+            #C2E1C2 25%,
+            #D1FAE5 50%,
+            #F0FAF1 75%,
+            #FFFFFF 100%
+        );
+        min-height: 100vh;
+    }
+    
+    /* Glassmorphism Cards */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px 0 rgba(0, 99, 93, 0.1);
+        padding: 24px;
+        transition: all 0.3s ease;
+    }
+    
+    .glass-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px 0 rgba(0, 99, 93, 0.15);
+    }
+    
+    .glass-strong {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 32px 0 rgba(0, 99, 93, 0.15);
+    }
+    
+    .glass-subtle {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 16px 0 rgba(0, 99, 93, 0.08);
+    }
 }
