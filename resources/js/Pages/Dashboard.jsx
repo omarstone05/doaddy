@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import BentoDashboard from '@/Components/BentoDashboard';
 
-export default function Dashboard({ user, stats, modularCards = [] }) {
+export default function Dashboard({ user, stats, modularCards = [], preloadedCardData = {} }) {
   return (
     <AuthenticatedLayout
       user={user}
@@ -11,7 +11,12 @@ export default function Dashboard({ user, stats, modularCards = [] }) {
     >
       <Head title="Dashboard" />
       
-      <BentoDashboard stats={stats} user={user} modularCards={modularCards} />
+      <BentoDashboard 
+        stats={stats} 
+        user={user} 
+        modularCards={modularCards}
+        preloadedCardData={preloadedCardData}
+      />
     </AuthenticatedLayout>
   );
 }

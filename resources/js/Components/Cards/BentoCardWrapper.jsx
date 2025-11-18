@@ -23,12 +23,20 @@ const CARD_COMPONENTS = {
   'pm.active_projects': ActiveProjectsCard,
 };
 
-const BentoCardWrapper = ({ cardId, onRemove, theme }) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const BentoCardWrapper = ({ cardId, onRemove, theme, preloadedData }) => {
+  const [data, setData] = useState(preloadedData || null);
+  const [loading, setLoading] = useState(!preloadedData);
 
-  // Fetch card data
+  // Fetch card data if not preloaded
   useEffect(() => {
+    // If we have preloaded data, use it immediately
+    if (preloadedData) {
+      setData(preloadedData);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API
     const fetchData = async () => {
       try {
         const response = await fetch(`/api/dashboard/card-data/${cardId}`);
@@ -44,7 +52,7 @@ const BentoCardWrapper = ({ cardId, onRemove, theme }) => {
     };
 
     fetchData();
-  }, [cardId]);
+  }, [cardId, preloadedData]);
 
   const CardComponent = CARD_COMPONENTS[cardId];
 

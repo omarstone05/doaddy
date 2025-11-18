@@ -429,8 +429,27 @@ class DashboardController extends Controller
         // Get available modular cards from CardRegistry
         $modularCards = CardRegistry::getAllCards();
         
+        // Preload card data for active cards (with caching)
+        $cardDataController = new \App\Http\Controllers\DashboardCardDataController();
+        $preloadedCardData = [];
+        
+        // Preload data for common cards that are likely to be displayed
+        $commonCardIds = ['finance.revenue', 'finance.expenses', 'finance.profit', 'finance.cash_flow'];
+        foreach ($commonCardIds as $cardId) {
+            try {
+                $cardData = $cardDataController->getCardData($request, $cardId);
+                if ($cardData->getStatusCode() === 200) {
+                    $preloadedCardData[$cardId] = json_decode($cardData->getContent(), true);
+                }
+            } catch (\Exception $e) {
+                // Silently fail - cards will fetch their own data
+                \Log::debug('Failed to preload card data', ['card' => $cardId, 'error' => $e->getMessage()]);
+            }
+        }
+        
         return Inertia::render('Dashboard', [
             'user' => $request->user(),
+            'preloadedCardData' => $preloadedCardData,
             'stats' => [
                 'total_accounts' => $totalAccounts,
                 'total_revenue' => (float) $totalRevenue,

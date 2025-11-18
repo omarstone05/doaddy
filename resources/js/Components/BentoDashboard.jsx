@@ -259,7 +259,7 @@ const AddyInsightsCard = ({ onRemove, userName, stats, organizationName }) => {
 };
 
 // Main Dashboard Component
-const BentoDashboard = ({ stats, user, modularCards = [] }) => {
+const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {} }) => {
   const { props } = usePage();
   // Get organization name from auth.user.organization if available, otherwise from user prop
   const organizationName = props?.auth?.user?.organization?.name || user?.organization?.name;
