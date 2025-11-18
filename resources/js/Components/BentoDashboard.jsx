@@ -375,18 +375,31 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
 
   const addCard = (cardId) => {
     setAvailableCards(prev => {
-      const cardExists = prev.find(c => c.id === cardId);
+      // First, ensure no duplicates exist in the array
+      const uniqueCards = prev.reduce((acc, card) => {
+        if (!acc.find(c => c.id === card.id)) {
+          acc.push(card);
+        }
+        return acc;
+      }, []);
+      
+      const cardExists = uniqueCards.find(c => c.id === cardId);
       if (cardExists) {
-        return prev.map(card =>
+        // Just activate it if it exists
+        return uniqueCards.map(card =>
           card.id === cardId ? { ...card, active: true } : card
         );
       } else {
         // Add new modular card
         const modularCard = initialModularCards.find(c => c.id === cardId);
         if (modularCard) {
-          return [...prev, { ...modularCard, active: true }];
+          // Double-check it's not already in uniqueCards
+          const alreadyExists = uniqueCards.some(c => c.id === cardId);
+          if (!alreadyExists) {
+            return [...uniqueCards, { ...modularCard, active: true }];
+          }
         }
-        return prev;
+        return uniqueCards;
       }
     });
   };
