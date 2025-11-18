@@ -209,7 +209,7 @@ export default function QuotesShow({ quote }) {
                 </div>
 
                 {/* Attachments */}
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
                     <FileUpload
                         attachableType="App\Models\Quote"
                         attachableId={quote.id}
@@ -219,7 +219,7 @@ export default function QuotesShow({ quote }) {
                 </div>
 
                 {/* Settings Note */}
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                     <p className="text-sm text-blue-800 text-center">
                         To change the information displayed on your quote,{' '}
                         <Link href="/settings/invoices" className="text-blue-600 hover:text-blue-800 underline font-medium">
