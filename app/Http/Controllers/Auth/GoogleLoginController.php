@@ -34,6 +34,8 @@ class GoogleLoginController extends Controller
                 ->orWhere('email', $googleUser->getEmail())
                 ->first();
 
+            $isNewUser = false;
+
             if ($user) {
                 // Update existing user with Google ID if not set
                 if (!$user->google_id) {
@@ -52,14 +54,12 @@ class GoogleLoginController extends Controller
                     'email_verified_at' => now(), // Google emails are verified
                     'password' => bcrypt(str()->random(32)), // Random password
                 ]);
+                $isNewUser = true;
             }
 
             // Log the user in
             Auth::login($user, true);
             $request->session()->regenerate();
-
-            // Check if this is a new user (just created)
-            $isNewUser = $user->wasRecentlyCreated;
 
             // Set current organization in session
             $currentOrgId = session('current_organization_id') 
