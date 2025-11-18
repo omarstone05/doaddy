@@ -180,9 +180,23 @@ class InvoiceController extends Controller
 
         $organization = $invoice->organization;
         $logoUrl = null;
+        $logoBase64 = null;
         if ($organization->logo && \Storage::disk('public')->exists($organization->logo)) {
-            // Use absolute URL for PDF rendering
-            $logoUrl = url(\Storage::disk('public')->url($organization->logo));
+            try {
+                // Convert logo to base64 for PDF compatibility
+                $logoPath = \Storage::disk('public')->path($organization->logo);
+                if (file_exists($logoPath)) {
+                    $imageData = file_get_contents($logoPath);
+                    $mimeType = mime_content_type($logoPath) ?: 'image/png';
+                    $logoBase64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to load organization logo for PDF', [
+                    'organization_id' => $organization->id,
+                    'logo' => $organization->logo,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Get bank details - use invoice-specific if available, otherwise fall back to organization defaults
@@ -229,7 +243,7 @@ class InvoiceController extends Controller
         return $pdfService->download('pdf.invoice', [
             'invoice' => $invoice,
             'organization' => $organization,
-            'logoUrl' => $logoUrl,
+            'logoUrl' => $logoBase64,
             'bankDetails' => $bankDetails,
         ], $filename);
     }

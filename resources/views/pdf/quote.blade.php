@@ -215,13 +215,9 @@
             color: #6b7280;
         }
         .footer-brand-logo {
-            height: 14px;
-            width: 14px;
+            height: 20px;
+            width: 20px;
             object-fit: contain;
-        }
-        .footer-brand-name {
-            color: #0d9488;
-            font-weight: 600;
         }
         @media print {
             body {
@@ -350,12 +346,11 @@
             <span class="footer-brand-text">Created with</span>
             @php
                 $logoPath = public_path('assets/logos/icon.png');
-                $logoUrl = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+                $addyLogoUrl = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
             @endphp
-            @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="Addy" class="footer-brand-logo" />
+            @if($addyLogoUrl)
+                <img src="{{ $addyLogoUrl }}" alt="Addy" class="footer-brand-logo" />
             @endif
-            <span class="footer-brand-name">Addy</span>
         </div>
     </div>
 </body>

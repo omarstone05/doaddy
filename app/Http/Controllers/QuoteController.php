@@ -147,9 +147,23 @@ class QuoteController extends Controller
 
         $organization = $quote->organization;
         $logoUrl = null;
+        $logoBase64 = null;
         if ($organization->logo && \Storage::disk('public')->exists($organization->logo)) {
-            // Use absolute URL for PDF rendering
-            $logoUrl = url(\Storage::disk('public')->url($organization->logo));
+            try {
+                // Convert logo to base64 for PDF compatibility
+                $logoPath = \Storage::disk('public')->path($organization->logo);
+                if (file_exists($logoPath)) {
+                    $imageData = file_get_contents($logoPath);
+                    $mimeType = mime_content_type($logoPath) ?: 'image/png';
+                    $logoBase64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to load organization logo for PDF', [
+                    'organization_id' => $organization->id,
+                    'logo' => $organization->logo,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $pdfService = new \App\Services\PDF\PdfService();
@@ -158,7 +172,7 @@ class QuoteController extends Controller
         return $pdfService->download('pdf.quote', [
             'quote' => $quote,
             'organization' => $organization,
-            'logoUrl' => $logoUrl,
+            'logoUrl' => $logoBase64,
         ], $filename);
     }
 
