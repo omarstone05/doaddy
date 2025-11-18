@@ -3,6 +3,7 @@
 namespace App\Modules\Consulting\Providers;
 
 use App\Support\BaseModule;
+use App\Modules\Consulting\Services\ProjectService;
 
 /**
  * Consulting Module Service Provider
@@ -31,10 +32,7 @@ class ConsultingServiceProvider extends BaseModule
      */
     protected function registerServices(): void
     {
-        // Register services (will be created later)
-        // $this->app->singleton(ProjectService::class);
-        // $this->app->singleton(DeliverableService::class);
-        // $this->app->singleton(TimeTrackingService::class);
+        $this->app->singleton(ProjectService::class);
     }
 
     /**

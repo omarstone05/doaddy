@@ -88,11 +88,65 @@ class Project extends Model
         return $this->belongsTo(User::class, 'lead_id');
     }
 
-    // Relationships will be added as models are created
-    // public function tasks()
-    // public function milestones()
-    // public function deliverables()
-    // etc.
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function milestones()
+    {
+        return $this->hasMany(Milestone::class);
+    }
+
+    public function deliverables()
+    {
+        return $this->hasMany(Deliverable::class);
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function timeEntries()
+    {
+        return $this->hasMany(TimeEntry::class);
+    }
+
+    public function changeOrders()
+    {
+        return $this->hasMany(ChangeOrder::class);
+    }
+
+    public function risks()
+    {
+        return $this->hasMany(Risk::class);
+    }
+
+    public function issues()
+    {
+        return $this->hasMany(Issue::class);
+    }
+
+    public function vendors()
+    {
+        return $this->hasMany(Vendor::class);
+    }
+
+    public function files()
+    {
+        return $this->hasMany(File::class);
+    }
+
+    public function communications()
+    {
+        return $this->hasMany(Communication::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(Activity::class);
+    }
 
     /**
      * Scopes
@@ -129,8 +183,7 @@ class Project extends Model
 
     public function getTotalExpensesAttribute()
     {
-        // Will be implemented when Expense model exists
-        return 0;
+        return $this->expenses()->sum('amount');
     }
 
     public function getBudgetRemainingAttribute()
@@ -177,8 +230,17 @@ class Project extends Model
 
     public function updateProgress(): void
     {
-        // Will be implemented when Task model exists
-        $this->update(['progress_percentage' => 0]);
+        $totalTasks = $this->tasks()->count();
+        
+        if ($totalTasks === 0) {
+            $this->update(['progress_percentage' => 0]);
+            return;
+        }
+
+        $completedTasks = $this->tasks()->where('status', 'completed')->count();
+        $progress = ($completedTasks / $totalTasks) * 100;
+
+        $this->update(['progress_percentage' => round($progress)]);
     }
 
     public function canBeAccessedByUser(User $user): bool
