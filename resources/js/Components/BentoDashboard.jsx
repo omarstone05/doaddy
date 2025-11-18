@@ -403,7 +403,17 @@ const BentoDashboard = ({ stats, user, modularCards = [] }) => {
     });
   };
 
-  const activeCards = availableCards.filter(card => card.active);
+  // Filter active cards and remove duplicates by ID (in case a card was added twice)
+  const activeCards = availableCards
+    .filter(card => card.active)
+    .reduce((acc, card) => {
+      // Only add if we haven't seen this ID before
+      if (!acc.find(c => c.id === card.id)) {
+        acc.push(card);
+      }
+      return acc;
+    }, []);
+  
   const inactiveCards = availableCards.filter(card => !card.active);
   
   // Filter cards by search query
