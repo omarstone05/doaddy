@@ -192,6 +192,66 @@ Best regards,
 The Addy Business Team',
                 'variables' => ['user_name', 'suspension_reason', 'support_email'],
             ],
+            [
+                'name' => 'Payment Confirmation',
+                'slug' => 'payment_confirmation',
+                'subject' => 'Payment Confirmation - {{payment_reference}}',
+                'category' => 'billing',
+                'body' => 'Hi {{user_name}},
+
+Thank you for your payment!
+
+Payment Details:
+- Amount: {{payment_amount}}
+- Reference: {{payment_reference}}
+- Date: {{payment_date}}
+- Method: {{payment_method}}
+
+Your payment has been successfully processed.
+
+Best regards,
+Addy Business Team',
+                'variables' => ['user_name', 'organization_name', 'payment_amount', 'payment_reference', 'payment_date', 'payment_method'],
+            ],
+            [
+                'name' => 'Subscription Renewal',
+                'slug' => 'subscription_renewal',
+                'subject' => 'Subscription Renewed - {{organization_name}}',
+                'category' => 'billing',
+                'body' => 'Hi {{user_name}},
+
+Your subscription has been renewed successfully!
+
+Plan: {{plan_name}}
+Amount: {{amount}}
+Billing Period: {{billing_period}}
+Next Renewal: {{renewal_date}}
+
+Thank you for your continued support!
+
+Best regards,
+Addy Business Team',
+                'variables' => ['user_name', 'organization_name', 'plan_name', 'amount', 'billing_period', 'renewal_date'],
+            ],
+            [
+                'name' => 'Invoice Generated',
+                'slug' => 'invoice_generated',
+                'subject' => 'New Invoice - {{invoice_number}}',
+                'category' => 'billing',
+                'body' => 'Hi {{user_name}},
+
+A new invoice has been generated for {{organization_name}}.
+
+Invoice Number: {{invoice_number}}
+Amount: {{invoice_amount}}
+Due Date: {{due_date}}
+
+You can view and pay your invoice by logging into your dashboard.
+
+Best regards,
+Addy Business Team',
+                'variables' => ['user_name', 'organization_name', 'invoice_number', 'invoice_amount', 'due_date'],
+            ],
         ];
 
         foreach ($templates as $template) {
