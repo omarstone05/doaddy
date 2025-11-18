@@ -348,7 +348,13 @@
     <div class="footer">
         <div class="footer-brand">
             <span class="footer-brand-text">Created with</span>
-            <img src="{{ url('assets/logos/icon.png') }}" alt="Addy" class="footer-brand-logo" />
+            @php
+                $logoPath = public_path('assets/logos/icon.png');
+                $logoUrl = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            @endphp
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="Addy" class="footer-brand-logo" />
+            @endif
             <span class="footer-brand-name">Addy</span>
         </div>
     </div>
