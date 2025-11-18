@@ -217,6 +217,16 @@ export default function QuotesShow({ quote }) {
                         existingAttachments={quote.attachments || []}
                     />
                 </div>
+
+                {/* Settings Note */}
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800 text-center">
+                        To change the information displayed on your quote,{' '}
+                        <Link href="/settings/invoices" className="text-blue-600 hover:text-blue-800 underline font-medium">
+                            go to Invoice Settings
+                        </Link>
+                    </p>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
