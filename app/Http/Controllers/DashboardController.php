@@ -10,6 +10,7 @@ use App\Models\Sale;
 use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\GoodsAndService;
+use App\Services\Dashboard\CardRegistry;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -425,6 +426,9 @@ class DashboardController extends Controller
             ];
         }
         
+        // Get available modular cards from CardRegistry
+        $modularCards = CardRegistry::getAllCards();
+        
         return Inertia::render('Dashboard', [
             'user' => $request->user(),
             'stats' => [
@@ -459,6 +463,7 @@ class DashboardController extends Controller
                 'projects' => $projects,
                 'team_stats' => $teamStats,
             ],
+            'modularCards' => array_values($modularCards), // Available modular cards
         ]);
     }
 }

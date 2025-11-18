@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { InsightsCard } from '@/Components/dashboard/InsightsCard';
 import { getOrganizationTheme } from '@/utils/themeColors';
+import BentoCardWrapper from '@/Components/Cards/BentoCardWrapper';
 import { 
   TrendingUp, 
   Zap, 
@@ -18,7 +19,9 @@ import {
   Settings,
   DollarSign,
   ShoppingCart,
-  FileText
+  FileText,
+  Search,
+  Grid3x3
 } from 'lucide-react';
 
 // Format currency helper
@@ -256,15 +259,15 @@ const AddyInsightsCard = ({ onRemove, userName, stats, organizationName }) => {
 };
 
 // Main Dashboard Component
-const BentoDashboard = ({ stats, user }) => {
+const BentoDashboard = ({ stats, user, modularCards = [] }) => {
   const { props } = usePage();
   // Get organization name from auth.user.organization if available, otherwise from user prop
   const organizationName = props?.auth?.user?.organization?.name || user?.organization?.name;
   const themeIndex = props?.auth?.user?.organization?.theme_index ?? 0;
   const theme = getOrganizationTheme(themeIndex);
   
-  // Define card components map - components can't be serialized to localStorage
-  const cardComponents = {
+  // Legacy card components
+  const legacyCardComponents = {
     'addy-insights': AddyInsightsCard,
     'revenue': RevenueCard,
     'quick-actions': QuickActionsCard,
@@ -276,19 +279,36 @@ const BentoDashboard = ({ stats, user }) => {
     'performance': PerformanceCard,
   };
 
+  // Convert modular cards to Bento format and merge with legacy cards
+  const initialModularCards = useMemo(() => {
+    return modularCards.map(card => ({
+      id: card.id,
+      active: false, // Start inactive, user can add them
+      size: card.size === 'small' ? 'small' : card.size === 'wide' ? 'large' : card.size || 'medium',
+      name: card.name,
+      description: card.description,
+      category: card.category,
+      icon: card.icon,
+      color: card.color,
+      isModular: true, // Flag to identify modular cards
+    }));
+  }, [modularCards]);
+
   const [availableCards, setAvailableCards] = useState([
-    { id: 'addy-insights', active: true, size: 'large' },
-    { id: 'revenue', active: true, size: 'large' },
-    { id: 'quick-actions', active: true, size: 'medium' },
-    { id: 'transactions', active: true, size: 'medium' },
-    { id: 'expenses', active: true, size: 'medium' },
-    { id: 'inventory', active: true, size: 'medium' },
-    { id: 'customers', active: true, size: 'small' },
-    { id: 'pending-invoices', active: true, size: 'small' },
-    { id: 'performance', active: true, size: 'medium' },
+    { id: 'addy-insights', active: true, size: 'large', isModular: false },
+    { id: 'revenue', active: true, size: 'large', isModular: false },
+    { id: 'quick-actions', active: true, size: 'medium', isModular: false },
+    { id: 'transactions', active: true, size: 'medium', isModular: false },
+    { id: 'expenses', active: true, size: 'medium', isModular: false },
+    { id: 'inventory', active: true, size: 'medium', isModular: false },
+    { id: 'customers', active: true, size: 'small', isModular: false },
+    { id: 'pending-invoices', active: true, size: 'small', isModular: false },
+    { id: 'performance', active: true, size: 'medium', isModular: false },
+    ...initialModularCards,
   ]);
 
   const [showCardManager, setShowCardManager] = useState(false);
+  const [cardSearchQuery, setCardSearchQuery] = useState('');
 
   // Load saved card preferences from localStorage
   useEffect(() => {
@@ -299,21 +319,38 @@ const BentoDashboard = ({ stats, user }) => {
         // Only restore active state and size, not component references
         setAvailableCards(prev => {
           const savedMap = new Map(parsed.map(c => [c.id, { active: c.active, size: c.size }]));
-          return prev.map(card => {
+          // Merge saved cards with new modular cards
+          const merged = prev.map(card => {
             const saved = savedMap.get(card.id);
             if (saved) {
               return { ...card, active: saved.active, size: saved.size };
             }
             return card;
           });
+          
+          // Add any new modular cards that weren't in saved data
+          initialModularCards.forEach(modularCard => {
+            if (!savedMap.has(modularCard.id)) {
+              merged.push(modularCard);
+            }
+          });
+          
+          return merged;
         });
       } catch (e) {
         console.error('Failed to parse saved cards:', e);
         // Clear corrupted data
         localStorage.removeItem('addy-bento-dashboard-cards');
       }
+    } else {
+      // First time - merge modular cards
+      setAvailableCards(prev => {
+        const existingIds = new Set(prev.map(c => c.id));
+        const newModular = initialModularCards.filter(c => !existingIds.has(c.id));
+        return [...prev, ...newModular];
+      });
     }
-  }, []);
+  }, [initialModularCards]);
 
   // Save card preferences to localStorage (only active state and size, not components)
   useEffect(() => {
@@ -337,15 +374,34 @@ const BentoDashboard = ({ stats, user }) => {
   };
 
   const addCard = (cardId) => {
-    setAvailableCards(prev =>
-      prev.map(card =>
-        card.id === cardId ? { ...card, active: true } : card
-      )
-    );
+    setAvailableCards(prev => {
+      const cardExists = prev.find(c => c.id === cardId);
+      if (cardExists) {
+        return prev.map(card =>
+          card.id === cardId ? { ...card, active: true } : card
+        );
+      } else {
+        // Add new modular card
+        const modularCard = initialModularCards.find(c => c.id === cardId);
+        if (modularCard) {
+          return [...prev, { ...modularCard, active: true }];
+        }
+        return prev;
+      }
+    });
   };
 
   const activeCards = availableCards.filter(card => card.active);
   const inactiveCards = availableCards.filter(card => !card.active);
+  
+  // Filter cards by search query
+  const filteredInactiveCards = inactiveCards.filter(card => {
+    if (!cardSearchQuery) return true;
+    const query = cardSearchQuery.toLowerCase();
+    const name = (card.name || card.id).toLowerCase();
+    const description = (card.description || '').toLowerCase();
+    return name.includes(query) || description.includes(query);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -365,24 +421,137 @@ const BentoDashboard = ({ stats, user }) => {
           </button>
         </div>
 
-        {/* Card Manager */}
+        {/* Enhanced Card Manager Modal */}
         {showCardManager && (
-          <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
-            <h3 className="font-semibold text-gray-900 mb-3">Add Cards</h3>
-            <div className="flex flex-wrap gap-2">
-              {inactiveCards.map(card => (
-                <button
-                  key={card.id}
-                  onClick={() => addCard(card.id)}
-                  className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
-                >
-                  <Plus size={16} />
-                  <span className="capitalize">{card.id.replace('-', ' ')}</span>
-                </button>
-              ))}
-              {inactiveCards.length === 0 && (
-                <p className="text-sm text-gray-500">All cards are currently active</p>
-              )}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-200 flex-shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Manage Dashboard Cards</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {inactiveCards.length} available cards • {activeCards.length} active
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowCardManager(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X size={24} className="text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search cards..."
+                    value={cardSearchQuery}
+                    onChange={(e) => setCardSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {filteredInactiveCards.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
+                    <Grid3x3 size={48} className="mb-3 opacity-20" />
+                    <p className="text-lg font-medium">No cards available</p>
+                    <p className="text-sm mt-1">
+                      {cardSearchQuery ? 'Try a different search term' : 'All cards are active'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {filteredInactiveCards.map((card) => {
+                      const IconComponent = legacyCardComponents[card.id] ? null : 
+                        (card.icon === 'TrendingUp' ? TrendingUp :
+                         card.icon === 'DollarSign' ? DollarSign :
+                         card.icon === 'LineChart' ? BarChart3 :
+                         card.icon === 'Target' ? CheckSquare :
+                         Package);
+                      
+                      return (
+                        <button
+                          key={card.id}
+                          onClick={() => {
+                            addCard(card.id);
+                            setCardSearchQuery('');
+                          }}
+                          className="glass-card p-4 text-left hover:shadow-xl transition-all group border-2 border-transparent hover:border-teal-500"
+                        >
+                          {/* Icon */}
+                          {IconComponent && (
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+                              style={{
+                                background: card.color 
+                                  ? `linear-gradient(135deg, ${card.color}dd, ${card.color})`
+                                  : 'linear-gradient(135deg, #00635Ddd, #00635D)'
+                              }}
+                            >
+                              <IconComponent size={20} className="text-white" />
+                            </div>
+                          )}
+                          
+                          {/* Card Info */}
+                          <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-teal-600 transition-colors">
+                            {card.name || card.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </h3>
+                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                            {card.description || 'Dashboard card'}
+                          </p>
+
+                          {/* Badges */}
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded text-xs font-medium">
+                              {card.size || 'medium'}
+                            </span>
+                            {card.category && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                                {card.category}
+                              </span>
+                            )}
+                            {card.isModular && (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                                New
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Add indicator */}
+                          <div className="mt-3 pt-3 border-t border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-xs text-teal-600 font-medium flex items-center gap-1">
+                              <Plus size={12} />
+                              Click to add
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {filteredInactiveCards.length} of {inactiveCards.length} available cards
+                  </div>
+                  <button
+                    onClick={() => setShowCardManager(false)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -390,13 +559,9 @@ const BentoDashboard = ({ stats, user }) => {
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
           {activeCards.map(card => {
-            const CardComponent = cardComponents[card.id];
-            
-            // Skip if component not found (shouldn't happen, but safety check)
-            if (!CardComponent) {
-              console.warn(`Card component not found for id: ${card.id}`);
-              return null;
-            }
+            // Check if it's a modular card
+            const isModularCard = card.isModular || card.id.startsWith('finance.') || card.id.startsWith('pm.');
+            const LegacyCardComponent = legacyCardComponents[card.id];
             
             // Dynamic sizing based on card size property
             const sizeClasses = {
@@ -410,15 +575,33 @@ const BentoDashboard = ({ stats, user }) => {
                 key={card.id}
                 className={`${sizeClasses[card.size]} min-h-[200px] group`}
               >
-                {card.id === 'addy-insights' ? (
-                  <CardComponent 
+                {isModularCard ? (
+                  // Render modular card using BentoCardWrapper
+                  <BentoCardWrapper 
+                    cardId={card.id}
                     onRemove={() => removeCard(card.id)} 
-                    userName={user?.name} 
-                    organizationName={organizationName}
-                    stats={stats} 
+                    theme={theme}
                   />
+                ) : LegacyCardComponent ? (
+                  // Render legacy card
+                  card.id === 'addy-insights' ? (
+                    <LegacyCardComponent 
+                      onRemove={() => removeCard(card.id)} 
+                      userName={user?.name} 
+                      organizationName={organizationName}
+                      stats={stats} 
+                    />
+                  ) : (
+                    <LegacyCardComponent onRemove={() => removeCard(card.id)} stats={stats} theme={theme} />
+                  )
                 ) : (
-                  <CardComponent onRemove={() => removeCard(card.id)} stats={stats} theme={theme} />
+                  // Fallback for unknown cards
+                  <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-2xl relative group hover:shadow-lg transition-all h-full`}>
+                    <button onClick={() => removeCard(card.id)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 hover:bg-gray-200 rounded-lg p-1 z-10">
+                      <X size={16} />
+                    </button>
+                    <p className="text-gray-500">Card not found: {card.id}</p>
+                  </div>
                 )}
               </div>
             );

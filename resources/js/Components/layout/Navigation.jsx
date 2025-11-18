@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X, Ticket } from 'lucide-react';
+import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X, Ticket, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
 
@@ -29,6 +29,9 @@ export function Navigation() {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount || 0);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
+  const [showNewBusinessModal, setShowNewBusinessModal] = useState(false);
+  const [newBusinessName, setNewBusinessName] = useState('');
+  const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -57,11 +60,16 @@ export function Navigation() {
     return () => clearInterval(interval);
   }, []);
 
+  const userMenuRef = useRef(null);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        // User menu closes on mouse leave, but we can add click outside if needed
       }
     };
 
@@ -71,6 +79,29 @@ export function Navigation() {
 
   const handleLogout = () => {
     router.post('/logout');
+  };
+
+  const handleCreateBusiness = async () => {
+    if (!newBusinessName.trim() || isCreatingBusiness) return;
+
+    setIsCreatingBusiness(true);
+    try {
+      const response = await axios.post('/api/organizations/create', {
+        name: newBusinessName.trim(),
+      });
+
+      if (response.data.success) {
+        // Reload the page to refresh organization list
+        window.location.reload();
+      } else {
+        alert(response.data.message || 'Failed to create business');
+      }
+    } catch (error) {
+      console.error('Error creating business:', error);
+      alert(error.response?.data?.message || 'Failed to create business. Please try again.');
+    } finally {
+      setIsCreatingBusiness(false);
+    }
   };
 
   const handleMarkAsRead = async (id) => {
@@ -299,7 +330,7 @@ export function Navigation() {
                 </div>
               )}
             </div>
-            <div className="relative group">
+            <div className="relative group" ref={userMenuRef}>
               <button 
                 type="button"
                 className="flex items-center gap-2 hover:bg-gray-50 rounded-full p-1 pr-3 transition-colors"
@@ -326,9 +357,21 @@ export function Navigation() {
                 <div className="py-2">
                   <div className="px-4 py-2 border-b border-gray-200">
                     <p className="text-sm font-medium text-gray-900">{auth?.user?.name}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {auth?.user?.organization?.name || 'Organization'}
-                    </p>
+                    <div className="flex items-center gap-1 group/org">
+                      <p className="text-xs text-gray-500 truncate flex-1">
+                        {auth?.user?.organization?.name || 'Organization'}
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowNewBusinessModal(true);
+                        }}
+                        className="opacity-0 group-hover/org:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-teal-600"
+                        title="Add new business"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Organization Switcher */}
@@ -394,6 +437,81 @@ export function Navigation() {
           </div>
         </div>
       </div>
+
+      {/* New Business Modal */}
+      {showNewBusinessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold text-gray-900">Add New Business</h2>
+                <button
+                  onClick={() => {
+                    setShowNewBusinessModal(false);
+                    setNewBusinessName('');
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-600" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600">Create a new business to manage separately</p>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <label htmlFor="business-name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Business Name
+                </label>
+                <input
+                  id="business-name"
+                  type="text"
+                  value={newBusinessName}
+                  onChange={(e) => setNewBusinessName(e.target.value)}
+                  placeholder="Enter business name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newBusinessName.trim()) {
+                      handleCreateBusiness();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowNewBusinessModal(false);
+                    setNewBusinessName('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+                  disabled={isCreatingBusiness}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateBusiness}
+                  disabled={!newBusinessName.trim() || isCreatingBusiness}
+                  className="flex-1 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isCreatingBusiness ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} />
+                      Create Business
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

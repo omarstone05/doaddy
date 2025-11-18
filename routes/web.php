@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
     // Organization switching
     Route::post('/organizations/{organization}/switch', [\App\Http\Controllers\OrganizationSwitchController::class, 'switch'])->name('organizations.switch');
     Route::get('/api/organizations', [\App\Http\Controllers\OrganizationSwitchController::class, 'index'])->name('organizations.index');
+    Route::post('/api/organizations/create', [\App\Http\Controllers\OrganizationSwitchController::class, 'create'])->name('organizations.create');
     
     // Onboarding
     Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding');
