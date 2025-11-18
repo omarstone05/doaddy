@@ -47,6 +47,29 @@ class DashboardCardDataController extends Controller
     }
 
     /**
+     * Get card data directly (for preloading)
+     */
+    public function getCardDataDirect(string $organizationId, string $cardId): array
+    {
+        $card = CardRegistry::getCard($cardId);
+        
+        if (!$card) {
+            return ['error' => 'Card not found'];
+        }
+
+        // Cache key includes organization and card ID
+        $cacheKey = "dashboard.card_data.{$organizationId}.{$cardId}";
+        
+        // Get refresh interval from card config (default 5 minutes)
+        $cacheTTL = ($card['refresh_interval'] ?? 300) / 60; // Convert seconds to minutes
+        
+        // Try to get from cache first
+        return Cache::remember($cacheKey, now()->addMinutes($cacheTTL), function () use ($cardId, $organizationId) {
+            return $this->fetchCardData($organizationId, $cardId);
+        });
+    }
+
+    /**
      * Fetch actual card data from database
      */
     protected function fetchCardData(string $organizationId, string $cardId): array

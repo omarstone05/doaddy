@@ -429,7 +429,7 @@ class DashboardController extends Controller
         // Get available modular cards from CardRegistry
         $modularCards = CardRegistry::getAllCards();
         
-        // Preload card data for active cards (with caching)
+        // Preload card data for common cards (with Redis caching for instant loading)
         $cardDataController = new \App\Http\Controllers\DashboardCardDataController();
         $preloadedCardData = [];
         
@@ -437,9 +437,9 @@ class DashboardController extends Controller
         $commonCardIds = ['finance.revenue', 'finance.expenses', 'finance.profit', 'finance.cash_flow'];
         foreach ($commonCardIds as $cardId) {
             try {
-                $cardData = $cardDataController->getCardData($request, $cardId);
-                if ($cardData->getStatusCode() === 200) {
-                    $preloadedCardData[$cardId] = json_decode($cardData->getContent(), true);
+                $cardData = $cardDataController->getCardDataDirect($organizationId, $cardId);
+                if (!isset($cardData['error'])) {
+                    $preloadedCardData[$cardId] = $cardData;
                 }
             } catch (\Exception $e) {
                 // Silently fail - cards will fetch their own data
