@@ -429,6 +429,9 @@ class DashboardController extends Controller
         // Get available modular cards from CardRegistry
         $modularCards = CardRegistry::getAllCards();
         
+        // Ensure cards are properly formatted as array
+        $modularCards = array_values($modularCards); // Re-index array
+        
         // Preload card data for common cards (with Redis caching for instant loading)
         $cardDataController = new \App\Http\Controllers\DashboardCardDataController();
         $preloadedCardData = [];

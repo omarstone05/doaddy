@@ -281,6 +281,11 @@ const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {}
 
   // Convert modular cards to Bento format and merge with legacy cards
   const initialModularCards = useMemo(() => {
+    if (!modularCards || modularCards.length === 0) {
+      console.warn('No modular cards received from backend');
+      return [];
+    }
+    console.log('Processing modular cards:', modularCards.length);
     return modularCards.map(card => ({
       id: card.id,
       active: false, // Start inactive, user can add them
@@ -350,6 +355,7 @@ const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {}
       setAvailableCards(prev => {
         const existingIds = new Set(prev.map(c => c.id));
         const newModular = initialModularCards.filter(c => !existingIds.has(c.id));
+        console.log('Adding new modular cards:', newModular.length, newModular.map(c => c.id));
         if (newModular.length > 0) {
           return [...prev, ...newModular];
         }
