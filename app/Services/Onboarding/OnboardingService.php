@@ -16,7 +16,7 @@ class OnboardingService
     /**
      * Get user's onboarding session
      */
-    public function getSession(int $userId): ?OnboardingSession
+    public function getSession(string $userId): ?OnboardingSession
     {
         return OnboardingSession::where('user_id', $userId)
             ->where('completed', false)
@@ -27,7 +27,7 @@ class OnboardingService
     /**
      * Save onboarding progress
      */
-    public function saveProgress(int $userId, string $phase, array $data): OnboardingSession
+    public function saveProgress(string $userId, string $phase, array $data): OnboardingSession
     {
         $session = $this->getSession($userId);
 
