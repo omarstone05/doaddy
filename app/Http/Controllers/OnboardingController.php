@@ -29,6 +29,10 @@ class OnboardingController extends Controller
         // Check if user already has organization and completed onboarding
         $user = $request->user();
         
+        if (!$user) {
+            return redirect()->route('login');
+        }
+        
         if ($user->current_organization_id) {
             $org = $user->organization;
             if ($org && $org->onboarding_completed_at) {
@@ -37,7 +41,12 @@ class OnboardingController extends Controller
         }
 
         // Check for existing session
-        $session = $this->onboardingService->getSession($user->id);
+        try {
+            $session = $this->onboardingService->getSession($user->id);
+        } catch (\Exception $e) {
+            \Log::error('Onboarding session error: ' . $e->getMessage());
+            $session = null;
+        }
 
         return Inertia::render('Onboarding/AddyOnboarding', [
             'user' => $user,
