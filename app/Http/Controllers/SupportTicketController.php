@@ -6,7 +6,6 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class SupportTicketController extends Controller
@@ -60,7 +59,6 @@ class SupportTicketController extends Controller
         $currentOrgId = session('current_organization_id') ?? Auth::user()->current_organization_id;
 
         $ticket = SupportTicket::create([
-            'id' => (string) Str::uuid(),
             'ticket_number' => 'TKT-' . strtoupper(uniqid()),
             'organization_id' => $currentOrgId,
             'user_id' => Auth::id(),
@@ -94,10 +92,11 @@ class SupportTicketController extends Controller
         ]);
 
         // Mark messages as read (if needed)
-        $ticket->messages()
-            ->where('user_id', '!=', Auth::id())
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        // Note: read_at column needs to be added to support_ticket_messages table if read tracking is needed
+        // $ticket->messages()
+        //     ->where('user_id', '!=', Auth::id())
+        //     ->whereNull('read_at')
+        //     ->update(['read_at' => now()]);
 
         return Inertia::render('Support/Tickets/Show', [
             'ticket' => $ticket,
@@ -118,7 +117,6 @@ class SupportTicketController extends Controller
         ]);
 
         $message = SupportTicketMessage::create([
-            'id' => (string) Str::uuid(),
             'support_ticket_id' => $ticket->id,
             'user_id' => Auth::id(),
             'message' => $validated['message'],

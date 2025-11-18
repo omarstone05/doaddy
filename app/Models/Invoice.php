@@ -33,6 +33,7 @@ class Invoice extends Model
         'last_reminder_notes',
         'notes',
         'terms',
+        'payment_details',
         'quote_id',
         'is_recurring',
         'recurrence_frequency',
