@@ -138,6 +138,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/tickets/{ticket}/assign', [\App\Http\Controllers\Admin\AdminTicketController::class, 'assign'])->name('tickets.assign');
         Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\Admin\AdminTicketController::class, 'updateStatus'])->name('tickets.update-status');
         Route::post('/tickets/{ticket}/messages', [\App\Http\Controllers\Admin\AdminTicketController::class, 'addMessage'])->name('tickets.add-message');
+        
+        // Communication
+        Route::prefix('communication')->name('communication.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'index'])->name('index');
+            Route::get('/templates', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'templates'])->name('templates');
+            Route::get('/templates/{id}/edit', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'editTemplate'])->name('templates.edit');
+            Route::put('/templates/{id}', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'updateTemplate'])->name('templates.update');
+            Route::post('/templates/{id}/preview', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'previewTemplate'])->name('templates.preview');
+            Route::post('/upload-image', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'uploadImage'])->name('upload-image');
+            Route::get('/send', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'sendEmail'])->name('send');
+            Route::post('/send', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'sendBulkEmail'])->name('send.post');
+            Route::get('/logs', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'logs'])->name('logs');
+        });
     });
     
     // Addy Insights API

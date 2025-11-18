@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Payment;
 use App\Models\Organization;
 use App\Services\Addy\AddyCacheManager;
+use App\Listeners\SendPaymentConfirmationEmail;
 use Illuminate\Support\Facades\Log;
 
 class PaymentObserver
@@ -17,6 +18,20 @@ class PaymentObserver
     public function updated(Payment $payment): void
     {
         $this->handleChange($payment);
+        
+        // Send payment confirmation email if payment was just completed
+        if ($payment->wasChanged('status') && 
+            ($payment->status === 'completed' || $payment->status === 'successful')) {
+            try {
+                $listener = app(SendPaymentConfirmationEmail::class);
+                $listener->handle($payment);
+            } catch (\Exception $e) {
+                Log::error('Failed to trigger payment confirmation email', [
+                    'payment_id' => $payment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     public function deleted(Payment $payment): void

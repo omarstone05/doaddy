@@ -14,11 +14,13 @@ class EmailTemplate extends Model
         'variables',
         'category',
         'is_active',
+        'images',
     ];
 
     protected $casts = [
         'variables' => 'array',
         'is_active' => 'boolean',
+        'images' => 'array',
     ];
 
     /**

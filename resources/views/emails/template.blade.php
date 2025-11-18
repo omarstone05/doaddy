@@ -37,7 +37,7 @@
         <h1>Addy Business</h1>
     </div>
     <div class="content">
-        {!! nl2br(e($body)) !!}
+        {!! $body !!}
     </div>
     <div class="footer">
         <p>&copy; {{ date('Y') }} Addy Business. All rights reserved.</p>

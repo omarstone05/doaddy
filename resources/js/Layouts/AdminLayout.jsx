@@ -23,6 +23,7 @@ export default function AdminLayout({ children, title }) {
         { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
         { name: 'Users', href: '/admin/users', icon: Users },
         { name: 'Tickets', href: '/admin/tickets', icon: Ticket },
+        { name: 'Communication', href: '/admin/communication', icon: Mail },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
         { name: 'Platform Settings', href: '/admin/settings', icon: Settings },
     ];

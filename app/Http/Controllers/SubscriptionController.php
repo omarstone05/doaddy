@@ -171,6 +171,17 @@ class SubscriptionController extends Controller
                             'status' => 'active',
                         ]);
 
+                        // Send renewal email
+                        try {
+                            $listener = app(\App\Listeners\SendSubscriptionRenewalEmail::class);
+                            $listener->handle($subscription);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to send subscription renewal email', [
+                                'subscription_id' => $subscription->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+
                         DB::commit();
 
                         return redirect()->route('subscriptions.index')
