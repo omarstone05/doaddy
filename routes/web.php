@@ -397,6 +397,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings/addy', [AddySettingsController::class, 'index'])->name('settings.addy');
     Route::post('/settings/addy', [AddySettingsController::class, 'update'])->name('settings.addy.update');
     
+    // Invoice Settings
+    Route::get('/settings/invoices', [\App\Http\Controllers\Settings\InvoiceSettingsController::class, 'index'])->name('settings.invoices');
+    Route::post('/settings/invoices', [\App\Http\Controllers\Settings\InvoiceSettingsController::class, 'update'])->name('settings.invoices.update');
+    
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/api/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');

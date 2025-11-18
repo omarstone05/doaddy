@@ -114,6 +114,7 @@ export const navigation = [
         items: [
             { name: 'Overview', href: '/settings', icon: Building2 },
             { name: 'Addy Preferences', href: '/settings/addy', icon: MessageSquare },
+            { name: 'Invoice Settings', href: '/settings/invoices', icon: FileText },
         ],
     },
 ];
