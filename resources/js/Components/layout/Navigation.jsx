@@ -241,16 +241,16 @@ export function Navigation() {
               <Menu className="h-6 w-6" />
             </button>
           
-            {/* Right Actions */}
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            <button 
-              type="button"
-              className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Search"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-            <div className="relative" ref={notificationRef}>
+            {/* Right Actions - Hidden on mobile (shown in mobile menu) */}
+            <div className="hidden lg:flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <button 
+                type="button"
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Search"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <div className="relative" ref={notificationRef}>
               <button 
                 type="button"
                 onClick={() => setShowNotifications(!showNotifications)}
