@@ -163,23 +163,6 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // Modular Dashboard
-    Route::prefix('modular-dashboard')->group(function () {
-        Route::get('/', [\App\Http\Controllers\ModularDashboardController::class, 'index'])->name('modular-dashboard');
-    });
-    
-    // Dashboard API
-    Route::prefix('api/dashboard')->group(function () {
-        Route::get('/layout', [\App\Http\Controllers\ModularDashboardController::class, 'getLayout']);
-        Route::get('/card-data/{cardId}', [\App\Http\Controllers\ModularDashboardController::class, 'getCardData']);
-        Route::get('/available-cards', [\App\Http\Controllers\ModularDashboardController::class, 'getAvailableCards']);
-        
-        Route::post('/add-card', [\App\Http\Controllers\ModularDashboardController::class, 'addCard']);
-        Route::post('/remove-card', [\App\Http\Controllers\ModularDashboardController::class, 'removeCard']);
-        Route::post('/move-card', [\App\Http\Controllers\ModularDashboardController::class, 'moveCard']);
-        Route::post('/pin-card', [\App\Http\Controllers\ModularDashboardController::class, 'pinCard']);
-        Route::post('/reset-layout', [\App\Http\Controllers\ModularDashboardController::class, 'resetLayout']);
-    });
     Route::post('/dashboard/cards/reorder', [DashboardCardController::class, 'updateOrder'])->name('dashboard.cards.reorder');
     Route::post('/dashboard/cards/layout', [DashboardCardController::class, 'updateLayout'])->name('dashboard.cards.layout');
     Route::post('/dashboard/cards/{id}/toggle', [DashboardCardController::class, 'toggleVisibility'])->name('dashboard.cards.toggle');
