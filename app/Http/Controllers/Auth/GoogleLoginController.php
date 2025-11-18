@@ -58,6 +58,9 @@ class GoogleLoginController extends Controller
             Auth::login($user, true);
             $request->session()->regenerate();
 
+            // Check if this is a new user (just created)
+            $isNewUser = $user->wasRecentlyCreated;
+
             // Set current organization in session
             $currentOrgId = session('current_organization_id') 
                 ?? ($user->attributes['organization_id'] ?? null)
@@ -68,9 +71,19 @@ class GoogleLoginController extends Controller
                 $user->update(['organization_id' => $currentOrgId]);
             }
 
+            // If new user and no organization, redirect to onboarding
+            if ($isNewUser && !$currentOrgId) {
+                return redirect()->route('onboarding');
+            }
+
             // Redirect super admins to admin dashboard
             if ($user->isSuperAdmin()) {
                 return redirect()->intended('/admin/dashboard');
+            }
+
+            // If user has no organization, redirect to onboarding
+            if (!$currentOrgId) {
+                return redirect()->route('onboarding');
             }
 
             return redirect()->intended('/dashboard');
