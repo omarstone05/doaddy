@@ -13,6 +13,7 @@ const navItems = [
   { name: 'People', icon: 'people', extension: 'svg', href: '/people' },
   { name: 'Inventory', icon: 'inventory', extension: 'svg', href: '/inventory' },
   { name: 'Decisions', icon: 'decisions', extension: 'svg', href: '/decisions' },
+  { name: 'Consulting', icon: 'consulting', extension: 'svg', href: '/consulting/projects' },
   { name: 'Compliance', icon: 'compliance', extension: 'svg', href: '/compliance' },
 ];
 

@@ -87,7 +87,13 @@ export const navigation = [
             { name: 'OKRs', href: '/decisions/okrs', icon: Target },
             { name: 'Strategic Goals', href: '/decisions/goals', icon: Target },
             { name: 'Valuation', href: '/decisions/valuation', icon: TrendingUp },
-            { name: 'Projects', href: '/projects', icon: FolderKanban },
+        ],
+    },
+    {
+        name: 'Consulting',
+        icon: Briefcase,
+        items: [
+            { name: 'Projects', href: '/consulting/projects', icon: Briefcase },
         ],
     },
     {
