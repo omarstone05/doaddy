@@ -6,6 +6,7 @@ use App\Support\ModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class ModuleController extends Controller
@@ -52,10 +53,22 @@ class ModuleController extends Controller
      */
     public function toggle(Request $request, $moduleName)
     {
+        // Authorization check - only organization owners/admins can toggle modules
+        $user = Auth::user();
+        if (!$user || !$user->currentOrganization) {
+            return $this->errorResponse($request, 'Unauthorized', 403);
+        }
+
+        // Check if user has permission to manage modules (organization owner)
+        $organization = $user->currentOrganization;
+        if (!$user->isOwnerOf($organization->id)) {
+            return $this->errorResponse($request, 'You do not have permission to manage modules. Only organization owners can toggle modules.', 403);
+        }
+
         $module = $this->moduleManager->all()[$moduleName] ?? null;
 
         if (!$module) {
-            return back()->withErrors(['error' => 'Module not found']);
+            return $this->errorResponse($request, 'Module not found', 404);
         }
 
         // Check dependencies if disabling
@@ -70,18 +83,16 @@ class ModuleController extends Controller
             }
 
             if (!empty($dependentModules)) {
-                return back()->withErrors([
-                    'error' => 'Cannot disable this module. The following modules depend on it: ' . implode(', ', $dependentModules)
-                ]);
+                $errorMessage = 'Cannot disable this module. The following modules depend on it: ' . implode(', ', $dependentModules);
+                return $this->errorResponse($request, $errorMessage, 422);
             }
         } else {
             // Check if dependencies are satisfied
             $dependencies = $module['config']['dependencies'] ?? [];
             foreach ($dependencies as $dep) {
                 if (!$this->moduleManager->isEnabled($dep)) {
-                    return back()->withErrors([
-                        'error' => "Cannot enable this module. Required dependency '{$dep}' is not enabled."
-                    ]);
+                    $errorMessage = "Cannot enable this module. Required dependency '{$dep}' is not enabled.";
+                    return $this->errorResponse($request, $errorMessage, 422);
                 }
             }
         }
@@ -89,20 +100,48 @@ class ModuleController extends Controller
         try {
             if ($module['enabled']) {
                 $this->moduleManager->disable($moduleName);
-                $message = 'Module disabled successfully. The page will refresh to apply changes.';
+                $message = 'Module disabled successfully';
             } else {
                 $this->moduleManager->enable($moduleName);
-                $message = 'Module enabled successfully. The page will refresh to apply changes.';
+                $message = 'Module enabled successfully';
             }
 
             // Clear application cache to ensure fresh module state
             Artisan::call('config:clear');
             Artisan::call('route:clear');
             
+            // Return JSON for AJAX requests, redirect for form submissions
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'module' => [
+                        'name' => $moduleName,
+                        'enabled' => !$module['enabled'],
+                    ],
+                ]);
+            }
+            
             return back()->with('message', $message);
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to toggle module: ' . $e->getMessage()]);
+            $errorMessage = 'Failed to toggle module: ' . $e->getMessage();
+            return $this->errorResponse($request, $errorMessage, 500);
         }
+    }
+
+    /**
+     * Return error response in appropriate format
+     */
+    protected function errorResponse(Request $request, string $message, int $statusCode = 400)
+    {
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], $statusCode);
+        }
+        
+        return back()->withErrors(['error' => $message])->withInput();
     }
 
     /**

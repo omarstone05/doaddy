@@ -10,10 +10,28 @@ export default function ModulesSettings({ modules: initialModules }) {
     const { flash } = usePage().props;
     const [modules, setModules] = useState(initialModules);
     const [togglingModules, setTogglingModules] = useState({});
+    const [errorMessage, setErrorMessage] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    
     // Keep local state in sync when Inertia sends new props (e.g., after a page visit)
     useEffect(() => {
         setModules(initialModules);
     }, [initialModules]);
+    
+    // Clear messages after 5 seconds
+    useEffect(() => {
+        if (errorMessage) {
+            const timer = setTimeout(() => setErrorMessage(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [errorMessage]);
+    
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => setSuccessMessage(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
 
     const handleToggle = async (moduleName) => {
         const module = modules.find(m => m.name === moduleName);
@@ -30,40 +48,60 @@ export default function ModulesSettings({ modules: initialModules }) {
         try {
             // Use axios directly instead of router.post to avoid Inertia reloading props
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            await axios.post(`/modules/${moduleName}/toggle`, {}, {
+            const response = await axios.post(`/modules/${moduleName}/toggle`, {}, {
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             });
 
-            // Dispatch custom event to notify navigation
-            window.dispatchEvent(new CustomEvent('moduleToggled', {
-                detail: { moduleName, enabled: newEnabledState }
-            }));
+            // Check if response indicates success
+            if (response.data && response.data.success) {
+                setSuccessMessage(response.data.message || 'Module toggled successfully');
+                setErrorMessage(null);
 
-            // Small delay to ensure file write completes
-            await new Promise(resolve => setTimeout(resolve, 100));
+                // Dispatch custom event to notify navigation
+                window.dispatchEvent(new CustomEvent('moduleToggled', {
+                    detail: { moduleName, enabled: newEnabledState }
+                }));
 
-            // Fetch all modules (not just enabled) to get accurate state
-            const response = await axios.get('/api/modules/all', {
-                params: { _t: Date.now() } // Cache busting
-            });
-            if (response.data && response.data.modules) {
-                setModules(response.data.modules);
+                // Small delay to ensure file write completes
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Fetch all modules (not just enabled) to get accurate state
+                const modulesResponse = await axios.get('/api/modules/all', {
+                    params: { _t: Date.now() } // Cache busting
+                });
+                if (modulesResponse.data && modulesResponse.data.modules) {
+                    setModules(modulesResponse.data.modules);
+                }
+            } else {
+                throw new Error(response.data?.error || 'Failed to toggle module');
             }
         } catch (error) {
             // Revert on error
             setModules(prev => prev.map(m => 
                 m.name === moduleName ? { ...m, enabled: !newEnabledState } : m
             ));
+            
+            // Extract error message from response
+            const errorMsg = error.response?.data?.error 
+                || error.response?.data?.message 
+                || error.message 
+                || 'Failed to toggle module. Please try again.';
+            
+            setErrorMessage(errorMsg);
+            setSuccessMessage(null);
             console.error('Failed to toggle module:', error);
         } finally {
             setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
         }
     };
 
-    const successMessage = flash?.message;
-    const errorMessage = flash?.error;
+    // Use flash messages as fallback, but prefer local state messages
+    const flashSuccess = flash?.message;
+    const flashError = flash?.error;
 
     return (
         <SectionLayout sectionName="Settings">
@@ -77,15 +115,15 @@ export default function ModulesSettings({ modules: initialModules }) {
                     <p className="text-gray-500 mt-1">Enable or disable modules to customize your Addy experience</p>
                 </div>
 
-                {successMessage && (
+                {(successMessage || flashSuccess) && (
                     <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-green-800 font-medium">{successMessage}</p>
+                        <p className="text-green-800 font-medium">{successMessage || flashSuccess}</p>
                     </div>
                 )}
 
-                {errorMessage && (
+                {(errorMessage || flashError) && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-red-800 font-medium">{errorMessage}</p>
+                        <p className="text-red-800 font-medium">{errorMessage || flashError}</p>
                     </div>
                 )}
 

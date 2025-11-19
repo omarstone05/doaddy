@@ -115,7 +115,8 @@ class ModuleManager
         $config = json_decode(File::get($configPath), true);
         $config['enabled'] = true;
         
-        File::put($configPath, json_encode($config, JSON_PRETTY_PRINT));
+        // Atomic write with file locking to prevent race conditions
+        $this->atomicWrite($configPath, json_encode($config, JSON_PRETTY_PRINT));
         
         // Clear cache and re-discover to ensure fresh state
         $this->modules = [];
@@ -139,13 +140,37 @@ class ModuleManager
         $config = json_decode(File::get($configPath), true);
         $config['enabled'] = false;
         
-        File::put($configPath, json_encode($config, JSON_PRETTY_PRINT));
+        // Atomic write with file locking to prevent race conditions
+        $this->atomicWrite($configPath, json_encode($config, JSON_PRETTY_PRINT));
         
         // Clear cache and re-discover to ensure fresh state
         $this->modules = [];
         $this->discover();
         
         return true;
+    }
+
+    /**
+     * Atomically write file content with locking to prevent race conditions
+     */
+    protected function atomicWrite(string $path, string $content): void
+    {
+        // Write to temporary file first
+        $tempPath = $path . '.tmp';
+        
+        // Use file_put_contents with LOCK_EX for atomic write
+        $result = file_put_contents($tempPath, $content, LOCK_EX);
+        
+        if ($result === false) {
+            throw new \RuntimeException("Failed to write module configuration to temporary file: {$tempPath}");
+        }
+        
+        // Atomically rename temp file to final location
+        if (!rename($tempPath, $path)) {
+            // Clean up temp file if rename fails
+            @unlink($tempPath);
+            throw new \RuntimeException("Failed to rename temporary module configuration file: {$tempPath} to {$path}");
+        }
     }
 
     /**

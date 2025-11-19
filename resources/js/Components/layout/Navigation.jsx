@@ -142,8 +142,6 @@ export function Navigation() {
       });
       
       setNavItems(dynamicNavItems);
-      
-      setNavItems(dynamicNavItems);
     } catch (error) {
       console.error('Failed to fetch modules:', error);
       // Fallback to base nav items if module fetch fails
