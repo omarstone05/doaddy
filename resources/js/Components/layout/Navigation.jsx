@@ -70,6 +70,10 @@ export function Navigation() {
       // Track which modules we've added
       const addedModules = new Set();
       
+      // Check if HR and ZambianHR are both enabled
+      const hrModule = enabledModules.find(m => m.name.toLowerCase() === 'hr' || m.name.toLowerCase().includes('hr'));
+      const zambianHrModule = enabledModules.find(m => m.name.toLowerCase() === 'zambianhr' || m.name.toLowerCase().includes('zambian'));
+      
       // Add enabled modules to navigation
       enabledModules.forEach(module => {
         const moduleName = module.name.toLowerCase();
@@ -113,16 +117,55 @@ export function Navigation() {
           }
         }
         // Replace "People" with HR module if enabled
-        else if (moduleName === 'hr' || moduleName.includes('hr')) {
+        else if (moduleName === 'hr' || (moduleName.includes('hr') && !moduleName.includes('zambian'))) {
           const peopleIndex = dynamicNavItems.findIndex(item => item.name === 'People');
           if (peopleIndex !== -1) {
-            dynamicNavItems[peopleIndex] = {
-              name: module.name,
-              icon: module.icon,
-              extension: 'svg',
-              href: module.route,
-              isModule: true
-            };
+            // If ZambianHR is also enabled, add it as a sub-item
+            if (zambianHrModule) {
+              dynamicNavItems[peopleIndex] = {
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true,
+                hasDropdown: true,
+                subItems: [
+                  {
+                    name: zambianHrModule.name,
+                    href: zambianHrModule.route,
+                    icon: zambianHrModule.icon
+                  }
+                ]
+              };
+            } else {
+              dynamicNavItems[peopleIndex] = {
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true
+              };
+            }
+            addedModules.add(module.name);
+          }
+        }
+        // Skip ZambianHR if HR is enabled (it will be added as sub-item)
+        else if (moduleName === 'zambianhr' || moduleName.includes('zambian')) {
+          // Only add ZambianHR as standalone if HR is not enabled
+          if (!hrModule) {
+            const peopleIndex = dynamicNavItems.findIndex(item => item.name === 'People');
+            if (peopleIndex !== -1) {
+              dynamicNavItems[peopleIndex] = {
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true
+              };
+              addedModules.add(module.name);
+            }
+          } else {
+            // ZambianHR will be added as sub-item of HR, so mark it as added
             addedModules.add(module.name);
           }
         }
@@ -313,45 +356,95 @@ export function Navigation() {
                       ? (active ? '/assets/icons/dashboard.png' : '/assets/icons/not-selected.png')
                       : `/assets/icons/${item.icon}.${item.extension}`;
                     
+                    // Check if this item has a dropdown (sub-items)
+                    const hasDropdown = item.hasDropdown && item.subItems && item.subItems.length > 0;
+                    const isHovered = hoveredNavItem === item.name;
+                    
                     return (
-                      <Link
+                      <div
                         key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all',
-                          active
-                            ? 'bg-teal-500 text-white shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        )}
+                        className="relative"
+                        onMouseEnter={() => hasDropdown && setHoveredNavItem(item.name)}
+                        onMouseLeave={() => setHoveredNavItem(null)}
                       >
-                      <img 
-                        src={iconSrc}
-                        alt={item.name}
-                        className={cn(
-                          "h-5 w-5 object-contain transition-colors",
-                          active ? "brightness-0 invert" : ""
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            'flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all',
+                            active
+                              ? 'bg-teal-500 text-white shadow-sm'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          )}
+                        >
+                          <img 
+                            src={iconSrc}
+                            alt={item.name}
+                            className={cn(
+                              "h-5 w-5 object-contain transition-colors",
+                              active ? "brightness-0 invert" : ""
+                            )}
+                            style={active ? { filter: 'brightness(0) invert(1)' } : {}}
+                            onError={(e) => {
+                              // Fallback: try the other extension if one fails (for non-dashboard items)
+                              if (item.name !== 'Dashboard') {
+                                const currentExt = item.extension;
+                                const altExt = currentExt === 'png' ? 'svg' : 'png';
+                                if (e.target.src.includes(currentExt)) {
+                                  e.target.src = `/assets/icons/${item.icon}.${altExt}`;
+                                } else {
+                                  e.target.style.display = 'none';
+                                }
+                              } else {
+                                e.target.style.display = 'none';
+                              }
+                            }}
+                          />
+                          <span>{item.name}</span>
+                          {item.isModule && (
+                            <span className="ml-1 text-xs opacity-70">●</span>
+                          )}
+                          {hasDropdown && (
+                            <ChevronDown className={cn(
+                              "h-4 w-4 transition-transform",
+                              isHovered ? "rotate-180" : ""
+                            )} />
+                          )}
+                        </Link>
+                        
+                        {/* Dropdown Menu */}
+                        {hasDropdown && isHovered && (
+                          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                            <div className="py-2">
+                              {item.subItems.map((subItem) => {
+                                const subActive = isActive(subItem.href);
+                                return (
+                                  <Link
+                                    key={subItem.name}
+                                    href={subItem.href}
+                                    onClick={() => setHoveredNavItem(null)}
+                                    className={cn(
+                                      "flex items-center gap-3 px-4 py-2 text-sm transition-colors",
+                                      subActive
+                                        ? "bg-teal-50 text-teal-700 font-medium"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                    )}
+                                  >
+                                    <img
+                                      src={`/assets/icons/${subItem.icon}.svg`}
+                                      alt={subItem.name}
+                                      className="h-4 w-4 object-contain"
+                                      onError={(e) => {
+                                        e.target.src = `/assets/icons/${subItem.icon}.png`;
+                                      }}
+                                    />
+                                    <span>{subItem.name}</span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
-                        style={active ? { filter: 'brightness(0) invert(1)' } : {}}
-                        onError={(e) => {
-                          // Fallback: try the other extension if one fails (for non-dashboard items)
-                          if (item.name !== 'Dashboard') {
-                            const currentExt = item.extension;
-                            const altExt = currentExt === 'png' ? 'svg' : 'png';
-                            if (e.target.src.includes(currentExt)) {
-                              e.target.src = `/assets/icons/${item.icon}.${altExt}`;
-                            } else {
-                              e.target.style.display = 'none';
-                            }
-                          } else {
-                            e.target.style.display = 'none';
-                          }
-                        }}
-                      />
-                        <span>{item.name}</span>
-                        {item.isModule && (
-                          <span className="ml-1 text-xs opacity-70">●</span>
-                        )}
-                      </Link>
+                      </div>
                     );
                   })}
                 </nav>
