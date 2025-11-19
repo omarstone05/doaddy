@@ -53,8 +53,13 @@ export default function ModulesSettings({ modules: initialModules }) {
                 detail: { moduleName, enabled: newEnabledState }
             }));
 
+            // Small delay to ensure file write completes
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             // Fetch all modules (not just enabled) to get accurate state
-            const response = await axios.get('/api/modules/all');
+            const response = await axios.get('/api/modules/all', {
+                params: { _t: Date.now() } // Cache busting
+            });
             if (response.data && response.data.modules) {
                 setModules(response.data.modules);
             }

@@ -110,6 +110,8 @@ class ModuleController extends Controller
      */
     public function getAllModules()
     {
+        // Force fresh discovery by clearing cache first
+        $this->moduleManager->discover();
         $modules = $this->moduleManager->all();
         
         $formattedModules = [];

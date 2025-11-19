@@ -29,6 +29,9 @@ class ModuleManager
             File::makeDirectory($this->modulePath, 0755, true);
         }
 
+        // Clear existing modules cache
+        $this->modules = [];
+        
         $modules = [];
         $directories = File::directories($this->modulePath);
 
@@ -37,7 +40,14 @@ class ModuleManager
             $configPath = $directory . '/module.json';
 
             if (File::exists($configPath)) {
-                $config = json_decode(File::get($configPath), true);
+                // Read file fresh each time - don't rely on cache
+                $configContent = File::get($configPath);
+                $config = json_decode($configContent, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    \Log::warning("Failed to parse module.json for {$moduleName}: " . json_last_error_msg());
+                    continue;
+                }
                 
                 $modules[$moduleName] = [
                     'name' => $moduleName,
