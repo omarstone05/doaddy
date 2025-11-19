@@ -206,10 +206,10 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-3 overflow-x-auto">
                                 {items.map((item, index) => (
-                                    <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                        <div className="col-span-5">
+                                    <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg min-w-full">
+                                        <div className="col-span-5 min-w-0">
                                             <select
                                                 value={item.goods_service_id || ''}
                                                 onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
@@ -224,7 +224,7 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="col-span-4">
+                                        <div className="col-span-4 min-w-0">
                                             <input
                                                 type="text"
                                                 value={item.description}
@@ -233,7 +233,7 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                                                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
                                             />
                                         </div>
-                                        <div className="col-span-1">
+                                        <div className="col-span-1 min-w-[60px]">
                                             <input
                                                 type="number"
                                                 step="0.01"
@@ -245,7 +245,7 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                                                 required
                                             />
                                         </div>
-                                        <div className="col-span-2">
+                                        <div className="col-span-2 min-w-[120px]">
                                             <div className="flex gap-1">
                                                 <input
                                                     type="number"
@@ -254,14 +254,14 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                                                     value={item.unit_price}
                                                     onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
                                                     placeholder="Price"
-                                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg min-w-0"
                                                     required
                                                 />
                                                 {items.length > 1 && (
                                                     <button
                                                         type="button"
                                                         onClick={() => removeItem(index)}
-                                                        className="p-2 text-red-500 hover:text-red-700"
+                                                        className="p-2 text-red-500 hover:text-red-700 flex-shrink-0"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
