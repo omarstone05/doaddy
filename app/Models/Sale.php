@@ -122,6 +122,7 @@ class Sale extends Model
 
             // Auto-create stock movements
             foreach ($sale->items as $item) {
+                $customerInfo = $sale->customer_name ? " to {$sale->customer_name}" : "";
                 StockMovement::create([
                     'id' => (string) Str::uuid(),
                     'organization_id' => $sale->organization_id,
@@ -129,7 +130,7 @@ class Sale extends Model
                     'movement_type' => 'out',
                     'quantity' => $item->quantity,
                     'reference_number' => $sale->sale_number,
-                    'notes' => "Sale to customer",
+                    'notes' => "Sale{$customerInfo}",
                     'created_by_id' => $sale->cashier_id,
                 ]);
 

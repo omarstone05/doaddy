@@ -52,10 +52,12 @@ export default function Receipt({ sale }) {
                             <span className="text-sm text-gray-600">Date:</span>
                             <span className="text-sm font-medium text-gray-900">{formatDate(sale.created_at)}</span>
                         </div>
-                        {sale.customer_name && (
+                        {(sale.customer_name || sale.customer?.name) && (
                             <div className="flex justify-between">
                                 <span className="text-sm text-gray-600">Customer:</span>
-                                <span className="text-sm font-medium text-gray-900">{sale.customer_name}</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                    {sale.customer_name || sale.customer?.name}
+                                </span>
                             </div>
                         )}
                     </div>

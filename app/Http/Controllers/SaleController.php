@@ -76,6 +76,18 @@ class SaleController extends Controller
             $discountAmount = 0; // Can be added if needed
             $totalAmount = $subtotal + $taxAmount - $discountAmount;
 
+            // Validate credit sales require customer
+            if ($validated['payment_method'] === 'credit' && !$validated['customer_id']) {
+                return back()->withErrors(['error' => 'A customer must be selected for credit sales']);
+            }
+
+            // Get customer name if customer is provided
+            $customerName = null;
+            if ($validated['customer_id']) {
+                $customer = \App\Models\Customer::find($validated['customer_id']);
+                $customerName = $customer ? $customer->name : null;
+            }
+
             // Create sale
             $sale = Sale::create([
                 'id' => (string) Str::uuid(),
@@ -86,6 +98,7 @@ class SaleController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_reference' => $validated['payment_reference'] ?? null,
                 'customer_id' => $validated['customer_id'] ?? null,
+                'customer_name' => $customerName,
                 'money_account_id' => $validated['money_account_id'],
                 'cashier_id' => $cashier->id,
                 'register_session_id' => $validated['register_session_id'] ?? null,
