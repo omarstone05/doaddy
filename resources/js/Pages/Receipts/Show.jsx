@@ -4,7 +4,7 @@ import { Button } from '@/Components/ui/Button';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
-export default function ReceiptsShow({ receipt }) {
+export default function ReceiptsShow({ receipt, organization, logoUrl }) {
     const formatCurrency = (amount, currency = 'ZMW') => {
         return new Intl.NumberFormat('en-ZM', {
             style: 'currency',
@@ -22,6 +22,7 @@ export default function ReceiptsShow({ receipt }) {
     };
 
     const payment = receipt.payment;
+    const currentYear = new Date().getFullYear();
 
     return (
         <AuthenticatedLayout>
@@ -41,7 +42,18 @@ export default function ReceiptsShow({ receipt }) {
                 </div>
 
                 {/* Receipt */}
-                <div className="bg-white border border-gray-200 rounded-lg p-8 print:border-0 print:shadow-none">
+                <div className="bg-white border border-gray-200 rounded-lg p-8 print:border-0 print:shadow-none receipt-content">
+                    {/* Logo */}
+                    {logoUrl && (
+                        <div className="text-center mb-6 receipt-logo">
+                            <img 
+                                src={logoUrl} 
+                                alt={organization?.name || 'Logo'} 
+                                className="h-16 w-auto mx-auto object-contain"
+                            />
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="text-center mb-6">
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Receipt</h1>
@@ -133,21 +145,77 @@ export default function ReceiptsShow({ receipt }) {
                     )}
 
                     {/* Footer */}
-                    <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                    <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 receipt-footer">
                         <p>Thank you for your payment!</p>
                         <p className="mt-1">This is a computer-generated receipt.</p>
+                    </div>
+
+                    {/* Penda Digital Footer - Print Only */}
+                    <div className="mt-8 pt-4 border-t border-gray-200 receipt-penda-footer print-only">
+                        <div className="flex flex-col items-center gap-3">
+                            <img 
+                                src="/assets/logos/penda.png" 
+                                alt="Penda Digital" 
+                                className="h-8 w-auto object-contain"
+                            />
+                            <div className="text-xs text-gray-500 text-center">
+                                <p>© {currentYear} All rights reserved.</p>
+                                <p className="mt-1">
+                                    This is a product of Penda Digital, a registered company in the Republic of Zambia.
+                                </p>
+                                <p className="mt-1">Copyright © {currentYear} Penda Digital. All rights reserved.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Print Styles */}
                 <style jsx>{`
                     @media print {
-                        .no-print {
-                            display: none;
+                        /* Hide web UI elements */
+                        .no-print,
+                        nav,
+                        header,
+                        footer:not(.receipt-penda-footer) {
+                            display: none !important;
                         }
+                        
+                        /* Hide AuthenticatedLayout navigation and footer */
+                        [class*="Navigation"],
+                        [class*="navigation"],
+                        footer.bg-white {
+                            display: none !important;
+                        }
+                        
+                        /* Show receipt content */
+                        .receipt-content {
+                            margin: 0;
+                            padding: 20px;
+                            border: none;
+                            box-shadow: none;
+                        }
+                        
+                        /* Show print-only footer */
+                        .print-only {
+                            display: block !important;
+                        }
+                        
+                        /* Body styling */
                         body {
                             background: white;
+                            margin: 0;
+                            padding: 0;
                         }
+                        
+                        /* Page setup */
+                        @page {
+                            margin: 0.5cm;
+                        }
+                    }
+                    
+                    /* Hide print-only footer on screen */
+                    .print-only {
+                        display: none;
                     }
                 `}</style>
             </div>
