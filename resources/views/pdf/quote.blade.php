@@ -280,6 +280,7 @@
     <table>
         <thead>
             <tr>
+                <th>Product / Service</th>
                 <th>Description</th>
                 <th class="text-right">Quantity</th>
                 <th class="text-right">Unit Price</th>
@@ -290,7 +291,14 @@
             @foreach($quote->items as $item)
                 <tr>
                     <td>
-                        <div class="item-name">{{ $item->description }}</div>
+                        <div class="item-name">{{ $item->name }}</div>
+                    </td>
+                    <td>
+                        @if($item->description)
+                            <div class="item-description">{{ $item->description }}</div>
+                        @else
+                            <div class="item-description" style="color: #9ca3af;">—</div>
+                        @endif
                     </td>
                     <td class="text-right">{{ number_format($item->quantity, 2) }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 2) }} {{ $organization->currency ?? 'ZMW' }}</td>

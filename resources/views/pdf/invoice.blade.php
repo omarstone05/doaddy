@@ -352,7 +352,8 @@
     <table>
         <thead>
             <tr>
-                <th>Product / Description</th>
+                <th>Product / Service</th>
+                <th>Description</th>
                 <th class="text-right">Quantity</th>
                 <th class="text-right">Unit Price</th>
                 <th class="text-right">Total</th>
@@ -362,16 +363,13 @@
             @foreach($invoice->items as $item)
                 <tr>
                     <td>
-                        @if($item->goodsService)
-                            <div class="item-name">{{ $item->goodsService->name }}</div>
-                            @if($item->goodsService->description)
-                                <div class="item-description">{{ $item->goodsService->description }}</div>
-                            @endif
-                            @if($item->description && $item->description !== $item->goodsService->name)
-                                <div class="item-description">{{ $item->description }}</div>
-                            @endif
+                        <div class="item-name">{{ $item->name }}</div>
+                    </td>
+                    <td>
+                        @if($item->description)
+                            <div class="item-description">{{ $item->description }}</div>
                         @else
-                            <div class="item-name">{{ $item->description }}</div>
+                            <div class="item-description" style="color: #9ca3af;">—</div>
                         @endif
                     </td>
                     <td class="text-right">{{ number_format($item->quantity, 2) }}</td>

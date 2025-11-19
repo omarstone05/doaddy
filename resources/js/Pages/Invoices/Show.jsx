@@ -161,7 +161,8 @@ export default function InvoicesShow({ invoice }) {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Product / Description</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Product / Service</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Description</th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Quantity</th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Unit Price</th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total</th>
@@ -171,18 +172,13 @@ export default function InvoicesShow({ invoice }) {
                                 {invoice.items?.map((item, index) => (
                                     <tr key={index}>
                                         <td className="px-4 py-3">
-                                            {item.goods_service ? (
-                                                <div>
-                                                    <div className="font-semibold text-gray-900">{item.goods_service.name}</div>
-                                                    {item.goods_service.description && (
-                                                        <div className="text-sm text-gray-500 mt-1">{item.goods_service.description}</div>
-                                                    )}
-                                                    {item.description && item.description !== item.goods_service.name && (
-                                                        <div className="text-sm text-gray-500 mt-1">{item.description}</div>
-                                                    )}
-                                                </div>
+                                            <div className="font-semibold text-gray-900">{item.name}</div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {item.description ? (
+                                                <div className="text-sm text-gray-600">{item.description}</div>
                                             ) : (
-                                                <div className="text-gray-900">{item.description}</div>
+                                                <div className="text-sm text-gray-400">—</div>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right text-gray-600">{item.quantity}</td>
