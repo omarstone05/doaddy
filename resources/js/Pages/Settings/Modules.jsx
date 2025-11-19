@@ -10,14 +10,18 @@ export default function ModulesSettings({ modules: initialModules }) {
     const { flash } = usePage().props;
     const [modules, setModules] = useState(initialModules);
     const [togglingModules, setTogglingModules] = useState({});
-    const [isToggling, setIsToggling] = useState(false);
+    const [lastToggledModule, setLastToggledModule] = useState(null);
+    const [lastToggledTime, setLastToggledTime] = useState(0);
 
-    // Update modules when props change, but only if we're not currently toggling
+    // Update modules when props change, but skip if we just toggled a module
     useEffect(() => {
-        if (!isToggling) {
-            setModules(initialModules);
+        // Don't reset if we just toggled a module (within last 2 seconds)
+        const timeSinceToggle = Date.now() - lastToggledTime;
+        if (timeSinceToggle < 2000 && lastToggledModule) {
+            return;
         }
-    }, [initialModules, isToggling]);
+        setModules(initialModules);
+    }, [initialModules, lastToggledModule, lastToggledTime]);
 
     const handleToggle = async (moduleName) => {
         const module = modules.find(m => m.name === moduleName);
@@ -25,7 +29,9 @@ export default function ModulesSettings({ modules: initialModules }) {
 
         const newEnabledState = !module.enabled;
         
-        setIsToggling(true);
+        // Track which module we're toggling and when
+        setLastToggledModule(moduleName);
+        setLastToggledTime(Date.now());
         
         // Optimistically update UI
         setModules(prev => prev.map(m => 
@@ -34,10 +40,12 @@ export default function ModulesSettings({ modules: initialModules }) {
         setTogglingModules(prev => ({ ...prev, [moduleName]: true }));
         
         try {
-            await router.post(`/modules/${moduleName}/toggle`, {}, {
-                preserveScroll: true,
-                preserveState: true, // Don't reload props
-                only: [], // Don't reload any props
+            // Use axios directly instead of router.post to avoid Inertia reloading props
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            await axios.post(`/modules/${moduleName}/toggle`, {}, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                },
             });
 
             // Dispatch custom event to notify navigation
@@ -56,9 +64,11 @@ export default function ModulesSettings({ modules: initialModules }) {
                 m.name === moduleName ? { ...m, enabled: !newEnabledState } : m
             ));
             console.error('Failed to toggle module:', error);
+            // Clear toggle tracking on error so state can reset
+            setLastToggledModule(null);
+            setLastToggledTime(0);
         } finally {
             setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
-            setIsToggling(false);
         }
     };
 
