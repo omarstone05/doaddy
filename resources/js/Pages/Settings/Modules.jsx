@@ -46,14 +46,9 @@ export default function ModulesSettings({ modules: initialModules }) {
             }));
 
             // Fetch all modules (not just enabled) to get accurate state
-            const response = await axios.get('/settings/modules');
+            const response = await axios.get('/api/modules/all');
             if (response.data && response.data.modules) {
                 setModules(response.data.modules);
-            } else {
-                // Fallback: manually update just this module
-                setModules(prev => prev.map(m => 
-                    m.name === moduleName ? { ...m, enabled: newEnabledState } : m
-                ));
             }
         } catch (error) {
             // Revert on error
