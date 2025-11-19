@@ -120,7 +120,7 @@ export default function QuotesCreate({ customers: initialCustomers, products: in
                     <p className="text-gray-500 mt-1">Create a new quote for your customer</p>
                 </div>
 
-                <form onSubmit={submit} className="bg-white border border-gray-200 rounded-lg p-6">
+                <form onSubmit={submit} className="bg-white border border-gray-200 rounded-lg p-6 overflow-hidden">
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
