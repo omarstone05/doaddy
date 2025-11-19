@@ -14,11 +14,12 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     const [currentProductModalIndex, setCurrentProductModalIndex] = useState(null);
     const [items, setItems] = useState(
         invoice?.items?.map(item => ({
-            description: item.description,
+            name: item.name || item.description || '',
+            description: item.description && item.description !== item.name ? item.description : '',
             quantity: item.quantity,
             unit_price: item.unit_price,
             goods_service_id: item.goods_service_id,
-        })) || [{ description: '', quantity: 1, unit_price: 0, goods_service_id: '' }]
+        })) || [{ name: '', description: '', quantity: 1, unit_price: 0, goods_service_id: '' }]
     );
 
     const { data, setData, put, processing, errors } = useForm({
@@ -47,7 +48,7 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     });
 
     const addItem = () => {
-        setItems([...items, { description: '', quantity: 1, unit_price: 0, goods_service_id: '' }]);
+        setItems([...items, { name: '', description: '', quantity: 1, unit_price: 0, goods_service_id: '' }]);
     };
 
     const removeItem = (index) => {
@@ -61,7 +62,8 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
         if (field === 'goods_service_id' && value) {
             const product = products.find(p => p.id === value);
             if (product) {
-                newItems[index].description = product.name;
+                newItems[index].name = product.name;
+                newItems[index].description = product.description || '';
                 newItems[index].unit_price = parseFloat(product.selling_price) || 0;
             }
         }
@@ -94,14 +96,15 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     const submit = (e) => {
         e.preventDefault();
         
-        const validItems = items.filter(item => item.description && item.quantity > 0);
+        const validItems = items.filter(item => item.name && item.quantity > 0);
         if (validItems.length === 0) {
             alert('Please add at least one item');
             return;
         }
 
         const formattedItems = validItems.map(item => ({
-            description: item.description,
+            name: item.name,
+            description: item.description || null,
             quantity: parseFloat(item.quantity),
             unit_price: parseFloat(item.unit_price),
             goods_service_id: item.goods_service_id || null,
@@ -253,7 +256,7 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
                             <div className="space-y-3">
                                 {items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                        <div className="col-span-4">
+                                        <div className="col-span-3">
                                             <select
                                                 value={item.goods_service_id}
                                                 onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
@@ -268,18 +271,28 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="col-span-4">
+                                        <div className="col-span-3">
                                             <input
                                                 type="text"
-                                                value={item.description}
-                                                onChange={(e) => updateItem(index, 'description', e.target.value)}
-                                                placeholder="Description"
+                                                value={item.name}
+                                                onChange={(e) => updateItem(index, 'name', e.target.value)}
+                                                placeholder="Product/Service Name *"
                                                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
                                                 required
                                                 disabled={!canEdit}
                                             />
                                         </div>
-                                        <div className="col-span-2">
+                                        <div className="col-span-3">
+                                            <input
+                                                type="text"
+                                                value={item.description}
+                                                onChange={(e) => updateItem(index, 'description', e.target.value)}
+                                                placeholder="Description (optional)"
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                disabled={!canEdit}
+                                            />
+                                        </div>
+                                        <div className="col-span-1">
                                             <input
                                                 type="number"
                                                 step="0.01"
