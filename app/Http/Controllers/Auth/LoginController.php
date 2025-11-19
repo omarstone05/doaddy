@@ -37,7 +37,7 @@ class LoginController extends Controller
         if (!$user) {
             return back()->withErrors([
                 'email' => 'The provided credentials do not match our records.',
-            ])->onlyInput('email');
+            ])->withInput($request->only('email', 'remember'));
         }
 
         // Attempt authentication
@@ -74,8 +74,8 @@ class LoginController extends Controller
 
         // If we get here, password is wrong
         return back()->withErrors([
-            'password' => 'The password you entered is incorrect.',
-        ])->onlyInput('email');
+            'password' => 'The password you entered is incorrect. Please try again.',
+        ])->withInput($request->only('email', 'remember'));
     }
 
     public function destroy(Request $request)

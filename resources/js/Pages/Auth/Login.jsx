@@ -11,12 +11,16 @@ export default function Login() {
     const submit = (e) => {
         e.preventDefault();
         post('/login', {
+            preserveState: true,
+            preserveScroll: true,
             onError: (errors) => {
                 // Handle 419 CSRF token mismatch
                 if (errors.message && errors.message.includes('419')) {
                     alert('Your session has expired. Please refresh the page and try again.');
                     window.location.reload();
                 }
+                // Clear password field on error but keep email
+                setData('password', '');
             },
         });
     };
@@ -55,6 +59,13 @@ export default function Login() {
                         </div>
 
                         <form className="space-y-6" onSubmit={submit}>
+                            {/* Error Message - Show at top if any errors */}
+                            {(errors.password || errors.email) && (
+                                <div className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+                                    {errors.password || errors.email}
+                                </div>
+                            )}
+                            
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -65,7 +76,9 @@ export default function Login() {
                                         type="email"
                                         value={data.email}
                                         onChange={(e) => setData('email', e.target.value)}
-                                        className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-teal-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 text-gray-900 placeholder:text-gray-400"
+                                        className={`w-full px-4 py-3 bg-white/80 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 text-gray-900 placeholder:text-gray-400 ${
+                                            errors.email ? 'border-red-300 focus:border-red-400' : 'border-teal-200/50'
+                                        }`}
                                         placeholder="you@example.com"
                                         required
                                     />
@@ -80,15 +93,14 @@ export default function Login() {
                                         type="password"
                                         value={data.password}
                                         onChange={(e) => setData('password', e.target.value)}
-                                        className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-teal-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 text-gray-900 placeholder:text-gray-400"
+                                        className={`w-full px-4 py-3 bg-white/80 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-300 text-gray-900 placeholder:text-gray-400 ${
+                                            errors.password ? 'border-red-300 focus:border-red-400' : 'border-teal-200/50'
+                                        }`}
                                         placeholder="••••••••"
                                         required
+                                        autoFocus={!!errors.password}
                                     />
-                                    {(errors.password || errors.email) && (
-                                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                                            {errors.password || errors.email}
-                                        </div>
-                                    )}
+                                    {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                                 </div>
                                 <div className="flex items-center">
                                     <input
