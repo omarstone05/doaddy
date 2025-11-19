@@ -1,0 +1,46 @@
+{
+  "name": "HR",
+  "alias": "hr",
+  "description": "Complete HR management system for employee lifecycle from recruitment to exit",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "main_route": "/hr/dashboard",
+  "keywords": [
+    "hr",
+    "human-resources",
+    "employees",
+    "payroll",
+    "attendance",
+    "leave",
+    "recruitment",
+    "performance",
+    "training"
+  ],
+  "providers": [
+    "App\\Modules\\HR\\Providers\\HRServiceProvider"
+  ],
+  "features": [
+    "employee_management",
+    "attendance_tracking",
+    "leave_management",
+    "payroll_processing",
+    "performance_reviews",
+    "recruitment",
+    "training_development",
+    "benefits_management",
+    "compliance_documentation",
+    "hr_analytics"
+  ],
+  "suitable_for": [
+    "all_industries",
+    "retail",
+    "consulting",
+    "manufacturing",
+    "services",
+    "ngo",
+    "government"
+  ]
+}
+

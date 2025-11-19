@@ -2,7 +2,7 @@ import { Head, useForm, usePage, router, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
-import { Save, Building2, Upload, X, Image as ImageIcon, Ticket, Cloud, CloudOff, CheckCircle2, Settings as SettingsIcon, Package, FileText } from 'lucide-react';
+import { Save, Building2, Upload, X, Image as ImageIcon, Ticket, Cloud, CloudOff, CheckCircle2, Settings as SettingsIcon, Package, FileText, Users } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function SettingsIndex({ organization, user }) {
@@ -22,6 +22,8 @@ export default function SettingsIndex({ organization, user }) {
             setActiveTab('modules');
         } else if (url?.includes('/settings/invoices')) {
             setActiveTab('invoices');
+        } else if (url?.includes('/team') || url?.includes('/settings/team')) {
+            setActiveTab('team');
         } else {
             setActiveTab('general');
         }
@@ -31,6 +33,7 @@ export default function SettingsIndex({ organization, user }) {
         { id: 'general', name: 'General', icon: SettingsIcon, href: '/settings' },
         { id: 'modules', name: 'Modules', icon: Package, href: '/settings/modules' },
         { id: 'invoices', name: 'Invoices & Quotes', icon: FileText, href: '/settings/invoices' },
+        { id: 'team', name: 'Team', icon: Users, href: '/team' },
     ];
     
     const supportForm = useForm({

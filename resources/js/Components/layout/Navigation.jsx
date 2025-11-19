@@ -112,6 +112,20 @@ export function Navigation() {
             addedModules.add(module.name);
           }
         }
+        // Replace "People" with HR module if enabled
+        else if (moduleName === 'hr' || moduleName.includes('hr')) {
+          const peopleIndex = dynamicNavItems.findIndex(item => item.name === 'People');
+          if (peopleIndex !== -1) {
+            dynamicNavItems[peopleIndex] = {
+              name: module.name,
+              icon: module.icon,
+              extension: 'svg',
+              href: module.route,
+              isModule: true
+            };
+            addedModules.add(module.name);
+          }
+        }
       });
       
       // Add any remaining enabled modules that weren't replacements

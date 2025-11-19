@@ -174,6 +174,7 @@ class ModuleController extends Controller
             'Consulting' => '/consulting/projects',
             'Finance' => '/money',
             'ProjectManagement' => '/consulting/projects', // Merged into Consulting
+            'HR' => '/hr/dashboard',
         ];
 
         return $routes[$name] ?? null;
@@ -189,6 +190,7 @@ class ModuleController extends Controller
             'Consulting' => 'consulting',
             'Finance' => 'money',
             'ProjectManagement' => 'consulting',
+            'HR' => 'people',
         ];
 
         return $icons[$name] ?? 'settings';
