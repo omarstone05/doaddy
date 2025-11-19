@@ -71,6 +71,25 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Normalize empty strings to null for numeric fields before validation
+        $data = $request->all();
+        foreach (['cost_price', 'selling_price', 'current_stock', 'minimum_stock'] as $field) {
+            if (isset($data[$field]) && $data[$field] === '') {
+                $data[$field] = null;
+            }
+        }
+        
+        // Normalize boolean fields
+        if (!isset($data['is_active'])) {
+            $data['is_active'] = true;
+        }
+        if (!isset($data['track_stock'])) {
+            $data['track_stock'] = false;
+        }
+        
+        // Replace request data with normalized data
+        $request->merge($data);
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:product,service',
@@ -87,17 +106,9 @@ class ProductController extends Controller
             'track_stock' => 'boolean',
         ]);
 
-        // Ensure current_stock defaults to 0 if not provided or empty
-        if (!isset($validated['current_stock']) || $validated['current_stock'] === null || $validated['current_stock'] === '') {
+        // Ensure current_stock defaults to 0 if not provided or null
+        if (!isset($validated['current_stock']) || $validated['current_stock'] === null) {
             $validated['current_stock'] = 0;
-        }
-        
-        // Ensure boolean fields have defaults
-        if (!isset($validated['is_active'])) {
-            $validated['is_active'] = true;
-        }
-        if (!isset($validated['track_stock'])) {
-            $validated['track_stock'] = false;
         }
 
         $product = GoodsAndService::create([

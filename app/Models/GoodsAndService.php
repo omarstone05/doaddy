@@ -55,7 +55,7 @@ class GoodsAndService extends Model
 
     public function stockMovements(): HasMany
     {
-        return $this->hasMany(StockMovement::class);
+        return $this->hasMany(StockMovement::class, 'goods_service_id');
     }
 
     public function saleItems(): HasMany
