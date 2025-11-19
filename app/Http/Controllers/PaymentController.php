@@ -218,6 +218,49 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function showAllocate($id)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to allocate payments.');
+        }
+
+        $payment = Payment::where('organization_id', $organizationId)
+            ->with(['customer', 'allocations.invoice'])
+            ->findOrFail($id);
+
+        // Calculate unallocated amount
+        $currentAllocated = $payment->allocations->sum('amount');
+        $unallocatedAmount = $payment->amount - $currentAllocated;
+
+        // Get customer's unpaid invoices
+        $invoices = Invoice::where('organization_id', $organizationId)
+            ->where('customer_id', $payment->customer_id)
+            ->where(function ($q) {
+                $q->where('status', '!=', 'paid')
+                  ->orWhereRaw('total_amount > COALESCE(paid_amount, 0)');
+            })
+            ->orderBy('invoice_date', 'desc')
+            ->get()
+            ->map(function ($invoice) {
+                $outstanding = $invoice->total_amount - ($invoice->paid_amount ?? 0);
+                return [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'invoice_date' => $invoice->invoice_date,
+                    'total_amount' => $invoice->total_amount,
+                    'paid_amount' => $invoice->paid_amount ?? 0,
+                    'outstanding_amount' => $outstanding,
+                ];
+            });
+
+        return Inertia::render('Payments/Allocate', [
+            'payment' => $payment,
+            'invoices' => $invoices,
+            'unallocatedAmount' => $unallocatedAmount,
+        ]);
+    }
+
     public function allocate(Request $request, $id)
     {
         $organizationId = $this->getOrganizationId();

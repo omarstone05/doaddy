@@ -267,6 +267,7 @@ Route::middleware('auth')->group(function () {
     
     // Payments
     Route::resource('payments', PaymentController::class);
+    Route::get('/payments/{payment}/allocate', [PaymentController::class, 'showAllocate'])->name('payments.allocate.show');
     Route::post('/payments/{payment}/allocate', [PaymentController::class, 'allocate'])->name('payments.allocate');
     
     // Receipts
