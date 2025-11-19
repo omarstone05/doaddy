@@ -39,8 +39,8 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id', 'is_active']);
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id', 'is_active'], 'hr_benef_emp_active_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
@@ -93,9 +93,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['organization_id', 'status']);
-            $table->index('employee_id');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['organization_id', 'status'], 'hr_funeral_org_status_idx');
+            $table->index('employee_id', 'hr_funeral_emp_idx');
             
             $table->foreign('organization_id')
                   ->references('id')
@@ -140,9 +140,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id', 'status']);
-            $table->index('organization_id');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id', 'status'], 'hr_grat_emp_status_idx');
+            $table->index('organization_id', 'hr_grat_org_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
@@ -201,9 +201,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id', 'status']);
-            $table->index(['organization_id', 'status']);
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id', 'status'], 'hr_coi_emp_status_idx');
+            $table->index(['organization_id', 'status'], 'hr_coi_org_status_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
@@ -275,10 +275,10 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id', 'status']);
-            $table->index(['organization_id', 'status']);
-            $table->index('grievance_number');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id', 'status'], 'hr_griev_emp_status_idx');
+            $table->index(['organization_id', 'status'], 'hr_griev_org_status_idx');
+            $table->index('grievance_number', 'hr_griev_number_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
@@ -320,8 +320,8 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index('grievance_id');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index('grievance_id', 'hr_griev_meet_griev_idx');
             
             $table->foreign('grievance_id')
                   ->references('id')
@@ -368,9 +368,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id', 'renewal_status']);
-            $table->index('organization_id');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id', 'renewal_status'], 'hr_contract_emp_status_idx');
+            $table->index('organization_id', 'hr_contract_org_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
@@ -475,10 +475,10 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Indexes
-            $table->index(['employee_id']);
-            $table->index(['organization_id', 'termination_type']);
-            $table->index('termination_date');
+            // Indexes (shortened names for MySQL 64 char limit)
+            $table->index(['employee_id'], 'hr_term_emp_idx');
+            $table->index(['organization_id', 'termination_type'], 'hr_term_org_type_idx');
+            $table->index('termination_date', 'hr_term_date_idx');
             
             // Only add foreign key if hr_employees table exists
             if (Schema::hasTable('hr_employees')) {
