@@ -86,14 +86,25 @@ export default function ModulesSettings({ modules: initialModules }) {
             ));
             
             // Extract error message from response
-            const errorMsg = error.response?.data?.error 
-                || error.response?.data?.message 
-                || error.message 
-                || 'Failed to toggle module. Please try again.';
+            let errorMsg = 'Failed to toggle module. Please try again.';
+            
+            if (error.response) {
+                // Check for error in different response formats
+                errorMsg = error.response.data?.error 
+                    || error.response.data?.message 
+                    || (typeof error.response.data === 'string' ? error.response.data : null)
+                    || `Server error: ${error.response.status} ${error.response.statusText}`;
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
             
             setErrorMessage(errorMsg);
             setSuccessMessage(null);
-            console.error('Failed to toggle module:', error);
+            console.error('Failed to toggle module:', {
+                error,
+                response: error.response?.data,
+                status: error.response?.status,
+            });
         } finally {
             setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
         }

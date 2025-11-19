@@ -56,13 +56,21 @@ class ModuleController extends Controller
         // Authorization check - only organization owners/admins can toggle modules
         $user = Auth::user();
         if (!$user || !$user->currentOrganization) {
-            return $this->errorResponse($request, 'Unauthorized', 403);
+            return $this->errorResponse($request, 'Unauthorized: You must be logged in and belong to an organization.', 403);
         }
 
-        // Check if user has permission to manage modules (organization owner)
+        // Check if user has permission to manage modules (organization owner or admin)
         $organization = $user->currentOrganization;
-        if (!$user->isOwnerOf($organization->id)) {
-            return $this->errorResponse($request, 'You do not have permission to manage modules. Only organization owners can toggle modules.', 403);
+        $userRole = $user->getRoleInOrganization($organization->id);
+        
+        // Allow owners and admins to toggle modules
+        if (!in_array($userRole, ['owner', 'admin'])) {
+            \Log::warning('Module toggle unauthorized', [
+                'user_id' => $user->id,
+                'organization_id' => $organization->id,
+                'user_role' => $userRole,
+            ]);
+            return $this->errorResponse($request, 'You do not have permission to manage modules. Only organization owners and admins can toggle modules.', 403);
         }
 
         $module = $this->moduleManager->all()[$moduleName] ?? null;
