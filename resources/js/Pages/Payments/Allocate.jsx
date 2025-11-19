@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
@@ -7,8 +7,8 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 
 export default function PaymentsAllocate({ payment, invoices, unallocatedAmount }) {
     const [allocations, setAllocations] = useState([]);
-
     const [processing, setProcessing] = useState(false);
+    const { errors } = usePage().props;
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-ZM', {
@@ -71,14 +71,15 @@ export default function PaymentsAllocate({ payment, invoices, unallocatedAmount 
             return;
         }
 
-        post(`/payments/${payment.id}/allocate`, {
-            data: {
-                allocations: validAllocations.map(alloc => ({
-                    invoice_id: alloc.invoice_id,
-                    amount: parseFloat(alloc.amount),
-                })),
-            },
+        setProcessing(true);
+        router.post(`/payments/${payment.id}/allocate`, {
+            allocations: validAllocations.map(alloc => ({
+                invoice_id: alloc.invoice_id,
+                amount: parseFloat(alloc.amount),
+            })),
+        }, {
             preserveScroll: true,
+            onFinish: () => setProcessing(false),
         });
     };
 
@@ -218,8 +219,11 @@ export default function PaymentsAllocate({ payment, invoices, unallocatedAmount 
                             )}
                         </div>
 
-                        {errors.allocations && (
+                        {errors && errors.allocations && (
                             <div className="mb-4 text-red-600 text-sm">{errors.allocations}</div>
+                        )}
+                        {errors && errors.error && (
+                            <div className="mb-4 text-red-600 text-sm">{errors.error}</div>
                         )}
 
                         {allocations.length > 0 && (
