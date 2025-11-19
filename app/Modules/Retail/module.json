@@ -3,7 +3,7 @@
   "alias": "retail",
   "description": "Point of Sale (POS) and retail management system with sales, returns, and register sessions",
   "version": "1.0.0",
-  "enabled": true,
+  "enabled": false,
   "dependencies": [],
   "author": "Penda Digital",
   "main_route": "/pos",

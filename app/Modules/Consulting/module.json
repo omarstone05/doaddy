@@ -3,7 +3,7 @@
   "alias": "consulting",
   "description": "Complete project management system for consulting, agencies, construction, and professional services",
   "version": "1.0.0",
-  "enabled": true,
+  "enabled": false,
   "dependencies": [],
   "author": "Penda Digital",
   "keywords": [
