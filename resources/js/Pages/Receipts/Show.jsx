@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, Download } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
 export default function ReceiptsShow({ receipt, organization, logoUrl }) {
@@ -35,10 +35,22 @@ export default function ReceiptsShow({ receipt, organization, logoUrl }) {
                             Back to Payment
                         </Button>
                     </Link>
-                    <Button onClick={() => window.print()}>
-                        <Printer className="h-4 w-4 mr-2" />
-                        Print Receipt
-                    </Button>
+                    <div className="flex gap-2">
+                        <a
+                            href={`/receipts/${receipt.id}/download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <Button variant="secondary">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download PDF
+                            </Button>
+                        </a>
+                        <Button onClick={() => window.print()}>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print Receipt
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Receipt */}

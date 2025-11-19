@@ -278,6 +278,7 @@ Route::middleware('auth')->group(function () {
     
     // Receipts
     Route::get('/receipts/{receipt}', [\App\Http\Controllers\ReceiptController::class, 'show'])->name('receipts.show');
+    Route::get('/receipts/{receipt}/download', [\App\Http\Controllers\ReceiptController::class, 'downloadPdf'])->name('receipts.download');
     
     // Lenco Payment Gateway
     Route::prefix('lenco')->name('lenco.')->group(function () {
