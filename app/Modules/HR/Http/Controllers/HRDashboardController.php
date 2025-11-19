@@ -14,7 +14,24 @@ class HRDashboardController extends Controller
      */
     public function index()
     {
-        $organization = Auth::user()->currentOrganization;
+        $user = Auth::user();
+        
+        // Get current organization - try multiple methods
+        $organization = null;
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            $organization = $user->organizations()->where('organizations.id', $currentOrgId)->first();
+        }
+        
+        // Fallback to first organization
+        if (!$organization) {
+            $organization = $user->organizations()->first();
+        }
+        
+        if (!$organization) {
+            abort(403, 'You must belong to an organization to access HR features.');
+        }
         
         // TODO: Add HR statistics and data
         $stats = [
