@@ -1,29 +1,62 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
-import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
-import { Package, CheckCircle2, XCircle, Info, Settings as SettingsIcon, Power } from 'lucide-react';
-import { useState } from 'react';
+import { Toggle } from '@/Components/ui/Toggle';
+import { Package, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default function ModulesSettings({ modules }) {
+export default function ModulesSettings({ modules: initialModules }) {
     const { flash } = usePage().props;
+    const [modules, setModules] = useState(initialModules);
     const [togglingModules, setTogglingModules] = useState({});
 
-    const handleToggle = (moduleName) => {
+    // Update modules when props change
+    useEffect(() => {
+        setModules(initialModules);
+    }, [initialModules]);
+
+    const handleToggle = async (moduleName) => {
+        const module = modules.find(m => m.name === moduleName);
+        if (!module) return;
+
+        const newEnabledState = !module.enabled;
+        
+        // Optimistically update UI
+        setModules(prev => prev.map(m => 
+            m.name === moduleName ? { ...m, enabled: newEnabledState } : m
+        ));
         setTogglingModules(prev => ({ ...prev, [moduleName]: true }));
         
-        router.post(`/modules/${moduleName}/toggle`, {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                // Reload the page to refresh navigation and module state
-                setTimeout(() => {
-                    window.location.reload();
-                }, 500);
-            },
-            onFinish: () => {
-                setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
-            },
-        });
+        try {
+            await router.post(`/modules/${moduleName}/toggle`, {}, {
+                preserveScroll: true,
+                preserveState: false,
+            });
+
+            // Dispatch custom event to notify navigation
+            window.dispatchEvent(new CustomEvent('moduleToggled', {
+                detail: { moduleName, enabled: newEnabledState }
+            }));
+
+            // Refresh modules list from server
+            const response = await axios.get('/api/modules/navigation');
+            const enabledModules = response.data;
+            
+            // Update local state with fresh data
+            setModules(prev => prev.map(m => {
+                const enabledModule = enabledModules.find(em => em.name === m.name);
+                return enabledModule ? { ...m, enabled: true } : { ...m, enabled: false };
+            }));
+        } catch (error) {
+            // Revert on error
+            setModules(prev => prev.map(m => 
+                m.name === moduleName ? { ...m, enabled: !newEnabledState } : m
+            ));
+            console.error('Failed to toggle module:', error);
+        } finally {
+            setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
+        }
     };
 
     const successMessage = flash?.message;
@@ -135,21 +168,23 @@ export default function ModulesSettings({ modules }) {
                                 </div>
                             )}
 
-                            {/* Toggle Button */}
+                            {/* Toggle Switch */}
                             <div className="pt-4 border-t border-gray-200">
-                                <Button
-                                    onClick={() => handleToggle(module.name)}
-                                    disabled={togglingModules[module.name]}
-                                    variant={module.enabled ? 'secondary' : 'primary'}
-                                    className="w-full"
-                                >
-                                    <Power className="h-4 w-4 mr-2" />
-                                    {togglingModules[module.name]
-                                        ? 'Updating...'
-                                        : module.enabled
-                                        ? 'Disable Module'
-                                        : 'Enable Module'}
-                                </Button>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <label className="text-sm font-medium text-gray-700 cursor-pointer" onClick={() => !togglingModules[module.name] && handleToggle(module.name)}>
+                                            {module.enabled ? 'Enabled' : 'Disabled'}
+                                        </label>
+                                        {togglingModules[module.name] && (
+                                            <p className="text-xs text-gray-500 mt-1">Updating...</p>
+                                        )}
+                                    </div>
+                                    <Toggle
+                                        checked={module.enabled}
+                                        onChange={() => handleToggle(module.name)}
+                                        disabled={togglingModules[module.name]}
+                                    />
+                                </div>
                             </div>
                         </Card>
                     ))}

@@ -57,66 +57,51 @@ export function Navigation() {
     }
   }, [showNotifications]);
 
-  // Fetch modules and update navigation
-  useEffect(() => {
-    axios.get('/api/modules/navigation')
-      .then(response => {
-        const enabledModules = response.data;
-        setModules(enabledModules);
+  // Function to update navigation based on enabled modules
+  const updateNavigation = async () => {
+    try {
+      const response = await axios.get('/api/modules/navigation');
+      const enabledModules = response.data;
+      setModules(enabledModules);
+      
+      // Build navigation items dynamically
+      const dynamicNavItems = [...baseNavItems];
+      
+      // Track which modules we've added
+      const addedModules = new Set();
+      
+      // Add enabled modules to navigation
+      enabledModules.forEach(module => {
+        const moduleName = module.name.toLowerCase();
         
-        // Build navigation items dynamically
-        const dynamicNavItems = [...baseNavItems];
-        
-        // Track which modules we've added
-        const addedModules = new Set();
-        
-        // Add enabled modules to navigation
-        enabledModules.forEach(module => {
-          const moduleName = module.name.toLowerCase();
-          
-          // Replace "Sales" with Retail module if enabled
-          if (moduleName === 'retail' || moduleName.includes('retail')) {
-            const salesIndex = dynamicNavItems.findIndex(item => item.name === 'Sales');
-            if (salesIndex !== -1) {
-              dynamicNavItems[salesIndex] = {
-                name: module.name,
-                icon: module.icon,
-                extension: 'svg',
-                href: module.route,
-                isModule: true
-              };
-              addedModules.add(module.name);
-            }
+        // Replace "Sales" with Retail module if enabled
+        if (moduleName === 'retail' || moduleName.includes('retail')) {
+          const salesIndex = dynamicNavItems.findIndex(item => item.name === 'Sales');
+          if (salesIndex !== -1) {
+            dynamicNavItems[salesIndex] = {
+              name: module.name,
+              icon: module.icon,
+              extension: 'svg',
+              href: module.route,
+              isModule: true
+            };
+            addedModules.add(module.name);
           }
-          // Replace "Consulting" if Consulting module is enabled
-          else if (moduleName === 'consulting' || moduleName.includes('consulting')) {
-            const consultingIndex = dynamicNavItems.findIndex(item => item.name === 'Consulting');
-            if (consultingIndex !== -1) {
-              dynamicNavItems[consultingIndex] = {
-                name: module.name,
-                icon: module.icon,
-                extension: 'svg',
-                href: module.route,
-                isModule: true
-              };
-              addedModules.add(module.name);
-            } else {
-              // Add Consulting module if it doesn't exist
-              dynamicNavItems.push({
-                name: module.name,
-                icon: module.icon,
-                extension: 'svg',
-                href: module.route,
-                isModule: true
-              });
-              addedModules.add(module.name);
-            }
-          }
-        });
-        
-        // Add any remaining modules that weren't replacements
-        enabledModules.forEach(module => {
-          if (!addedModules.has(module.name)) {
+        }
+        // Replace "Consulting" if Consulting module is enabled
+        else if (moduleName === 'consulting' || moduleName.includes('consulting')) {
+          const consultingIndex = dynamicNavItems.findIndex(item => item.name === 'Consulting');
+          if (consultingIndex !== -1) {
+            dynamicNavItems[consultingIndex] = {
+              name: module.name,
+              icon: module.icon,
+              extension: 'svg',
+              href: module.route,
+              isModule: true
+            };
+            addedModules.add(module.name);
+          } else {
+            // Add Consulting module if it doesn't exist
             dynamicNavItems.push({
               name: module.name,
               icon: module.icon,
@@ -124,16 +109,48 @@ export function Navigation() {
               href: module.route,
               isModule: true
             });
+            addedModules.add(module.name);
           }
-        });
-        
-        setNavItems(dynamicNavItems);
-      })
-      .catch(error => {
-        console.error('Failed to fetch modules:', error);
-        // Fallback to base nav items if module fetch fails
-        setNavItems(baseNavItems);
+        }
       });
+      
+      // Add any remaining enabled modules that weren't replacements
+      enabledModules.forEach(module => {
+        if (!addedModules.has(module.name)) {
+          dynamicNavItems.push({
+            name: module.name,
+            icon: module.icon,
+            extension: 'svg',
+            href: module.route,
+            isModule: true
+          });
+        }
+      });
+      
+      setNavItems(dynamicNavItems);
+      
+      setNavItems(dynamicNavItems);
+    } catch (error) {
+      console.error('Failed to fetch modules:', error);
+      // Fallback to base nav items if module fetch fails
+      setNavItems(baseNavItems);
+    }
+  };
+
+  // Fetch modules and update navigation on mount
+  useEffect(() => {
+    updateNavigation();
+  }, []);
+
+  // Listen for module toggle events
+  useEffect(() => {
+    const handleModuleToggled = () => {
+      // Refresh navigation when a module is toggled
+      updateNavigation();
+    };
+
+    window.addEventListener('moduleToggled', handleModuleToggled);
+    return () => window.removeEventListener('moduleToggled', handleModuleToggled);
   }, []);
 
   // Close modules dropdown when clicking outside
