@@ -8,6 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Only enhance if hr_leave_types table exists
+        if (!Schema::hasTable('hr_leave_types')) {
+            return;
+        }
+
         // Add Mother's Day Leave specific fields to leave types
         Schema::table('hr_leave_types', function (Blueprint $table) {
             // Monthly recurring leave (for Mother's Day)
@@ -23,6 +28,11 @@ return new class extends Migration
             // Must register dependents
             $table->boolean('requires_registered_dependent')->default(false)->after('eligibility_after_months');
         });
+
+        // Only enhance if hr_leave_requests table exists
+        if (!Schema::hasTable('hr_leave_requests')) {
+            return;
+        }
 
         // Add dependent reference to leave requests
         Schema::table('hr_leave_requests', function (Blueprint $table) {
@@ -49,6 +59,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (!Schema::hasTable('hr_leave_requests')) {
+            return;
+        }
+
         Schema::table('hr_leave_requests', function (Blueprint $table) {
             $table->dropIndex(['dependent_id']);
             $table->dropColumn([
@@ -59,6 +73,10 @@ return new class extends Migration
             ]);
         });
         
+        if (!Schema::hasTable('hr_leave_types')) {
+            return;
+        }
+
         Schema::table('hr_leave_types', function (Blueprint $table) {
             $table->dropColumn([
                 'monthly_recurring',
