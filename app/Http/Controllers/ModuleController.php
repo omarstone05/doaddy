@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\ModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
 class ModuleController extends Controller
@@ -93,8 +94,8 @@ class ModuleController extends Controller
             }
 
             // Clear application cache to ensure fresh module state
-            \Artisan::call('config:clear');
-            \Artisan::call('route:clear');
+            Artisan::call('config:clear');
+            Artisan::call('route:clear');
             
             return back()->with('message', $message);
         } catch (\Exception $e) {
