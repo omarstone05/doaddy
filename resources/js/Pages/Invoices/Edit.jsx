@@ -277,28 +277,29 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
                             <div className="space-y-3">
                                 {items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                        <div className="col-span-3">
+                                        <div className="col-span-2">
                                             <select
                                                 value={item.goods_service_id}
                                                 onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                className="w-full px-2 py-2 text-xs border border-gray-300 rounded-lg"
                                                 disabled={!canEdit}
+                                                title="Select product to auto-fill"
                                             >
-                                                <option value="">Select Product</option>
+                                                <option value="">Product</option>
                                                 {products.map((product) => (
                                                     <option key={product.id} value={product.id}>
-                                                        {product.name} - K{(parseFloat(product.selling_price) || 0).toFixed(2)}
+                                                        {product.name}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="col-span-3">
+                                        <div className="col-span-4">
                                             <input
                                                 type="text"
                                                 value={item.name}
                                                 onChange={(e) => updateItem(index, 'name', e.target.value)}
                                                 placeholder="Product/Service Name *"
-                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-medium"
                                                 required
                                                 disabled={!canEdit}
                                             />
