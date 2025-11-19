@@ -87,12 +87,18 @@ class ProductController extends Controller
             'track_stock' => 'boolean',
         ]);
 
-        // Ensure current_stock defaults to 0 if not provided
-        $validated['current_stock'] = $validated['current_stock'] ?? 0;
+        // Ensure current_stock defaults to 0 if not provided or empty
+        if (!isset($validated['current_stock']) || $validated['current_stock'] === null || $validated['current_stock'] === '') {
+            $validated['current_stock'] = 0;
+        }
         
         // Ensure boolean fields have defaults
-        $validated['is_active'] = $validated['is_active'] ?? true;
-        $validated['track_stock'] = $validated['track_stock'] ?? false;
+        if (!isset($validated['is_active'])) {
+            $validated['is_active'] = true;
+        }
+        if (!isset($validated['track_stock'])) {
+            $validated['track_stock'] = false;
+        }
 
         $product = GoodsAndService::create([
             'id' => (string) Str::uuid(),
