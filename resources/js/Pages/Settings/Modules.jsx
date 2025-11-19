@@ -14,6 +14,12 @@ export default function ModulesSettings({ modules }) {
         
         router.post(`/modules/${moduleName}/toggle`, {}, {
             preserveScroll: true,
+            onSuccess: () => {
+                // Reload the page to refresh navigation and module state
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            },
             onFinish: () => {
                 setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
             },

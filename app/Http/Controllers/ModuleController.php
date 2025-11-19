@@ -86,12 +86,16 @@ class ModuleController extends Controller
         try {
             if ($module['enabled']) {
                 $this->moduleManager->disable($moduleName);
-                $message = 'Module disabled successfully';
+                $message = 'Module disabled successfully. The page will refresh to apply changes.';
             } else {
                 $this->moduleManager->enable($moduleName);
-                $message = 'Module enabled successfully. Please refresh the page for changes to take effect.';
+                $message = 'Module enabled successfully. The page will refresh to apply changes.';
             }
 
+            // Clear application cache to ensure fresh module state
+            \Artisan::call('config:clear');
+            \Artisan::call('route:clear');
+            
             return back()->with('message', $message);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to toggle module: ' . $e->getMessage()]);

@@ -107,9 +107,10 @@ class ModuleManager
         
         File::put($configPath, json_encode($config, JSON_PRETTY_PRINT));
         
-        $this->modules[$name]['enabled'] = true;
-        $this->modules[$name]['config']['enabled'] = true;
-
+        // Clear cache and re-discover to ensure fresh state
+        $this->modules = [];
+        $this->discover();
+        
         return true;
     }
 
@@ -130,9 +131,10 @@ class ModuleManager
         
         File::put($configPath, json_encode($config, JSON_PRETTY_PRINT));
         
-        $this->modules[$name]['enabled'] = false;
-        $this->modules[$name]['config']['enabled'] = false;
-
+        // Clear cache and re-discover to ensure fresh state
+        $this->modules = [];
+        $this->discover();
+        
         return true;
     }
 
