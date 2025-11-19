@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\HR\Http\Controllers\HRDashboardController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
 
-Route::middleware(['auth', 'verified', 'organization'])->prefix('hr')->name('hr.')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('hr')->name('hr.')->group(function () {
     // HR Dashboard
     Route::get('/dashboard', [HRDashboardController::class, 'index'])->name('dashboard');
     
