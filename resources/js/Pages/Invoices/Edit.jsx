@@ -135,8 +135,11 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     };
 
     // Check if invoice can be edited - must not be paid status and have no payments
-    const paidAmount = parseFloat(invoice?.paid_amount || 0);
-    const hasPayments = invoice?.payments && invoice.payments.length > 0;
+    // Handle paid_amount which might be string "0.00", null, undefined, or number
+    const paidAmountValue = invoice?.paid_amount;
+    const paidAmount = paidAmountValue ? parseFloat(paidAmountValue) : 0;
+    // Check if payments array exists and has items
+    const hasPayments = invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.length > 0;
     // Use <= 0.01 to account for floating point precision issues
     const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01;
 
