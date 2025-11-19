@@ -137,22 +137,25 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     // Check if invoice can be edited - must not be paid status and have no payments
     // Handle paid_amount which might be string "0.00", null, undefined, or number
     const paidAmountValue = invoice?.paid_amount;
-    const paidAmount = paidAmountValue ? parseFloat(paidAmountValue) : 0;
+    // Convert to number, handling string "0.00", null, undefined, or already a number
+    const paidAmount = (paidAmountValue !== null && paidAmountValue !== undefined && paidAmountValue !== '') 
+        ? parseFloat(paidAmountValue) 
+        : 0;
     // Check if payments array exists and has items
     const hasPayments = invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.length > 0;
     // Use <= 0.01 to account for floating point precision issues
-    // Debug: Log values to console for troubleshooting
-    if (process.env.NODE_ENV === 'development') {
-        console.log('Invoice Edit Check:', {
-            status: invoice?.status,
-            paidAmountValue,
-            paidAmount,
-            hasPayments,
-            paymentsLength: invoice?.payments?.length,
-            canEdit: invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01
-        });
-    }
     const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01;
+    
+    // Debug logging (always enabled for troubleshooting)
+    console.log('[Invoice Edit] Check:', {
+        invoiceNumber: invoice?.invoice_number,
+        status: invoice?.status,
+        paidAmountValue,
+        paidAmount,
+        hasPayments,
+        paymentsLength: invoice?.payments?.length,
+        canEdit
+    });
 
     return (
         <AuthenticatedLayout>
