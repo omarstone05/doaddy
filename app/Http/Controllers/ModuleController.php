@@ -131,8 +131,16 @@ class ModuleController extends Controller
             }
 
             // Clear application cache to ensure fresh module state
-            Artisan::call('config:clear');
-            Artisan::call('route:clear');
+            try {
+                Artisan::call('config:clear');
+                Artisan::call('route:clear');
+            } catch (\Exception $cacheException) {
+                \Log::warning('Failed to clear cache after module toggle', [
+                    'module' => $moduleName,
+                    'error' => $cacheException->getMessage(),
+                ]);
+                // Continue even if cache clear fails
+            }
             
             // Return JSON for AJAX requests, redirect for form submissions
             if ($request->wantsJson() || $request->expectsJson()) {
@@ -148,6 +156,13 @@ class ModuleController extends Controller
             
             return back()->with('message', $message);
         } catch (\Exception $e) {
+            \Log::error('Failed to toggle module', [
+                'module' => $moduleName,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             $errorMessage = 'Failed to toggle module: ' . $e->getMessage();
             return $this->errorResponse($request, $errorMessage, 500);
         }
