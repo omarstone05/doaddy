@@ -10,28 +10,16 @@ export default function ModulesSettings({ modules: initialModules }) {
     const { flash } = usePage().props;
     const [modules, setModules] = useState(initialModules);
     const [togglingModules, setTogglingModules] = useState({});
-    const [lastToggledModule, setLastToggledModule] = useState(null);
-    const [lastToggledTime, setLastToggledTime] = useState(0);
-
-    // Update modules when props change, but skip if we just toggled a module
+    // Keep local state in sync when Inertia sends new props (e.g., after a page visit)
     useEffect(() => {
-        // Don't reset if we just toggled a module (within last 2 seconds)
-        const timeSinceToggle = Date.now() - lastToggledTime;
-        if (timeSinceToggle < 2000 && lastToggledModule) {
-            return;
-        }
         setModules(initialModules);
-    }, [initialModules, lastToggledModule, lastToggledTime]);
+    }, [initialModules]);
 
     const handleToggle = async (moduleName) => {
         const module = modules.find(m => m.name === moduleName);
         if (!module) return;
 
         const newEnabledState = !module.enabled;
-        
-        // Track which module we're toggling and when
-        setLastToggledModule(moduleName);
-        setLastToggledTime(Date.now());
         
         // Optimistically update UI
         setModules(prev => prev.map(m => 
@@ -69,9 +57,6 @@ export default function ModulesSettings({ modules: initialModules }) {
                 m.name === moduleName ? { ...m, enabled: !newEnabledState } : m
             ));
             console.error('Failed to toggle module:', error);
-            // Clear toggle tracking on error so state can reset
-            setLastToggledModule(null);
-            setLastToggledTime(0);
         } finally {
             setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
         }
@@ -219,4 +204,3 @@ export default function ModulesSettings({ modules: initialModules }) {
         </SectionLayout>
     );
 }
-
