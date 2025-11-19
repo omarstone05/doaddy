@@ -276,6 +276,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('payments', PaymentController::class);
     Route::post('/payments/{payment}/allocate', [PaymentController::class, 'allocate'])->name('payments.allocate');
     
+    // Receipts
+    Route::get('/receipts/{receipt}', [\App\Http\Controllers\ReceiptController::class, 'show'])->name('receipts.show');
+    
     // Lenco Payment Gateway
     Route::prefix('lenco')->name('lenco.')->group(function () {
         Route::post('/initialize', [\App\Http\Controllers\LencoPaymentController::class, 'initialize'])->name('initialize');
