@@ -97,7 +97,18 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
     const submit = (e) => {
         e.preventDefault();
         
-        const validItems = items.filter(item => item.name && item.quantity > 0);
+        // Ensure name is set from product if goods_service_id exists
+        const itemsWithNames = items.map(item => {
+            if (item.goods_service_id && !item.name) {
+                const product = products.find(p => p.id === item.goods_service_id);
+                if (product) {
+                    item.name = product.name;
+                }
+            }
+            return item;
+        });
+        
+        const validItems = itemsWithNames.filter(item => item.name && item.quantity > 0);
         if (validItems.length === 0) {
             alert('Please add at least one item');
             return;
@@ -241,14 +252,14 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
                             <div className="space-y-3">
                                 {items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                                        <div className="col-span-2">
+                                        <div className="col-span-5">
                                             <select
-                                                value={item.goods_service_id}
+                                                value={item.goods_service_id || ''}
                                                 onChange={(e) => updateItem(index, 'goods_service_id', e.target.value)}
-                                                className="w-full px-2 py-2 text-xs border border-gray-300 rounded-lg"
-                                                title="Select product to auto-fill"
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-medium"
+                                                required
                                             >
-                                                <option value="">Product</option>
+                                                <option value="">Select Product/Service *</option>
                                                 {products.map((product) => (
                                                     <option key={product.id} value={product.id}>
                                                         {product.name}
@@ -257,16 +268,6 @@ export default function InvoicesCreate({ customers: initialCustomers, products: 
                                             </select>
                                         </div>
                                         <div className="col-span-4">
-                                            <input
-                                                type="text"
-                                                value={item.name}
-                                                onChange={(e) => updateItem(index, 'name', e.target.value)}
-                                                placeholder="Product/Service Name *"
-                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-medium"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-span-3">
                                             <input
                                                 type="text"
                                                 value={item.description}
