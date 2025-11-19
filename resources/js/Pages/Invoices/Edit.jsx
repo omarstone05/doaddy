@@ -141,6 +141,17 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     // Check if payments array exists and has items
     const hasPayments = invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.length > 0;
     // Use <= 0.01 to account for floating point precision issues
+    // Debug: Log values to console for troubleshooting
+    if (process.env.NODE_ENV === 'development') {
+        console.log('Invoice Edit Check:', {
+            status: invoice?.status,
+            paidAmountValue,
+            paidAmount,
+            hasPayments,
+            paymentsLength: invoice?.payments?.length,
+            canEdit: invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01
+        });
+    }
     const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01;
 
     return (
