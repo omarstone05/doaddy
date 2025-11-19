@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\WhatsAppVerification;
-use App\Services\WhatsAppService;
 use App\Services\UserMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +31,16 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
+        // Check if user exists first
+        $user = User::where('email', $credentials['email'])->first();
+        
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'The provided credentials do not match our records.',
+            ])->onlyInput('email');
+        }
+
+        // Attempt authentication
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
             
@@ -64,8 +72,9 @@ class LoginController extends Controller
             return redirect()->intended('/dashboard');
         }
 
+        // If we get here, password is wrong
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
+            'password' => 'The password you entered is incorrect.',
         ])->onlyInput('email');
     }
 
@@ -75,169 +84,5 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
-    }
-
-    /**
-     * Send WhatsApp verification code for login
-     */
-    public function sendWhatsAppCode(Request $request)
-    {
-        $request->validate([
-            'phone_number' => 'required|string',
-        ]);
-
-        try {
-            $phoneNumber = $request->phone_number;
-            
-            // Normalize phone number using WhatsAppService
-            $whatsappService = new WhatsAppService();
-            $normalizedPhone = $whatsappService->formatPhoneNumberForApi($phoneNumber);
-            
-            // Check if user exists with this phone number (flexible format matching)
-            $user = User::findByPhoneNumber($phoneNumber);
-            
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No account found with this phone number. Please register first.',
-                ], 404);
-            }
-            
-            // Update phone number to normalized format if it's different
-            if ($user->phone_number !== $normalizedPhone) {
-                $user->update(['phone_number' => $normalizedPhone]);
-            }
-
-            // Create verification code
-            $verification = WhatsAppVerification::createVerification($phoneNumber, $user->id);
-            
-            // Send via WhatsApp service
-            $result = $whatsappService->sendVerificationCode($phoneNumber, $verification->code);
-            
-            if (!$result['success']) {
-                Log::error('Failed to send WhatsApp verification code', [
-                    'phone' => $phoneNumber,
-                    'error' => $result['error'] ?? 'Unknown error',
-                ]);
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['error'] ?? 'Failed to send verification code. Please try again.',
-                ], 500);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Verification code has been sent to your WhatsApp number.',
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('WhatsApp login code send exception', [
-                'phone' => $request->phone_number,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while sending the verification code. Please try again.',
-            ], 500);
-        }
-    }
-
-    /**
-     * Verify WhatsApp code and login
-     */
-    public function verifyWhatsAppCode(Request $request)
-    {
-        $request->validate([
-            'phone_number' => 'required|string',
-            'code' => 'required|string|size:6',
-        ]);
-
-        try {
-            $phoneNumber = $request->phone_number;
-            $code = $request->code;
-            
-            // Normalize phone number using WhatsAppService
-            $whatsappService = new WhatsAppService();
-            $normalizedPhone = $whatsappService->formatPhoneNumberForApi($phoneNumber);
-            
-            // Find user (flexible format matching)
-            $user = User::findByPhoneNumber($phoneNumber);
-            
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No account found with this phone number.',
-                ], 404);
-            }
-            
-            // Update phone number to normalized format if it's different
-            if ($user->phone_number !== $normalizedPhone) {
-                $user->update(['phone_number' => $normalizedPhone]);
-            }
-
-            // Find valid verification code
-            $verification = WhatsAppVerification::where('phone_number', $normalizedPhone)
-                ->where('code', $code)
-                ->where('verified', false)
-                ->where('expires_at', '>', now())
-                ->first();
-
-            if (!$verification || !$verification->isValid()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid or expired verification code. Please request a new code.',
-                ], 400);
-            }
-
-            // Mark verification as used
-            $verification->markAsVerified();
-
-            // Log the user in
-            Auth::login($user, $request->boolean('remember'));
-            $request->session()->regenerate();
-
-            // Track login metric
-            try {
-                app(UserMetricsService::class)->trackLogin($user);
-            } catch (\Exception $e) {
-                Log::warning('Failed to track user login metric', ['error' => $e->getMessage()]);
-            }
-
-            // Set current organization in session
-            $currentOrgId = session('current_organization_id') 
-                ?? ($user->attributes['organization_id'] ?? null)
-                ?? $user->organizations()->first()?->id;
-            
-            if ($currentOrgId) {
-                session(['current_organization_id' => $currentOrgId]);
-                // Update organization_id for backward compatibility
-                $user->update(['organization_id' => $currentOrgId]);
-            }
-
-            // Determine redirect URL
-            $redirectUrl = $user->isSuperAdmin() ? '/admin/dashboard' : '/dashboard';
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'user' => $user,
-                'redirect' => $redirectUrl,
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('WhatsApp login verification exception', [
-                'phone' => $request->phone_number,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred during verification. Please try again.',
-            ], 500);
-        }
     }
 }
