@@ -232,13 +232,14 @@ class ModuleController extends Controller
             return $config['main_route'];
         }
         
-        $routes = [
-            'Retail' => '/pos',
-            'Consulting' => '/consulting/projects',
-            'Finance' => '/money',
-            'ProjectManagement' => '/consulting/projects', // Merged into Consulting
-            'HR' => '/hr/dashboard',
-        ];
+               $routes = [
+                   'Retail' => '/pos',
+                   'Consulting' => '/consulting/projects',
+                   'Finance' => '/money',
+                   'ProjectManagement' => '/consulting/projects', // Merged into Consulting
+                   'HR' => '/hr/dashboard',
+                   'ZambianHR' => '/zambian-hr/dashboard',
+               ];
 
         return $routes[$name] ?? null;
     }
@@ -248,13 +249,14 @@ class ModuleController extends Controller
      */
     protected function getModuleIcon(string $name): string
     {
-        $icons = [
-            'Retail' => 'sales',
-            'Consulting' => 'consulting',
-            'Finance' => 'money',
-            'ProjectManagement' => 'consulting',
-            'HR' => 'people',
-        ];
+               $icons = [
+                   'Retail' => 'sales',
+                   'Consulting' => 'consulting',
+                   'Finance' => 'money',
+                   'ProjectManagement' => 'consulting',
+                   'HR' => 'people',
+                   'ZambianHR' => 'people',
+               ];
 
         return $icons[$name] ?? 'settings';
     }
