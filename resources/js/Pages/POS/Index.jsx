@@ -128,12 +128,12 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
 
         setData('items', items);
         post('/pos/sales', {
-            onSuccess: (page) => {
+            onSuccess: () => {
                 setCart([]);
                 setShowPayment(false);
-                // Redirect to receipt page
-                router.visit(`/pos/sales/${page.props.sale?.id}`);
+                // Receipt page will be rendered automatically by backend
             },
+            preserveScroll: false,
         });
     };
 

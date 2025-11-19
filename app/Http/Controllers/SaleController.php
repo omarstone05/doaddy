@@ -110,12 +110,15 @@ class SaleController extends Controller
                 ]);
             }
 
-            // Reload sale with items
-            $sale->load('items');
+            // Reload sale with items and relationships
+            $sale->load(['items', 'customer', 'cashier', 'moneyAccount']);
 
             DB::commit();
 
-            return redirect()->route('pos.sales.show', $sale->id)->with('message', 'Sale recorded successfully');
+            // Return JSON response for Inertia to handle redirect
+            return Inertia::render('POS/Receipt', [
+                'sale' => $sale,
+            ])->with('message', 'Sale recorded successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to record sale: ' . $e->getMessage()]);
