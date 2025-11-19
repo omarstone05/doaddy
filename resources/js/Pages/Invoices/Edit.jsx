@@ -137,7 +137,8 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
     // Check if invoice can be edited - must not be paid status and have no payments
     const paidAmount = parseFloat(invoice?.paid_amount || 0);
     const hasPayments = invoice?.payments && invoice.payments.length > 0;
-    const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount === 0;
+    // Use <= 0.01 to account for floating point precision issues
+    const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount <= 0.01;
 
     return (
         <AuthenticatedLayout>

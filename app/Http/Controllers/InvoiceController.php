@@ -287,7 +287,8 @@ class InvoiceController extends Controller
         $hasPayments = $invoice->payments()->exists();
         $paidAmount = floatval($invoice->paid_amount ?? 0);
         
-        if ($invoice->status === 'paid' || $hasPayments || $paidAmount > 0) {
+        // Use <= 0.01 to account for floating point precision issues
+        if ($invoice->status === 'paid' || $hasPayments || $paidAmount > 0.01) {
             return back()->withErrors(['error' => 'Cannot edit an invoice that has been paid or has payments']);
         }
 
