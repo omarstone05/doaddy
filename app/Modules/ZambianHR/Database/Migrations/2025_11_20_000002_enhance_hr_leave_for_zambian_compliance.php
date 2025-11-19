@@ -14,24 +14,32 @@ return new class extends Migration
         }
 
         // Add Mother's Day Leave specific fields to leave types (only if columns don't exist)
-        Schema::table('hr_leave_types', function (Blueprint $table) {
-            // Check if columns exist before adding
-            if (!Schema::hasColumn('hr_leave_types', 'monthly_recurring')) {
+        // Check columns before modifying table
+        if (!Schema::hasColumn('hr_leave_types', 'monthly_recurring')) {
+            Schema::table('hr_leave_types', function (Blueprint $table) {
                 $table->boolean('monthly_recurring')->default(false)->after('accrual_method');
-            }
-            if (!Schema::hasColumn('hr_leave_types', 'max_per_month')) {
+            });
+        }
+        if (!Schema::hasColumn('hr_leave_types', 'max_per_month')) {
+            Schema::table('hr_leave_types', function (Blueprint $table) {
                 $table->decimal('max_per_month', 5, 2)->nullable()->after('monthly_recurring');
-            }
-            if (!Schema::hasColumn('hr_leave_types', 'min_notice_hours')) {
+            });
+        }
+        if (!Schema::hasColumn('hr_leave_types', 'min_notice_hours')) {
+            Schema::table('hr_leave_types', function (Blueprint $table) {
                 $table->integer('min_notice_hours')->nullable()->after('min_notice_days');
-            }
-            if (!Schema::hasColumn('hr_leave_types', 'eligibility_after_months')) {
+            });
+        }
+        if (!Schema::hasColumn('hr_leave_types', 'eligibility_after_months')) {
+            Schema::table('hr_leave_types', function (Blueprint $table) {
                 $table->integer('eligibility_after_months')->default(0)->after('min_notice_hours');
-            }
-            if (!Schema::hasColumn('hr_leave_types', 'requires_registered_dependent')) {
+            });
+        }
+        if (!Schema::hasColumn('hr_leave_types', 'requires_registered_dependent')) {
+            Schema::table('hr_leave_types', function (Blueprint $table) {
                 $table->boolean('requires_registered_dependent')->default(false)->after('eligibility_after_months');
-            }
-        });
+            });
+        }
 
         // Only enhance if hr_leave_requests table exists
         if (!Schema::hasTable('hr_leave_requests')) {
@@ -39,40 +47,46 @@ return new class extends Migration
         }
 
         // Add dependent reference to leave requests (only if columns don't exist)
-        Schema::table('hr_leave_requests', function (Blueprint $table) {
-            // For Family Responsibility Leave - link to dependent
-            if (!Schema::hasColumn('hr_leave_requests', 'dependent_id')) {
+        // Check columns before modifying table
+        if (!Schema::hasColumn('hr_leave_requests', 'dependent_id')) {
+            Schema::table('hr_leave_requests', function (Blueprint $table) {
                 $table->uuid('dependent_id')->nullable()->after('leave_type_id');
-            }
-            
-            // Medical certificate for family responsibility
-            if (!Schema::hasColumn('hr_leave_requests', 'medical_certificate_file')) {
-                $table->string('medical_certificate_file')->nullable()->after('attachments');
-            }
-            if (!Schema::hasColumn('hr_leave_requests', 'relationship_to_patient')) {
-                $table->string('relationship_to_patient')->nullable()->after('medical_certificate_file');
-            }
-            
-            // Mother's Day specific
-            if (!Schema::hasColumn('hr_leave_requests', 'is_mothers_day_leave')) {
-                $table->boolean('is_mothers_day_leave')->default(false)->after('is_half_day');
-            }
-            
-            // Index (only if column exists and index doesn't exist)
-            if (Schema::hasColumn('hr_leave_requests', 'dependent_id')) {
-                try {
+            });
+            // Add index after column is created
+            try {
+                Schema::table('hr_leave_requests', function (Blueprint $table) {
                     $table->index('dependent_id');
-                } catch (\Exception $e) {
-                    // Index might already exist, ignore
-                }
+                });
+            } catch (\Exception $e) {
+                // Index might already exist, ignore
             }
-            
-            // Note: Foreign key will be added if hr_dependents table exists
-            // $table->foreign('dependent_id')
-            //       ->references('id')
-            //       ->on('hr_dependents')
-            //       ->onDelete('set null');
-        });
+        }
+        
+        if (!Schema::hasColumn('hr_leave_requests', 'medical_certificate_file')) {
+            Schema::table('hr_leave_requests', function (Blueprint $table) {
+                $table->string('medical_certificate_file')->nullable()->after('attachments');
+            });
+        }
+        
+        if (!Schema::hasColumn('hr_leave_requests', 'relationship_to_patient')) {
+            Schema::table('hr_leave_requests', function (Blueprint $table) {
+                $table->string('relationship_to_patient')->nullable()->after('medical_certificate_file');
+            });
+        }
+        
+        if (!Schema::hasColumn('hr_leave_requests', 'is_mothers_day_leave')) {
+            Schema::table('hr_leave_requests', function (Blueprint $table) {
+                $table->boolean('is_mothers_day_leave')->default(false)->after('is_half_day');
+            });
+        }
+        
+        // Note: Foreign key will be added if hr_dependents table exists
+        // Schema::table('hr_leave_requests', function (Blueprint $table) {
+        //     $table->foreign('dependent_id')
+        //           ->references('id')
+        //           ->on('hr_dependents')
+        //           ->onDelete('set null');
+        // });
     }
 
     public function down(): void
