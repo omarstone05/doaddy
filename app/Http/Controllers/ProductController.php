@@ -87,6 +87,13 @@ class ProductController extends Controller
             'track_stock' => 'boolean',
         ]);
 
+        // Ensure current_stock defaults to 0 if not provided
+        $validated['current_stock'] = $validated['current_stock'] ?? 0;
+        
+        // Ensure boolean fields have defaults
+        $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['track_stock'] = $validated['track_stock'] ?? false;
+
         $product = GoodsAndService::create([
             'id' => (string) Str::uuid(),
             'organization_id' => Auth::user()->organization_id,
@@ -139,6 +146,11 @@ class ProductController extends Controller
             'is_active' => 'boolean',
             'track_stock' => 'boolean',
         ]);
+
+        // Ensure current_stock is not null if provided (default to 0 if explicitly set to null)
+        if (array_key_exists('current_stock', $validated) && $validated['current_stock'] === null) {
+            $validated['current_stock'] = 0;
+        }
 
         $product->update($validated);
 
