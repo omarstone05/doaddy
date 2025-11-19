@@ -380,7 +380,8 @@ export default function SettingsIndex({ organization, user }) {
                 </div>
                 )}
 
-                {/* Google Drive Section */}
+                {/* Google Drive Section - Always visible */}
+                {activeTab === 'general' && (
                 <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
@@ -485,8 +486,10 @@ export default function SettingsIndex({ organization, user }) {
                         )}
                     </div>
                 </div>
+                )}
 
-                {/* Support Section */}
+                {/* Support Section - Always visible */}
+                {activeTab === 'general' && (
                 <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
