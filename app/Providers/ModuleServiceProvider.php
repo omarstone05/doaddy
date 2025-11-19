@@ -61,7 +61,16 @@ class ModuleServiceProvider extends ServiceProvider
             $providerClass = "App\\Modules\\{$name}\\Providers\\{$name}ServiceProvider";
             
             if (class_exists($providerClass)) {
-                $this->app->register($providerClass);
+                try {
+                    $this->app->register($providerClass);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to register module service provider: {$name}", [
+                        'provider_class' => $providerClass,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    // Continue with other modules even if one fails
+                }
             }
         }
     }
