@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card } from '@/Components/ui/Card';
 import { Users, Calendar, DollarSign, Briefcase, TrendingUp, Clock } from 'lucide-react';
