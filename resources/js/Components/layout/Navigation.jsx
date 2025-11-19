@@ -37,6 +37,7 @@ export function Navigation() {
   const [showModulesDropdown, setShowModulesDropdown] = useState(false);
   const [modules, setModules] = useState([]);
   const [navItems, setNavItems] = useState(baseNavItems);
+  const [hoveredNavItem, setHoveredNavItem] = useState(null);
   const modulesRef = useRef(null);
 
   // Fetch notifications
