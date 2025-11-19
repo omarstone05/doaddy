@@ -10,6 +10,7 @@ use App\Models\MoneyAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -29,21 +30,52 @@ class PaymentController extends Controller
 
     public function create(Request $request)
     {
+        $organizationId = Auth::user()->organization_id;
         $customerId = $request->query('customer_id');
+        $invoiceId = $request->query('invoice_id');
         
-        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+        $customers = Customer::where('organization_id', $organizationId)
             ->orderBy('name')
             ->get();
 
-        $accounts = MoneyAccount::where('organization_id', Auth::user()->organization_id)
+        $accounts = MoneyAccount::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
         // Get customer's unpaid invoices if customer selected
         $invoices = [];
+        $selectedInvoice = null;
+        $prefillAllocation = null;
+        
+        if ($invoiceId) {
+            // If invoice_id is provided, fetch that specific invoice
+            $selectedInvoice = Invoice::where('organization_id', $organizationId)
+                ->with('customer')
+                ->find($invoiceId);
+            
+            if ($selectedInvoice) {
+                // Set customer_id from invoice if not already set
+                if (!$customerId) {
+                    $customerId = $selectedInvoice->customer_id;
+                }
+                
+                // Calculate outstanding amount
+                $outstandingAmount = $selectedInvoice->total_amount - ($selectedInvoice->paid_amount ?? 0);
+                
+                // Pre-fill allocation
+                if ($outstandingAmount > 0) {
+                    $prefillAllocation = [
+                        'invoice_id' => $selectedInvoice->id,
+                        'invoice_number' => $selectedInvoice->invoice_number,
+                        'amount' => $outstandingAmount,
+                    ];
+                }
+            }
+        }
+        
         if ($customerId) {
-            $invoices = Invoice::where('organization_id', Auth::user()->organization_id)
+            $invoices = Invoice::where('organization_id', $organizationId)
                 ->where('customer_id', $customerId)
                 ->where(function ($q) {
                     $q->where('status', '!=', 'paid')
@@ -58,6 +90,7 @@ class PaymentController extends Controller
             'accounts' => $accounts,
             'invoices' => $invoices,
             'selectedCustomerId' => $customerId,
+            'prefillAllocation' => $prefillAllocation,
         ]);
     }
 
@@ -75,6 +108,7 @@ class PaymentController extends Controller
             'allocations' => 'nullable|array',
             'allocations.*.invoice_id' => 'required|uuid|exists:invoices,id',
             'allocations.*.amount' => 'required|numeric|min:0.01',
+            'invoice_id' => 'nullable|uuid|exists:invoices,id', // For auto-allocation from invoice page
         ]);
 
         DB::beginTransaction();
@@ -103,6 +137,26 @@ class PaymentController extends Controller
                         'amount' => $allocation['amount'],
                     ]);
                 }
+            } elseif ($request->has('invoice_id')) {
+                // If invoice_id is provided but no allocations, automatically allocate full payment amount to that invoice
+                $invoiceId = $request->input('invoice_id');
+                $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+                    ->find($invoiceId);
+                
+                if ($invoice) {
+                    // Allocate the full payment amount to the invoice (or outstanding amount if less)
+                    $outstandingAmount = $invoice->total_amount - ($invoice->paid_amount ?? 0);
+                    $allocationAmount = min($validated['amount'], $outstandingAmount);
+                    
+                    if ($allocationAmount > 0) {
+                        PaymentAllocation::create([
+                            'id' => (string) Str::uuid(),
+                            'payment_id' => $payment->id,
+                            'invoice_id' => $invoiceId,
+                            'amount' => $allocationAmount,
+                        ]);
+                    }
+                }
             }
 
             DB::commit();
@@ -110,6 +164,10 @@ class PaymentController extends Controller
             return redirect()->route('payments.show', $payment->id)->with('message', 'Payment recorded successfully');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Failed to record payment', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors(['error' => 'Failed to record payment: ' . $e->getMessage()]);
         }
     }
@@ -127,18 +185,35 @@ class PaymentController extends Controller
 
     public function allocate(Request $request, $id)
     {
-        $payment = Payment::where('organization_id', Auth::user()->organization_id)
+        $organizationId = Auth::user()->organization_id;
+        
+        $payment = Payment::where('organization_id', $organizationId)
+            ->with('allocations') // Load allocations relationship for unallocated_amount calculation
             ->findOrFail($id);
 
         $validated = $request->validate([
             'allocations' => 'required|array|min:1',
-            'allocations.*.invoice_id' => 'required|uuid|exists:invoices,id',
+            'allocations.*.invoice_id' => 'required|uuid',
             'allocations.*.amount' => 'required|numeric|min:0.01',
         ]);
 
+        // Verify all invoices belong to the same organization
+        $invoiceIds = array_column($validated['allocations'], 'invoice_id');
+        $invoices = Invoice::where('organization_id', $organizationId)
+            ->whereIn('id', $invoiceIds)
+            ->get();
+        
+        if ($invoices->count() !== count($invoiceIds)) {
+            return back()->withErrors(['error' => 'One or more invoices do not exist or do not belong to your organization']);
+        }
+
         $totalAllocated = array_sum(array_column($validated['allocations'], 'amount'));
         
-        if ($totalAllocated > $payment->unallocated_amount) {
+        // Calculate unallocated amount safely
+        $currentAllocated = $payment->allocations->sum('amount');
+        $unallocatedAmount = $payment->amount - $currentAllocated;
+        
+        if ($totalAllocated > $unallocatedAmount) {
             return back()->withErrors(['error' => 'Total allocation exceeds unallocated amount']);
         }
 
@@ -158,6 +233,11 @@ class PaymentController extends Controller
             return back()->with('message', 'Payment allocated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to allocate payment', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors(['error' => 'Failed to allocate payment: ' . $e->getMessage()]);
         }
     }

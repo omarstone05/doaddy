@@ -5,7 +5,7 @@ import { Button } from '@/Components/ui/Button';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-export default function PaymentsCreate({ customers, accounts, invoices: initialInvoices, selectedCustomerId }) {
+export default function PaymentsCreate({ customers, accounts, invoices: initialInvoices, selectedCustomerId, prefillAllocation }) {
     const [selectedCustomer, setSelectedCustomer] = useState(selectedCustomerId || '');
     const [invoices, setInvoices] = useState([]);
     const [allocations, setAllocations] = useState([]);
@@ -21,6 +21,20 @@ export default function PaymentsCreate({ customers, accounts, invoices: initialI
         notes: '',
         allocations: [],
     });
+
+    // Auto-fill allocation and amount when prefillAllocation is provided
+    useEffect(() => {
+        if (prefillAllocation) {
+            // Set payment amount to outstanding amount
+            setData('amount', prefillAllocation.amount.toFixed(2));
+            
+            // Add allocation automatically
+            setAllocations([{
+                invoice_id: prefillAllocation.invoice_id,
+                amount: prefillAllocation.amount.toFixed(2),
+            }]);
+        }
+    }, [prefillAllocation]);
 
     useEffect(() => {
         if (selectedCustomer) {
@@ -69,6 +83,11 @@ export default function PaymentsCreate({ customers, accounts, invoices: initialI
                 invoice_id: a.invoice_id,
                 amount: parseFloat(a.amount),
             })));
+        }
+
+        // If prefillAllocation exists but no allocations were manually added, pass invoice_id
+        if (prefillAllocation && validAllocations.length === 0) {
+            setData('invoice_id', prefillAllocation.invoice_id);
         }
 
         post('/payments');
