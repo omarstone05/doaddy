@@ -378,6 +378,7 @@ export default function SettingsIndex({ organization, user }) {
                         </div>
                     </form>
                 </div>
+                )}
 
                 {/* Google Drive Section */}
                 <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
