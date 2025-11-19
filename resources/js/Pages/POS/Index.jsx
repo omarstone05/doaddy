@@ -78,6 +78,9 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
     const addToCart = (product, quantity = 1) => {
         const existing = cart.find(item => item.id === product.id);
         
+        // Ensure unit_price is always a number
+        const unitPrice = parseFloat(product.selling_price) || 0;
+        
         if (existing) {
             setCart(cart.map(item =>
                 item.id === product.id
@@ -88,7 +91,7 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
             setCart([...cart, { 
                 ...product, 
                 quantity,
-                unit_price: product.selling_price || 0,
+                unit_price: unitPrice,
             }]);
         }
         
@@ -114,7 +117,7 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
     };
 
     const total = cart.reduce((sum, item) => 
-        sum + (item.unit_price * item.quantity), 0
+        sum + ((parseFloat(item.unit_price) || 0) * item.quantity), 0
     );
 
     const handleCheckout = () => {
@@ -323,12 +326,12 @@ export default function POSIndex({ session, products, cashAccount, teamMember })
                                                     <div className="flex-1">
                                                         <div className="font-medium text-gray-900">{item.name}</div>
                                                         <div className="text-sm text-gray-500">
-                                                            K{item.unit_price.toFixed(2)} × {item.quantity}
+                                                            K{(parseFloat(item.unit_price) || 0).toFixed(2)} × {item.quantity}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="font-semibold text-gray-900">
-                                                            K{(item.unit_price * item.quantity).toFixed(2)}
+                                                            K{((parseFloat(item.unit_price) || 0) * item.quantity).toFixed(2)}
                                                         </div>
                                                         <div className="flex items-center gap-1 mt-1">
                                                             <button
