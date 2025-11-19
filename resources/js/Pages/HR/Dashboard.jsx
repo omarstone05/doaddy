@@ -82,26 +82,26 @@ export default function HRDashboard({ stats }) {
                 <Card className="p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        <Link href="/hr/employees/create" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <Users className="h-5 w-5 text-teal-600 mb-2" />
                             <p className="font-medium text-gray-900">Add Employee</p>
                             <p className="text-sm text-gray-500">Create a new employee record</p>
-                        </button>
-                        <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/hr/employees" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                            <Users className="h-5 w-5 text-teal-600 mb-2" />
+                            <p className="font-medium text-gray-900">View Employees</p>
+                            <p className="text-sm text-gray-500">Manage employee records</p>
+                        </Link>
+                        <Link href="/payroll/runs" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <Calendar className="h-5 w-5 text-teal-600 mb-2" />
                             <p className="font-medium text-gray-900">Process Payroll</p>
                             <p className="text-sm text-gray-500">Run monthly payroll</p>
-                        </button>
-                        <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                            <Briefcase className="h-5 w-5 text-teal-600 mb-2" />
-                            <p className="font-medium text-gray-900">Post Job</p>
-                            <p className="text-sm text-gray-500">Create a new job posting</p>
-                        </button>
-                        <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                            <TrendingUp className="h-5 w-5 text-teal-600 mb-2" />
-                            <p className="font-medium text-gray-900">View Reports</p>
-                            <p className="text-sm text-gray-500">HR analytics and insights</p>
-                        </button>
+                        </Link>
+                        <Link href="/leave/requests" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                            <Calendar className="h-5 w-5 text-teal-600 mb-2" />
+                            <p className="font-medium text-gray-900">Leave Requests</p>
+                            <p className="text-sm text-gray-500">Manage leave applications</p>
+                        </Link>
                     </div>
                 </Card>
             </div>

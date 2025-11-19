@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Card } from '@/Components/ui/Card';
 import { Heart, Calculator, AlertTriangle, UserX, FileText, Shield } from 'lucide-react';
@@ -74,37 +74,37 @@ export default function ZambianHRDashboard({ stats }) {
                 {/* Quick Actions */}
                 <Card className="p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Zambian HR Features</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <a href="/zambian-hr/funeral-grants" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Link href="/zambian-hr/funeral-grants" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <Heart className="h-5 w-5 text-red-600 mb-2" />
                             <p className="font-medium text-gray-900">Funeral Grants</p>
                             <p className="text-sm text-gray-500">Manage funeral assistance</p>
-                        </a>
-                        <a href="/zambian-hr/gratuity" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/zambian-hr/gratuity" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <Calculator className="h-5 w-5 text-blue-600 mb-2" />
                             <p className="font-medium text-gray-900">Gratuity</p>
                             <p className="text-sm text-gray-500">Calculate gratuity payments</p>
-                        </a>
-                        <a href="/zambian-hr/grievances" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/zambian-hr/grievances" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <AlertTriangle className="h-5 w-5 text-orange-600 mb-2" />
                             <p className="font-medium text-gray-900">Grievances</p>
                             <p className="text-sm text-gray-500">Manage employee grievances</p>
-                        </a>
-                        <a href="/zambian-hr/terminations" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/zambian-hr/terminations" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <UserX className="h-5 w-5 text-purple-600 mb-2" />
                             <p className="font-medium text-gray-900">Terminations</p>
                             <p className="text-sm text-gray-500">Process terminations</p>
-                        </a>
-                        <a href="/zambian-hr/contract-renewals" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/zambian-hr/contract-renewals" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <FileText className="h-5 w-5 text-yellow-600 mb-2" />
                             <p className="font-medium text-gray-900">Contract Renewals</p>
                             <p className="text-sm text-gray-500">Manage contract renewals</p>
-                        </a>
-                        <a href="/zambian-hr/conflict-of-interest" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        </Link>
+                        <Link href="/zambian-hr/conflict-of-interest" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
                             <Shield className="h-5 w-5 text-teal-600 mb-2" />
                             <p className="font-medium text-gray-900">Conflict of Interest</p>
                             <p className="text-sm text-gray-500">Manage declarations</p>
-                        </a>
+                        </Link>
                     </div>
                 </Card>
             </div>
