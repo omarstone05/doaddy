@@ -12,9 +12,9 @@ use App\Support\BaseModule;
 class ZambianHRServiceProvider extends BaseModule
 {
     /**
-     * Module name
+     * Module name (must match directory name)
      */
-    protected string $name = 'Zambian HR';
+    protected string $name = 'ZambianHR';
 
     /**
      * Module version
