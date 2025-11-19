@@ -42,6 +42,8 @@ class ModuleController extends Controller
 
         return Inertia::render('Settings/Modules', [
             'modules' => $formattedModules,
+        ])->with([
+            'modules' => $formattedModules, // Also make available for JSON response
         ]);
     }
 
@@ -101,6 +103,31 @@ class ModuleController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to toggle module: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Get all modules as JSON (for API calls)
+     */
+    public function getAllModules()
+    {
+        $modules = $this->moduleManager->all();
+        
+        $formattedModules = [];
+        foreach ($modules as $name => $module) {
+            $formattedModules[] = [
+                'name' => $name,
+                'display_name' => $module['config']['name'] ?? $name,
+                'description' => $module['config']['description'] ?? '',
+                'version' => $module['version'],
+                'enabled' => $module['enabled'],
+                'author' => $module['config']['author'] ?? 'Unknown',
+                'features' => $module['config']['features'] ?? [],
+                'suitable_for' => $module['config']['suitable_for'] ?? [],
+                'dependencies' => $module['config']['dependencies'] ?? [],
+            ];
+        }
+
+        return response()->json(['modules' => $formattedModules]);
     }
 
     /**

@@ -10,17 +10,22 @@ export default function ModulesSettings({ modules: initialModules }) {
     const { flash } = usePage().props;
     const [modules, setModules] = useState(initialModules);
     const [togglingModules, setTogglingModules] = useState({});
+    const [isToggling, setIsToggling] = useState(false);
 
-    // Update modules when props change
+    // Update modules when props change, but only if we're not currently toggling
     useEffect(() => {
-        setModules(initialModules);
-    }, [initialModules]);
+        if (!isToggling) {
+            setModules(initialModules);
+        }
+    }, [initialModules, isToggling]);
 
     const handleToggle = async (moduleName) => {
         const module = modules.find(m => m.name === moduleName);
         if (!module) return;
 
         const newEnabledState = !module.enabled;
+        
+        setIsToggling(true);
         
         // Optimistically update UI
         setModules(prev => prev.map(m => 
@@ -31,7 +36,8 @@ export default function ModulesSettings({ modules: initialModules }) {
         try {
             await router.post(`/modules/${moduleName}/toggle`, {}, {
                 preserveScroll: true,
-                preserveState: false,
+                preserveState: true, // Don't reload props
+                only: [], // Don't reload any props
             });
 
             // Dispatch custom event to notify navigation
@@ -39,15 +45,16 @@ export default function ModulesSettings({ modules: initialModules }) {
                 detail: { moduleName, enabled: newEnabledState }
             }));
 
-            // Refresh modules list from server
-            const response = await axios.get('/api/modules/navigation');
-            const enabledModules = response.data;
-            
-            // Update local state with fresh data
-            setModules(prev => prev.map(m => {
-                const enabledModule = enabledModules.find(em => em.name === m.name);
-                return enabledModule ? { ...m, enabled: true } : { ...m, enabled: false };
-            }));
+            // Fetch all modules (not just enabled) to get accurate state
+            const response = await axios.get('/settings/modules');
+            if (response.data && response.data.modules) {
+                setModules(response.data.modules);
+            } else {
+                // Fallback: manually update just this module
+                setModules(prev => prev.map(m => 
+                    m.name === moduleName ? { ...m, enabled: newEnabledState } : m
+                ));
+            }
         } catch (error) {
             // Revert on error
             setModules(prev => prev.map(m => 
@@ -56,6 +63,7 @@ export default function ModulesSettings({ modules: initialModules }) {
             console.error('Failed to toggle module:', error);
         } finally {
             setTogglingModules(prev => ({ ...prev, [moduleName]: false }));
+            setIsToggling(false);
         }
     };
 

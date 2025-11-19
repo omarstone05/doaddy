@@ -398,6 +398,7 @@ Route::middleware('auth')->group(function () {
     // Module Settings
     Route::get('/settings/modules', [\App\Http\Controllers\ModuleController::class, 'index'])->name('settings.modules');
     Route::post('/modules/{module}/toggle', [\App\Http\Controllers\ModuleController::class, 'toggle'])->name('modules.toggle');
+    Route::get('/api/modules/all', [\App\Http\Controllers\ModuleController::class, 'getAllModules'])->name('api.modules.all');
     Route::get('/api/modules/navigation', [\App\Http\Controllers\ModuleController::class, 'getModulesForNavigation'])->name('api.modules.navigation');
     
     // Notifications
