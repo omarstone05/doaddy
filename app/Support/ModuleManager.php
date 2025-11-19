@@ -155,21 +155,35 @@ class ModuleManager
      */
     protected function atomicWrite(string $path, string $content): void
     {
+        // Ensure directory exists and is writable
+        $directory = dirname($path);
+        if (!is_dir($directory)) {
+            throw new \RuntimeException("Module directory does not exist: {$directory}");
+        }
+        
+        if (!is_writable($directory)) {
+            throw new \RuntimeException("Module directory is not writable: {$directory}. Please check file permissions.");
+        }
+        
         // Write to temporary file first
         $tempPath = $path . '.tmp';
         
         // Use file_put_contents with LOCK_EX for atomic write
-        $result = file_put_contents($tempPath, $content, LOCK_EX);
+        $result = @file_put_contents($tempPath, $content, LOCK_EX);
         
         if ($result === false) {
-            throw new \RuntimeException("Failed to write module configuration to temporary file: {$tempPath}");
+            $error = error_get_last();
+            $errorMsg = $error ? $error['message'] : 'Unknown error';
+            throw new \RuntimeException("Failed to write module configuration to temporary file: {$tempPath}. Error: {$errorMsg}");
         }
         
         // Atomically rename temp file to final location
-        if (!rename($tempPath, $path)) {
+        if (!@rename($tempPath, $path)) {
             // Clean up temp file if rename fails
             @unlink($tempPath);
-            throw new \RuntimeException("Failed to rename temporary module configuration file: {$tempPath} to {$path}");
+            $error = error_get_last();
+            $errorMsg = $error ? $error['message'] : 'Unknown error';
+            throw new \RuntimeException("Failed to rename temporary module configuration file: {$tempPath} to {$path}. Error: {$errorMsg}");
         }
     }
 
