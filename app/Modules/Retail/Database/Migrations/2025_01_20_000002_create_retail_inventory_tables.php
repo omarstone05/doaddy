@@ -71,7 +71,7 @@ return new class extends Migration
             $table->timestamps();
             
             // Indexes
-            $table->index(['organization_id', 'assembled_product_id']);
+            $table->index(['organization_id', 'assembled_product_id'], 'retail_assemblies_org_prod_idx');
             
             $table->foreign('assembled_product_id')
                   ->references('id')
