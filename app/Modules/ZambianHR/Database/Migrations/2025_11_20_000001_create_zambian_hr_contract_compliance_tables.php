@@ -42,10 +42,13 @@ return new class extends Migration
             // Indexes
             $table->index(['employee_id', 'is_active']);
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')
@@ -141,10 +144,13 @@ return new class extends Migration
             $table->index(['employee_id', 'status']);
             $table->index('organization_id');
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')
@@ -199,10 +205,13 @@ return new class extends Migration
             $table->index(['employee_id', 'status']);
             $table->index(['organization_id', 'status']);
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')
@@ -271,10 +280,13 @@ return new class extends Migration
             $table->index(['organization_id', 'status']);
             $table->index('grievance_number');
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')
@@ -360,10 +372,13 @@ return new class extends Migration
             $table->index(['employee_id', 'renewal_status']);
             $table->index('organization_id');
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')
@@ -465,10 +480,13 @@ return new class extends Migration
             $table->index(['organization_id', 'termination_type']);
             $table->index('termination_date');
             
-            $table->foreign('employee_id')
-                  ->references('id')
-                  ->on('hr_employees')
-                  ->onDelete('cascade');
+            // Only add foreign key if hr_employees table exists
+            if (Schema::hasTable('hr_employees')) {
+                $table->foreign('employee_id')
+                      ->references('id')
+                      ->on('hr_employees')
+                      ->onDelete('cascade');
+            }
                   
             $table->foreign('organization_id')
                   ->references('id')

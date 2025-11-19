@@ -10,9 +10,30 @@ use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $query = GoodsAndService::where('organization_id', Auth::user()->organization_id);
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access products.');
+        }
+
+        $query = GoodsAndService::where('organization_id', $organizationId);
 
         // Filters
         if ($request->has('type') && $request->type !== '') {
@@ -42,7 +63,7 @@ class ProductController extends Controller
         }
 
         // Get unique categories for filter
-        $categories = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $categories = GoodsAndService::where('organization_id', $organizationId)
             ->whereNotNull('category')
             ->distinct()
             ->pluck('category')
@@ -111,9 +132,14 @@ class ProductController extends Controller
             $validated['current_stock'] = 0;
         }
 
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to create products.');
+        }
+
         $product = GoodsAndService::create([
             'id' => (string) Str::uuid(),
-            'organization_id' => Auth::user()->organization_id,
+            'organization_id' => $organizationId,
             ...$validated,
         ]);
 
@@ -122,7 +148,12 @@ class ProductController extends Controller
 
     public function show($id)
     {
-        $product = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
             ->with(['stockMovements' => function ($query) {
                 $query->latest()->limit(10);
             }])
@@ -135,7 +166,12 @@ class ProductController extends Controller
 
     public function edit($id)
     {
-        $product = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to edit products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         return Inertia::render('Products/Edit', [
@@ -145,7 +181,12 @@ class ProductController extends Controller
 
     public function update(Request $request, $id)
     {
-        $product = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to update products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -176,7 +217,12 @@ class ProductController extends Controller
 
     public function destroy($id)
     {
-        $product = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to delete products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         // Check if product has been used in sales
@@ -210,9 +256,14 @@ class ProductController extends Controller
             'track_stock' => 'nullable|boolean',
         ]);
 
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            return response()->json(['error' => 'You must belong to an organization'], 403);
+        }
+
         $product = GoodsAndService::create([
             'id' => (string) Str::uuid(),
-            'organization_id' => Auth::user()->organization_id,
+            'organization_id' => $organizationId,
             'name' => $validated['name'],
             'type' => $validated['type'],
             'description' => $validated['description'] ?? null,

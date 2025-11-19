@@ -16,9 +16,30 @@ use Inertia\Inertia;
 
 class PaymentController extends Controller
 {
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $payments = Payment::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access payments.');
+        }
+
+        $payments = Payment::where('organization_id', $organizationId)
             ->with(['customer', 'allocations.invoice'])
             ->orderBy('payment_date', 'desc')
             ->paginate(20);
@@ -30,7 +51,11 @@ class PaymentController extends Controller
 
     public function create(Request $request)
     {
-        $organizationId = Auth::user()->organization_id;
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to create payments.');
+        }
+
         $customerId = $request->query('customer_id');
         $invoiceId = $request->query('invoice_id');
         
@@ -113,10 +138,15 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
+            $organizationId = $this->getOrganizationId();
+            if (!$organizationId) {
+                throw new \Exception('You must belong to an organization to create payments.');
+            }
+
             // Create payment
             $payment = Payment::create([
                 'id' => (string) Str::uuid(),
-                'organization_id' => Auth::user()->organization_id,
+                'organization_id' => $organizationId,
                 'customer_id' => $validated['customer_id'],
                 'amount' => $validated['amount'],
                 'currency' => $validated['currency'],
@@ -140,7 +170,7 @@ class PaymentController extends Controller
             } elseif ($request->has('invoice_id')) {
                 // If invoice_id is provided but no allocations, automatically allocate full payment amount to that invoice
                 $invoiceId = $request->input('invoice_id');
-                $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+                $invoice = Invoice::where('organization_id', $organizationId)
                     ->find($invoiceId);
                 
                 if ($invoice) {
@@ -174,7 +204,12 @@ class PaymentController extends Controller
 
     public function show($id)
     {
-        $payment = Payment::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view payments.');
+        }
+
+        $payment = Payment::where('organization_id', $organizationId)
             ->with(['customer', 'allocations.invoice', 'receipts'])
             ->findOrFail($id);
 
@@ -185,7 +220,10 @@ class PaymentController extends Controller
 
     public function allocate(Request $request, $id)
     {
-        $organizationId = Auth::user()->organization_id;
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to allocate payments.');
+        }
         
         $payment = Payment::where('organization_id', $organizationId)
             ->with('allocations') // Load allocations relationship for unallocated_amount calculation

@@ -14,9 +14,30 @@ use Inertia\Inertia;
 
 class QuoteController extends Controller
 {
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $query = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access quotes.');
+        }
+
+        $query = Quote::where('organization_id', $organizationId)
             ->with('customer')
             ->orderBy('quote_date', 'desc');
 
@@ -41,11 +62,16 @@ class QuoteController extends Controller
 
     public function create()
     {
-        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to create quotes.');
+        }
+
+        $customers = Customer::where('organization_id', $organizationId)
             ->orderBy('name')
             ->get();
 
-        $products = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $products = GoodsAndService::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -85,10 +111,15 @@ class QuoteController extends Controller
             $discountAmount = $validated['discount_amount'] ?? 0;
             $totalAmount = $subtotal + $taxAmount - $discountAmount;
 
+            $organizationId = $this->getOrganizationId();
+            if (!$organizationId) {
+                throw new \Exception('You must belong to an organization to create quotes.');
+            }
+
             // Create quote
             $quote = Quote::create([
                 'id' => (string) Str::uuid(),
-                'organization_id' => Auth::user()->organization_id,
+                'organization_id' => $organizationId,
                 'customer_id' => $validated['customer_id'],
                 'quote_date' => $validated['quote_date'],
                 'expiry_date' => $validated['expiry_date'] ?? null,
@@ -127,7 +158,12 @@ class QuoteController extends Controller
 
     public function show($id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->with(['customer', 'items.goodsService', 'attachments.uploadedBy'])
             ->findOrFail($id);
         
@@ -142,7 +178,12 @@ class QuoteController extends Controller
 
     public function downloadPdf($id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to download quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->with(['customer', 'items', 'organization'])
             ->findOrFail($id);
 
@@ -179,7 +220,12 @@ class QuoteController extends Controller
 
     public function edit($id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to edit quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->with(['items', 'customer'])
             ->findOrFail($id);
         
@@ -189,11 +235,11 @@ class QuoteController extends Controller
             return back()->withErrors(['error' => 'Cannot edit a quote that has been converted to an invoice']);
         }
 
-        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+        $customers = Customer::where('organization_id', $organizationId)
             ->orderBy('name')
             ->get();
 
-        $products = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $products = GoodsAndService::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -207,7 +253,12 @@ class QuoteController extends Controller
 
     public function update(Request $request, $id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to update quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->findOrFail($id);
         
         // Prevent editing if quote has been converted to an invoice
@@ -286,7 +337,12 @@ class QuoteController extends Controller
 
     public function destroy($id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to delete quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         // Prevent deletion if quote has been converted to an invoice
@@ -319,7 +375,12 @@ class QuoteController extends Controller
 
     public function convert($id)
     {
-        $quote = Quote::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to convert quotes.');
+        }
+
+        $quote = Quote::where('organization_id', $organizationId)
             ->with(['items', 'customer'])
             ->findOrFail($id);
 

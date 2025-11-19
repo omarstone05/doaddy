@@ -10,9 +10,30 @@ use Inertia\Inertia;
 
 class CustomerController extends Controller
 {
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $query = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access customers.');
+        }
+
+        $query = Customer::where('organization_id', $organizationId)
             ->orderBy('name');
 
         if ($request->has('search')) {
@@ -65,7 +86,12 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-        $customer = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view customers.');
+        }
+
+        $customer = Customer::where('organization_id', $organizationId)
             ->with(['attachments.uploadedBy'])
             ->findOrFail($id);
 
@@ -76,7 +102,12 @@ class CustomerController extends Controller
 
     public function edit($id)
     {
-        $customer = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to edit customers.');
+        }
+
+        $customer = Customer::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         return Inertia::render('Customers/Edit', [
@@ -86,7 +117,12 @@ class CustomerController extends Controller
 
     public function update(Request $request, $id)
     {
-        $customer = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to update customers.');
+        }
+
+        $customer = Customer::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         $validated = $request->validate([
@@ -105,7 +141,12 @@ class CustomerController extends Controller
 
     public function destroy($id)
     {
-        $customer = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to delete customers.');
+        }
+
+        $customer = Customer::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         $customer->delete();
@@ -116,7 +157,10 @@ class CustomerController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('q', '');
-        $organizationId = Auth::user()->organization_id;
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            return response()->json([]);
+        }
 
         $customers = Customer::where('organization_id', $organizationId)
             ->where(function ($q) use ($query) {
@@ -135,6 +179,11 @@ class CustomerController extends Controller
      */
     public function quickCreate(Request $request)
     {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            return response()->json(['error' => 'You must belong to an organization'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -146,7 +195,7 @@ class CustomerController extends Controller
 
         $customer = Customer::create([
             'id' => (string) Str::uuid(),
-            'organization_id' => Auth::user()->organization_id,
+            'organization_id' => $organizationId,
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'] ?? null,
