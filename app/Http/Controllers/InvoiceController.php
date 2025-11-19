@@ -16,9 +16,30 @@ use Inertia\Inertia;
 
 class InvoiceController extends Controller
 {
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $query = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access invoices.');
+        }
+
+        $query = Invoice::where('organization_id', $organizationId)
             ->with('customer')
             ->orderBy('invoice_date', 'desc');
 
@@ -36,11 +57,16 @@ class InvoiceController extends Controller
 
     public function create(Request $request)
     {
-        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to create invoices.');
+        }
+
+        $customers = Customer::where('organization_id', $organizationId)
             ->orderBy('name')
             ->get();
 
-        $products = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $products = GoodsAndService::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -48,14 +74,14 @@ class InvoiceController extends Controller
         $quoteId = $request->query('quote_id');
         $quote = null;
         if ($quoteId) {
-            $quote = Quote::where('organization_id', Auth::user()->organization_id)
+            $quote = Quote::where('organization_id', $organizationId)
                 ->with(['items', 'customer'])
                 ->find($quoteId);
         }
 
         // Get organization bank details
-        $organization = \App\Models\Organization::find(Auth::user()->organization_id);
-        $bankDetails = $organization->settings['bank_details'] ?? null;
+        $organization = \App\Models\Organization::find($organizationId);
+        $bankDetails = $organization?->settings['bank_details'] ?? null;
 
         return Inertia::render('Invoices/Create', [
             'customers' => $customers,
@@ -109,10 +135,16 @@ class InvoiceController extends Controller
                 );
             }
 
+            // Get organization ID
+            $organizationId = $this->getOrganizationId();
+            if (!$organizationId) {
+                throw new \Exception('You must belong to an organization to create invoices.');
+            }
+
             // Create invoice
             $invoice = Invoice::create([
                 'id' => (string) Str::uuid(),
-                'organization_id' => Auth::user()->organization_id,
+                'organization_id' => $organizationId,
                 'customer_id' => $validated['customer_id'],
                 'invoice_date' => $validated['invoice_date'],
                 'due_date' => $validated['due_date'] ?? now()->addDays(30)->toDateString(),
@@ -165,7 +197,12 @@ class InvoiceController extends Controller
 
     public function show($id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->with(['customer', 'items.goodsService', 'payments.payment', 'attachments.uploadedBy'])
             ->findOrFail($id);
 
@@ -176,7 +213,12 @@ class InvoiceController extends Controller
 
     public function downloadPdf($id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to download invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->with(['customer', 'items.goodsService', 'organization'])
             ->findOrFail($id);
 
@@ -252,22 +294,27 @@ class InvoiceController extends Controller
 
     public function edit($id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to edit invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->with(['items', 'customer', 'payments'])
             ->findOrFail($id);
 
-        $customers = Customer::where('organization_id', Auth::user()->organization_id)
+        $customers = Customer::where('organization_id', $organizationId)
             ->orderBy('name')
             ->get();
 
-        $products = GoodsAndService::where('organization_id', Auth::user()->organization_id)
+        $products = GoodsAndService::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
         // Get organization bank details
-        $organization = \App\Models\Organization::find(Auth::user()->organization_id);
-        $bankDetails = $organization->settings['bank_details'] ?? null;
+        $organization = \App\Models\Organization::find($organizationId);
+        $bankDetails = $organization?->settings['bank_details'] ?? null;
 
         return Inertia::render('Invoices/Edit', [
             'invoice' => $invoice,
@@ -279,7 +326,12 @@ class InvoiceController extends Controller
 
     public function update(Request $request, $id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to update invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         // Prevent editing if invoice is paid or has payments
@@ -397,7 +449,12 @@ class InvoiceController extends Controller
 
     public function destroy($id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to delete invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         // Prevent deletion if invoice is paid or has payments
@@ -430,7 +487,12 @@ class InvoiceController extends Controller
 
     public function send($id)
     {
-        $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to send invoices.');
+        }
+
+        $invoice = Invoice::where('organization_id', $organizationId)
             ->findOrFail($id);
 
         // TODO: Implement email sending
