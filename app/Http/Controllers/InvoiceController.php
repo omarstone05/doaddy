@@ -283,7 +283,11 @@ class InvoiceController extends Controller
             ->findOrFail($id);
 
         // Prevent editing if invoice is paid or has payments
-        if ($invoice->status === 'paid' || ($invoice->paid_amount && $invoice->paid_amount > 0)) {
+        // Check if invoice has actual payment allocations (more reliable than just paid_amount)
+        $hasPayments = $invoice->payments()->exists();
+        $paidAmount = floatval($invoice->paid_amount ?? 0);
+        
+        if ($invoice->status === 'paid' || $hasPayments || $paidAmount > 0) {
             return back()->withErrors(['error' => 'Cannot edit an invoice that has been paid or has payments']);
         }
 

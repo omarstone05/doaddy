@@ -134,7 +134,10 @@ export default function InvoicesEdit({ invoice, customers: initialCustomers, pro
         });
     };
 
-    const canEdit = invoice?.status !== 'paid' && (!invoice?.paid_amount || invoice.paid_amount === 0);
+    // Check if invoice can be edited - must not be paid status and have no payments
+    const paidAmount = parseFloat(invoice?.paid_amount || 0);
+    const hasPayments = invoice?.payments && invoice.payments.length > 0;
+    const canEdit = invoice?.status !== 'paid' && !hasPayments && paidAmount === 0;
 
     return (
         <AuthenticatedLayout>
