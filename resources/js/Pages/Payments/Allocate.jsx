@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
@@ -8,9 +8,7 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 export default function PaymentsAllocate({ payment, invoices, unallocatedAmount }) {
     const [allocations, setAllocations] = useState([]);
 
-    const { post, processing, errors } = useForm({
-        allocations: [],
-    });
+    const [processing, setProcessing] = useState(false);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-ZM', {
@@ -80,6 +78,7 @@ export default function PaymentsAllocate({ payment, invoices, unallocatedAmount 
                     amount: parseFloat(alloc.amount),
                 })),
             },
+            preserveScroll: true,
         });
     };
 
