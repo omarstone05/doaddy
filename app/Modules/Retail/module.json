@@ -1,0 +1,44 @@
+{
+  "name": "Retail",
+  "alias": "retail",
+  "description": "Point of Sale (POS) and retail management system with sales, returns, and register sessions",
+  "version": "1.0.0",
+  "enabled": true,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "keywords": [
+    "pos",
+    "retail",
+    "sales",
+    "point-of-sale",
+    "register",
+    "cash-register",
+    "sales-returns",
+    "inventory"
+  ],
+  "providers": [
+    "App\\Modules\\Retail\\Providers\\RetailServiceProvider"
+  ],
+  "features": [
+    "point_of_sale",
+    "sales_management",
+    "sales_returns",
+    "register_sessions",
+    "receipts",
+    "barcode_scanning",
+    "product_search",
+    "customer_search",
+    "quick_expense"
+  ],
+  "suitable_for": [
+    "retail",
+    "stores",
+    "shops",
+    "furniture",
+    "electronics",
+    "clothing",
+    "grocery",
+    "pharmacy"
+  ]
+}
+

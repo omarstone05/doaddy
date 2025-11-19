@@ -6,7 +6,7 @@ use App\Models\DashboardCard;
 use App\Models\OrgDashboardCard;
 use App\Models\MoneyAccount;
 use App\Models\MoneyMovement;
-use App\Models\Sale;
+use App\Modules\Retail\Models\Sale;
 use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\GoodsAndService;

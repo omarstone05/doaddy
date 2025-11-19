@@ -233,14 +233,7 @@ Route::middleware('auth')->group(function () {
         'destroy' => 'money.budgets.destroy',
     ]);
     
-    // POS
-    Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
-    Route::get('/pos/products/search', [POSController::class, 'searchProducts'])->name('pos.products.search');
-    Route::get('/pos/products/barcode/{barcode}', [POSController::class, 'findByBarcode'])->name('pos.products.barcode');
-    Route::get('/pos/customers/search', [POSController::class, 'searchCustomers'])->name('pos.customers.search');
-    Route::post('/pos/sales', [SaleController::class, 'store'])->name('pos.sales.store');
-    Route::get('/pos/sales/{sale}', [SaleController::class, 'show'])->name('pos.sales.show');
-    Route::get('/sales/search', [SaleController::class, 'search'])->name('sales.search');
+    // POS routes are now handled by Retail module
     
     // Sales Section
     Route::get('/sales', [App\Http\Controllers\SalesController::class, 'index'])->name('sales.index');
@@ -293,18 +286,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/subscriptions/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
     Route::get('/subscriptions/callback', [\App\Http\Controllers\SubscriptionController::class, 'callback'])->name('subscriptions.callback');
     
-    // Register Sessions
-    Route::get('/register-sessions', [RegisterSessionController::class, 'index'])->name('register.index');
-    Route::post('/register-sessions/open', [RegisterSessionController::class, 'open'])->name('register.open');
-    Route::post('/register-sessions/{session}/close', [RegisterSessionController::class, 'close'])->name('register.close');
-    
-    // Sale Returns
-    Route::resource('sale-returns', SaleReturnController::class)->names([
-        'index' => 'sale-returns.index',
-        'create' => 'sale-returns.create',
-        'store' => 'sale-returns.store',
-        'show' => 'sale-returns.show',
-    ]);
+    // Register Sessions and Sale Returns routes are now handled by Retail module
     
     // Products
     Route::resource('products', ProductController::class);
@@ -412,6 +394,11 @@ Route::middleware('auth')->group(function () {
     // Invoice Settings
     Route::get('/settings/invoices', [\App\Http\Controllers\Settings\InvoiceSettingsController::class, 'index'])->name('settings.invoices');
     Route::post('/settings/invoices', [\App\Http\Controllers\Settings\InvoiceSettingsController::class, 'update'])->name('settings.invoices.update');
+    
+    // Module Settings
+    Route::get('/settings/modules', [\App\Http\Controllers\ModuleController::class, 'index'])->name('settings.modules');
+    Route::post('/modules/{module}/toggle', [\App\Http\Controllers\ModuleController::class, 'toggle'])->name('modules.toggle');
+    Route::get('/api/modules/navigation', [\App\Http\Controllers\ModuleController::class, 'getModulesForNavigation'])->name('api.modules.navigation');
     
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

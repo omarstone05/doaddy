@@ -1,12 +1,13 @@
-import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Head, useForm, usePage, router, Link } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { Card } from '@/Components/ui/Card';
-import { Save, Building2, Upload, X, Image as ImageIcon, Ticket, Cloud, CloudOff, CheckCircle2 } from 'lucide-react';
+import { Save, Building2, Upload, X, Image as ImageIcon, Ticket, Cloud, CloudOff, CheckCircle2, Settings as SettingsIcon, Package, FileText } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function SettingsIndex({ organization, user }) {
-    const { flash } = usePage().props;
+    const { flash, url } = usePage().props;
+    const [activeTab, setActiveTab] = useState('general');
     const [logoPreview, setLogoPreview] = useState(organization.logo_url || null);
     const [logoFile, setLogoFile] = useState(null);
     const [logoUploading, setLogoUploading] = useState(false);
@@ -14,6 +15,23 @@ export default function SettingsIndex({ organization, user }) {
     const [useOwnDrive, setUseOwnDrive] = useState(user?.use_own_drive || false);
     const [updatingDrive, setUpdatingDrive] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Determine active tab from URL
+    useEffect(() => {
+        if (url?.includes('/settings/modules')) {
+            setActiveTab('modules');
+        } else if (url?.includes('/settings/invoices')) {
+            setActiveTab('invoices');
+        } else {
+            setActiveTab('general');
+        }
+    }, [url]);
+
+    const tabs = [
+        { id: 'general', name: 'General', icon: SettingsIcon, href: '/settings' },
+        { id: 'modules', name: 'Modules', icon: Package, href: '/settings/modules' },
+        { id: 'invoices', name: 'Invoices & Quotes', icon: FileText, href: '/settings/invoices' },
+    ];
     
     const supportForm = useForm({
         subject: '',
@@ -135,6 +153,31 @@ export default function SettingsIndex({ organization, user }) {
                     <p className="text-gray-500 mt-1">Manage your organization's settings and preferences</p>
                 </div>
 
+                {/* Tabs */}
+                <div className="bg-white border border-gray-200 rounded-lg mb-6">
+                    <div className="border-b border-gray-200 px-6">
+                        <nav className="-mb-px flex space-x-8">
+                            {tabs.map((tab) => (
+                                <Link
+                                    key={tab.id}
+                                    href={tab.href}
+                                    className={`
+                                        flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                                        ${activeTab === tab.id
+                                            ? 'border-teal-500 text-teal-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }
+                                    `}
+                                >
+                                    <tab.icon className="h-5 w-5" />
+                                    {tab.name}
+                                </Link>
+                            ))}
+                        </nav>
+                    </div>
+                </div>
+
+                {activeTab === 'general' && (
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                     {successMessage && (
                         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -455,6 +498,7 @@ export default function SettingsIndex({ organization, user }) {
                         </Button>
                     </div>
                 </div>
+                )}
             </div>
 
             {/* Support Ticket Modal */}

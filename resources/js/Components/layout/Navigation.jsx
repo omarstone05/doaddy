@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X, Ticket, Plus, Menu } from 'lucide-react';
+import { Search, Bell, ChevronDown, Settings, CheckCircle, XCircle, Info, AlertTriangle, X, Ticket, Plus, Menu, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
 import { MobileMenu } from './MobileMenu';
@@ -35,6 +35,9 @@ export function Navigation() {
   const [newBusinessName, setNewBusinessName] = useState('');
   const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showModulesDropdown, setShowModulesDropdown] = useState(false);
+  const [modules, setModules] = useState([]);
+  const modulesRef = useRef(null);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -53,6 +56,31 @@ export function Navigation() {
       fetchNotifications();
     }
   }, [showNotifications]);
+
+  // Fetch modules for dropdown
+  useEffect(() => {
+    if (showModulesDropdown && modules.length === 0) {
+      axios.get('/api/modules/navigation')
+        .then(response => {
+          setModules(response.data);
+        })
+        .catch(error => {
+          console.error('Failed to fetch modules:', error);
+        });
+    }
+  }, [showModulesDropdown]);
+
+  // Close modules dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modulesRef.current && !modulesRef.current.contains(event.target)) {
+        setShowModulesDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Poll for new notifications every 30 seconds
   useEffect(() => {
@@ -250,6 +278,71 @@ export function Navigation() {
               >
                 <Search className="h-5 w-5" />
               </button>
+              
+              {/* Modules Dropdown */}
+              {modules.length > 0 && (
+                <div className="relative" ref={modulesRef}>
+                  <button 
+                    type="button"
+                    onClick={() => setShowModulesDropdown(!showModulesDropdown)}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors relative"
+                    aria-label="Modules"
+                  >
+                    <Package className="h-5 w-5" />
+                  </button>
+
+                  {/* Modules Dropdown */}
+                  {showModulesDropdown && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900">Modules</h3>
+                        <Link
+                          href="/settings/modules"
+                          className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                          onClick={() => setShowModulesDropdown(false)}
+                        >
+                          Manage
+                        </Link>
+                      </div>
+
+                      {/* Modules List */}
+                      <div className="max-h-96 overflow-y-auto">
+                        {modules.map((module) => (
+                          <Link
+                            key={module.name}
+                            href={module.route}
+                            onClick={() => setShowModulesDropdown(false)}
+                            className="block px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-0.5">
+                                <img
+                                  src={`/assets/icons/${module.icon}.svg`}
+                                  alt={module.name}
+                                  className="h-5 w-5 object-contain"
+                                  onError={(e) => {
+                                    e.target.src = `/assets/icons/${module.icon}.png`;
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {module.name}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                  {module.description}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="relative" ref={notificationRef}>
               <button 
                 type="button"
