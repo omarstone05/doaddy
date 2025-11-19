@@ -253,7 +253,7 @@ class InvoiceController extends Controller
     public function edit($id)
     {
         $invoice = Invoice::where('organization_id', Auth::user()->organization_id)
-            ->with(['items', 'customer'])
+            ->with(['items', 'customer', 'payments'])
             ->findOrFail($id);
 
         $customers = Customer::where('organization_id', Auth::user()->organization_id)
