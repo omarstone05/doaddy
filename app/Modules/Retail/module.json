@@ -6,6 +6,7 @@
   "enabled": true,
   "dependencies": [],
   "author": "Penda Digital",
+  "main_route": "/pos",
   "keywords": [
     "pos",
     "retail",

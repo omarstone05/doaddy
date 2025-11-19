@@ -130,7 +130,11 @@ class ModuleController extends Controller
      */
     protected function getModuleRoute(string $name, array $config): ?string
     {
-        // Define module routes
+        // Define module routes - check config first, then fallback to defaults
+        if (isset($config['main_route'])) {
+            return $config['main_route'];
+        }
+        
         $routes = [
             'Retail' => '/pos',
             'Consulting' => '/consulting/projects',

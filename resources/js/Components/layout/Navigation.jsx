@@ -5,16 +5,15 @@ import { cn } from '@/lib/utils';
 import axios from 'axios';
 import { MobileMenu } from './MobileMenu';
 
-// Navigation items - main sections only for pill navigation
+// Base navigation items - core sections
 // Note: dashboard is PNG, others are SVG
-const navItems = [
+const baseNavItems = [
   { name: 'Dashboard', icon: 'dashboard', extension: 'png', href: '/dashboard' },
   { name: 'Money', icon: 'money', extension: 'svg', href: '/money' },
-  { name: 'Sales', icon: 'sales', extension: 'svg', href: '/sales' },
+  { name: 'Sales', icon: 'sales', extension: 'svg', href: '/sales' }, // Will be replaced by Retail if enabled
   { name: 'People', icon: 'people', extension: 'svg', href: '/people' },
   { name: 'Inventory', icon: 'inventory', extension: 'svg', href: '/inventory' },
   { name: 'Decisions', icon: 'decisions', extension: 'svg', href: '/decisions' },
-  { name: 'Consulting', icon: 'consulting', extension: 'svg', href: '/consulting/projects' },
   { name: 'Compliance', icon: 'compliance', extension: 'svg', href: '/compliance' },
 ];
 
@@ -37,6 +36,7 @@ export function Navigation() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showModulesDropdown, setShowModulesDropdown] = useState(false);
   const [modules, setModules] = useState([]);
+  const [navItems, setNavItems] = useState(baseNavItems);
   const modulesRef = useRef(null);
 
   // Fetch notifications
@@ -57,18 +57,84 @@ export function Navigation() {
     }
   }, [showNotifications]);
 
-  // Fetch modules for dropdown
+  // Fetch modules and update navigation
   useEffect(() => {
-    if (showModulesDropdown && modules.length === 0) {
-      axios.get('/api/modules/navigation')
-        .then(response => {
-          setModules(response.data);
-        })
-        .catch(error => {
-          console.error('Failed to fetch modules:', error);
+    axios.get('/api/modules/navigation')
+      .then(response => {
+        const enabledModules = response.data;
+        setModules(enabledModules);
+        
+        // Build navigation items dynamically
+        const dynamicNavItems = [...baseNavItems];
+        
+        // Track which modules we've added
+        const addedModules = new Set();
+        
+        // Add enabled modules to navigation
+        enabledModules.forEach(module => {
+          const moduleName = module.name.toLowerCase();
+          
+          // Replace "Sales" with Retail module if enabled
+          if (moduleName === 'retail' || moduleName.includes('retail')) {
+            const salesIndex = dynamicNavItems.findIndex(item => item.name === 'Sales');
+            if (salesIndex !== -1) {
+              dynamicNavItems[salesIndex] = {
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true
+              };
+              addedModules.add(module.name);
+            }
+          }
+          // Replace "Consulting" if Consulting module is enabled
+          else if (moduleName === 'consulting' || moduleName.includes('consulting')) {
+            const consultingIndex = dynamicNavItems.findIndex(item => item.name === 'Consulting');
+            if (consultingIndex !== -1) {
+              dynamicNavItems[consultingIndex] = {
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true
+              };
+              addedModules.add(module.name);
+            } else {
+              // Add Consulting module if it doesn't exist
+              dynamicNavItems.push({
+                name: module.name,
+                icon: module.icon,
+                extension: 'svg',
+                href: module.route,
+                isModule: true
+              });
+              addedModules.add(module.name);
+            }
+          }
         });
-    }
-  }, [showModulesDropdown]);
+        
+        // Add any remaining modules that weren't replacements
+        enabledModules.forEach(module => {
+          if (!addedModules.has(module.name)) {
+            dynamicNavItems.push({
+              name: module.name,
+              icon: module.icon,
+              extension: 'svg',
+              href: module.route,
+              isModule: true
+            });
+          }
+        });
+        
+        setNavItems(dynamicNavItems);
+      })
+      .catch(error => {
+        console.error('Failed to fetch modules:', error);
+        // Fallback to base nav items if module fetch fails
+        setNavItems(baseNavItems);
+      });
+  }, []);
 
   // Close modules dropdown when clicking outside
   useEffect(() => {
@@ -253,6 +319,9 @@ export function Navigation() {
                         }}
                       />
                         <span>{item.name}</span>
+                        {item.isModule && (
+                          <span className="ml-1 text-xs opacity-70">●</span>
+                        )}
                       </Link>
                     );
                   })}
