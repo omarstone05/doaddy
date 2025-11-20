@@ -14,18 +14,33 @@ use Inertia\Inertia;
 class AssetController extends Controller
 {
     /**
-     * Get current organization ID
+     * Helper to get the current organization ID
      */
-    protected function getOrganizationId()
+    protected function getOrganizationId(): ?string
     {
         $user = Auth::user();
-        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
-        
+        if (!$user) {
+            return null;
+        }
+
+        // Try to get from session first
+        $currentOrgId = session('current_organization_id');
         if ($currentOrgId) {
-            return $currentOrgId;
+            $org = $user->organizations()->where('organizations.id', $currentOrgId)->first();
+            if ($org) {
+                return $org->id;
+            }
         }
         
-        // Fallback to first organization
+        // Fallback to user's organization_id attribute (for backward compatibility)
+        if ($user->attributes['organization_id'] ?? null) {
+            $org = $user->organizations()->where('organizations.id', $user->attributes['organization_id'])->first();
+            if ($org) {
+                return $org->id;
+            }
+        }
+        
+        // Fallback to the first organization the user belongs to
         return $user->organizations()->first()?->id;
     }
 
@@ -36,7 +51,7 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            abort(403, 'You must belong to an organization to access assets.');
+            return redirect()->route('onboarding');
         }
 
         $query = Asset::where('organization_id', $organizationId)
@@ -89,7 +104,7 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            abort(403, 'You must belong to an organization to create assets.');
+            return redirect()->route('onboarding');
         }
 
         $users = User::whereHas('organizations', function ($q) use ($organizationId) {
@@ -181,7 +196,7 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            abort(403, 'You must belong to an organization to view assets.');
+            return redirect()->route('onboarding');
         }
 
         $asset = Asset::where('organization_id', $organizationId)
@@ -200,7 +215,7 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            abort(403, 'You must belong to an organization to edit assets.');
+            return redirect()->route('onboarding');
         }
 
         $asset = Asset::where('organization_id', $organizationId)->findOrFail($id);
