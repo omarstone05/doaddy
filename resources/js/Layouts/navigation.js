@@ -76,6 +76,7 @@ export const navigation = [
             { name: 'Products', href: '/products', icon: Box },
             { name: 'Stock', href: '/stock', icon: Package },
             { name: 'Stock Movements', href: '/stock/movements', icon: TrendingUp },
+            { name: 'Assets', href: '/assets', icon: Package },
         ],
     },
     {
