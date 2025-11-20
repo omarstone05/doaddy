@@ -16,6 +16,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RegisterSessionController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StockAdjustmentController;
@@ -294,7 +295,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/products/quick-create', [ProductController::class, 'quickCreate'])->name('api.products.quick-create');
     
     // Assets (Internal Assets)
-    Route::resource('assets', \App\Http\Controllers\AssetController::class);
+    Route::resource('assets', AssetController::class);
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
