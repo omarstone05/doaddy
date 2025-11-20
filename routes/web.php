@@ -294,7 +294,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/products/quick-create', [ProductController::class, 'quickCreate'])->name('api.products.quick-create');
     
     // Assets (Internal Assets)
-    Route::resource('assets', AssetController::class);
+    Route::resource('assets', \App\Http\Controllers\AssetController::class);
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
