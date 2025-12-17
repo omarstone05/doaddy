@@ -74,7 +74,13 @@ Route::middleware('guest')->group(function () {
     // Google OAuth Login
     Route::get('/auth/google/login', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('google.login');
     Route::get('/auth/google/login/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('google.login.callback');
+    
+    // Penda Cloud SSO
+    Route::get('/auth/penda', [\App\Http\Controllers\Auth\PendaSSOController::class, 'redirect'])->name('penda.login');
 });
+
+// Penda SSO Callback (must be accessible for redirect)
+Route::get('/auth/penda/callback', [\App\Http\Controllers\Auth\PendaSSOController::class, 'callback'])->name('penda.callback');
 
 // Google Drive OAuth Callback (must be accessible without auth for Google redirect)
 Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');

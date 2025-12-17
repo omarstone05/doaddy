@@ -73,4 +73,17 @@ return [
         'base_url' => env('DIGITAX_BASE_URL'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Penda Cloud SSO
+    |--------------------------------------------------------------------------
+    */
+    'penda_sso' => [
+        'base_url' => env('PENDA_SSO_URL', 'https://penda.cloud'),
+        'client_id' => env('PENDA_CLIENT_ID'),
+        'client_secret' => env('PENDA_CLIENT_SECRET'),
+        'redirect_uri' => env('PENDA_REDIRECT_URI', env('APP_URL') . '/auth/penda/callback'),
+        'logout_redirect' => env('PENDA_LOGOUT_REDIRECT', false),
+    ],
+
 ];

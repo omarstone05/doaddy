@@ -34,11 +34,17 @@ class User extends Authenticatable
         'is_active',
         'admin_notes',
         'last_active_at',
+        'last_login_ip',
         'google_drive_token',
         'google_drive_connected_at',
         'google_id',
         'avatar',
         'use_own_drive',
+        // Penda SSO fields
+        'penda_account_id',
+        'penda_access_token',
+        'penda_refresh_token',
+        'penda_token_expires_at',
     ];
 
     /**
@@ -49,7 +55,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'google_drive_token', // Hide encrypted token from JSON
+        'google_drive_token',
+        'penda_access_token',
+        'penda_refresh_token',
     ];
 
     /**
@@ -65,6 +73,7 @@ class User extends Authenticatable
             'is_super_admin' => 'boolean',
             'is_active' => 'boolean',
             'last_active_at' => 'datetime',
+            'penda_token_expires_at' => 'datetime',
         ];
     }
 
