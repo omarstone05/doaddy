@@ -56,16 +56,13 @@ import {
 } from 'lucide-react';
 
 // Settings Navigation Items
+// Note: Organization, Team, Security, and Google Drive settings are managed in Penda Cloud
 const settingsNav = [
-    { id: 'organization', name: 'Organization', icon: Building2, description: 'Company profile & branding' },
     { id: 'billing', name: 'Billing & Documents', icon: FileText, description: 'Invoices, quotes & banking' },
     { id: 'tax', name: 'Tax', icon: Receipt, description: 'Tax rates & compliance' },
-    { id: 'team', name: 'Team', icon: Users, description: 'Members & departments' },
     { id: 'modules', name: 'Modules', icon: Package, description: 'Enable/disable features' },
     { id: 'assistant', name: 'AI Assistant', icon: Sparkles, description: 'Addy preferences' },
-    { id: 'integrations', name: 'Integrations', icon: Link2, description: 'Connected services' },
     { id: 'notifications', name: 'Notifications', icon: Bell, description: 'Alert preferences' },
-    { id: 'security', name: 'Security', icon: Shield, description: 'Account & access' },
 ];
 
 export default function SettingsIndex({ 
@@ -88,7 +85,7 @@ export default function SettingsIndex({
     digitaxAvailable = false,
 }) {
     const { flash, url } = usePage().props;
-    const [activeSection, setActiveSection] = useState('organization');
+    const [activeSection, setActiveSection] = useState('billing');
     const [activeSubTab, setActiveSubTab] = useState(null);
     
     // Organization states
@@ -1888,26 +1885,18 @@ export default function SettingsIndex({
     // Render active section content
     const renderSectionContent = () => {
         switch (activeSection) {
-            case 'organization':
-                return renderOrganizationSection();
             case 'billing':
                 return renderBillingSection();
             case 'tax':
                 return renderTaxSection();
-            case 'team':
-                return renderTeamSection();
             case 'modules':
                 return renderModulesSection();
             case 'assistant':
                 return renderAssistantSection();
-            case 'integrations':
-                return renderIntegrationsSection();
             case 'notifications':
                 return renderNotificationsSection();
-            case 'security':
-                return renderSecuritySection();
             default:
-                return renderOrganizationSection();
+                return renderBillingSection();
         }
     };
 
@@ -1944,6 +1933,24 @@ export default function SettingsIndex({
                     </div>
                 )}
 
+                {/* Penda Cloud Notice */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm text-blue-900 font-medium mb-1">
+                                Organization settings moved to Penda Cloud
+                            </p>
+                            <p className="text-sm text-blue-700">
+                                Organization profile, team management, security settings, and Google Drive integration are now managed in{' '}
+                                <a href="https://penda.cloud/dashboard" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900">
+                                    Penda Cloud
+                                </a>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex gap-8">
                     {/* Sidebar Navigation */}
                     <div className="w-64 flex-shrink-0">
@@ -1952,25 +1959,7 @@ export default function SettingsIndex({
                                 <button
                                     key={item.id}
                                     onClick={() => {
-                                        // Set active section immediately for better UX
                                         setActiveSection(item.id);
-                                        
-                                        // Team section needs to navigate to fetch server data
-                                        if (item.id === 'team') {
-                                            router.visit('/settings/team', {
-                                                preserveScroll: true,
-                                                onSuccess: () => {
-                                                    // Ensure activeSection is set after navigation
-                                                    setActiveSection('team');
-                                                },
-                                                onError: () => {
-                                                    // If navigation fails, still keep team selected
-                                                    setActiveSection('team');
-                                                }
-                                            });
-                                            return;
-                                        }
-                                        // Other sections work client-side only, no navigation needed
                                     }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all mb-1 ${
                                         activeSection === item.id
