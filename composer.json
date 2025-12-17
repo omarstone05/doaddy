@@ -5,6 +5,16 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../packages/penda-jwt"
+        },
+        {
+            "type": "path",
+            "url": "../../packages/penda-ai-client"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
@@ -18,7 +28,9 @@
         "predis/predis": "^3.2",
         "smalot/pdfparser": "^2.0",
         "spatie/laravel-permission": "^6.23",
-        "tightenco/ziggy": "^2.6"
+        "tightenco/ziggy": "^2.6",
+        "penda/jwt": "@dev",
+        "penda/ai-client": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
