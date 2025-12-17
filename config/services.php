@@ -75,7 +75,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Penda Cloud SSO
+    | Penda Cloud SSO & Integration
     |--------------------------------------------------------------------------
     */
     'penda_sso' => [
@@ -84,6 +84,8 @@ return [
         'client_secret' => env('PENDA_CLIENT_SECRET'),
         'redirect_uri' => env('PENDA_REDIRECT_URI', env('APP_URL') . '/auth/penda/callback'),
         'logout_redirect' => env('PENDA_LOGOUT_REDIRECT', false),
+        'service_token' => env('PENDA_SERVICE_TOKEN'), // For service-to-service API calls
+        'app_id' => 'addy',
     ],
 
 ];
