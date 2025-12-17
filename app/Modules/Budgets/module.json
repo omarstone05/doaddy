@@ -1,0 +1,40 @@
+{
+  "name": "Budgets",
+  "alias": "budgets",
+  "description": "Budget management system for tracking spending against budgets",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "main_route": "/budgets",
+  "keywords": [
+    "budgets",
+    "budgeting",
+    "spending",
+    "financial-planning",
+    "expense-tracking",
+    "budget-control"
+  ],
+  "providers": [
+    "App\\Modules\\Budgets\\Providers\\BudgetsServiceProvider"
+  ],
+  "features": [
+    "budget_creation",
+    "spending_tracking",
+    "budget_vs_actual",
+    "periodic_budgets",
+    "category_budgets",
+    "budget_alerts",
+    "budget_reporting"
+  ],
+  "suitable_for": [
+    "all_industries",
+    "retail",
+    "consulting",
+    "manufacturing",
+    "services",
+    "ngo",
+    "government"
+  ]
+}
+

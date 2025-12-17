@@ -1,0 +1,58 @@
+{
+  "name": "CRM",
+  "alias": "crm",
+  "description": "Complete Customer Relationship Management system with lead management, opportunity pipeline, quotes, WhatsApp integration, and sales automation",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "main_route": "/crm",
+  "keywords": [
+    "crm",
+    "customer-relationship-management",
+    "sales",
+    "leads",
+    "opportunities",
+    "pipeline",
+    "quotes",
+    "whatsapp",
+    "sales-automation",
+    "customer-management"
+  ],
+  "providers": [
+    "App\\Modules\\CRM\\Providers\\CRMServiceProvider"
+  ],
+  "features": [
+    "lead_management",
+    "lead_scoring",
+    "contact_management",
+    "opportunity_pipeline",
+    "kanban_board",
+    "activities_tasks",
+    "email_integration",
+    "whatsapp_integration",
+    "sms_integration",
+    "quote_generation",
+    "product_catalog",
+    "sales_automation",
+    "workflows",
+    "team_management",
+    "territories",
+    "customer_segmentation",
+    "sales_forecasting",
+    "analytics",
+    "360_customer_view"
+  ],
+  "suitable_for": [
+    "sales",
+    "b2b",
+    "consulting",
+    "agencies",
+    "retail",
+    "services",
+    "manufacturing",
+    "distribution"
+  ]
+}
+
+

@@ -1,0 +1,32 @@
+{
+  "name": "SmartInvoice",
+  "alias": "smart-invoice",
+  "description": "Smart Invoice module integrating ZRA Smart Invoices via Digitax for Addy.",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": [
+    "Tax"
+  ],
+  "author": "Penda Digital",
+  "main_route": "/smart-invoices",
+  "keywords": [
+    "smart-invoice",
+    "tax",
+    "digitax",
+    "zra"
+  ],
+  "providers": [
+    "App\\Modules\\SmartInvoice\\Providers\\SmartInvoiceServiceProvider"
+  ],
+  "features": [
+    "smart_invoice_issue",
+    "tax_reporting",
+    "digitax_integration"
+  ],
+  "suitable_for": [
+    "all_industries",
+    "retail",
+    "services",
+    "manufacturing"
+  ]
+}

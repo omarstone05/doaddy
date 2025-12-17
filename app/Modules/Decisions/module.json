@@ -1,0 +1,28 @@
+{
+    "name": "Decisions",
+    "alias": "decisions",
+    "description": "Strategic decision making module including OKRs, Goals, and Business Valuation",
+    "version": "1.0.0",
+    "enabled": false,
+    "dependencies": [],
+    "author": "Addy",
+    "main_route": "/decisions",
+    "keywords": [
+        "decisions",
+        "okr",
+        "goals",
+        "strategy",
+        "valuation"
+    ],
+    "providers": [
+        "App\\Modules\\Decisions\\Providers\\DecisionsServiceProvider"
+    ],
+    "features": [
+        "okrs",
+        "strategic_goals",
+        "business_valuation"
+    ],
+    "suitable_for": [
+        "all_industries"
+    ]
+}

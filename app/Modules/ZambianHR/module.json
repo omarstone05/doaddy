@@ -1,0 +1,49 @@
+{
+  "name": "Zambian HR",
+  "alias": "zambian-hr",
+  "description": "Zambian labor law compliant HR management system with funeral grants, gratuity, Mother's Day leave, and full statutory compliance",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": ["HR"],
+  "author": "Penda Digital",
+  "main_route": "/zambian-hr/dashboard",
+  "keywords": [
+    "zambian-hr",
+    "zambia",
+    "hr-compliance",
+    "funeral-grants",
+    "gratuity",
+    "mothers-day-leave",
+    "family-responsibility-leave",
+    "grievances",
+    "contract-compliance",
+    "zambian-labor-law"
+  ],
+  "providers": [
+    "App\\Modules\\ZambianHR\\Providers\\ZambianHRServiceProvider"
+  ],
+  "features": [
+    "funeral_grants",
+    "gratuity_calculations",
+    "mothers_day_leave",
+    "family_responsibility_leave",
+    "zambian_leave_types",
+    "grievance_management",
+    "contract_renewals",
+    "enhanced_terminations",
+    "conflict_of_interest",
+    "zambian_payroll_compliance",
+    "statutory_compliance"
+  ],
+  "suitable_for": [
+    "zambia",
+    "all_industries",
+    "retail",
+    "consulting",
+    "manufacturing",
+    "services",
+    "ngo",
+    "government"
+  ]
+}
+

@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Services\Addy\Actions;
+
+use App\Models\MoneyMovement;
+use App\Models\MoneyAccount;
+use App\Services\Addy\TransactionCategorizer;
+
+class CreateTransactionAction extends BaseAction
+{
+    protected TransactionCategorizer $categorizer;
+
+    public function __construct($organization, $user, array $parameters = [])
+    {
+        parent::__construct($organization, $user, $parameters);
+        $this->categorizer = new TransactionCategorizer();
+    }
+
+    public function validate(): bool
+    {
+        // For preview, we only need amount and flow_type
+        // account_id can be set later or use default
+        return isset($this->parameters['amount']) 
+            && isset($this->parameters['flow_type']);
+    }
+
+    public function preview(): array
+    {
+        $amount = $this->parameters['amount'];
+        $flowType = $this->parameters['flow_type'];
+        [$category, $confidence, $autoCategorized] = $this->resolveCategory();
+        
+        // Get default account if not specified
+        $accountId = $this->parameters['account_id'] ?? $this->getDefaultAccountId();
+        $account = $accountId ? MoneyAccount::find($accountId) : null;
+
+        $preview = [
+            'title' => 'Create Transaction',
+            'description' => "Record a new {$flowType} of \${$amount}",
+            'items' => [
+                [
+                    'type' => ucfirst($flowType),
+                    'amount' => $amount,
+                    'account' => $account->name ?? 'Account not specified',
+                    'category' => $category,
+                    'description' => $this->parameters['description'] ?? '',
+                    'date' => $this->parameters['date'] ?? now()->toDateString(),
+                ]
+            ],
+            'impact' => $amount > 1000 ? 'high' : 'medium',
+            'warnings' => [],
+        ];
+        
+        // Add warning if no account specified
+        if (!$accountId) {
+            $preview['warnings'][] = 'Please specify which account to use, or I will use the default account.';
+        }
+
+        if ($autoCategorized) {
+            $preview['warnings'][] = sprintf(
+                'I categorized this as %s (confidence %d%%). You can override it if needed.',
+                $category,
+                (int) round($confidence * 100)
+            );
+        }
+        
+        // Store the account_id for execution
+        if ($accountId) {
+            $this->parameters['account_id'] = $accountId;
+        }
+
+        return $preview;
+    }
+    
+    protected function getDefaultAccountId()
+    {
+        // Get the first active account for the organization
+        $account = MoneyAccount::where('organization_id', $this->organization->id)
+            ->where('is_active', true)
+            ->first();
+        
+        // If no account exists, create a default one
+        if (!$account) {
+            try {
+                $account = MoneyAccount::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'organization_id' => $this->organization->id,
+                    'name' => 'Default Account',
+                    'type' => 'bank',
+                    'currency' => $this->organization->currency ?? 'ZMW',
+                    'opening_balance' => 0,
+                    'current_balance' => 0,
+                    'is_active' => true,
+                ]);
+                \Log::info('Created default account for organization', ['organization_id' => $this->organization->id, 'account_id' => $account->id]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create default account', [
+                    'error' => $e->getMessage(),
+                    'organization_id' => $this->organization->id,
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw new \Exception('Unable to create a default account. Please create an account manually in the Money section first.');
+            }
+        }
+            
+        return $account?->id;
+    }
+
+    public function execute(): array
+    {
+        // Ensure account_id is set (use default if not provided)
+        if (!isset($this->parameters['account_id']) || empty($this->parameters['account_id'])) {
+            \Log::info('No account_id provided, attempting to get/create default account', [
+                'organization_id' => $this->organization->id,
+                'user_id' => $this->user->id ?? null,
+            ]);
+            $this->parameters['account_id'] = $this->getDefaultAccountId();
+        }
+        
+        if (!$this->parameters['account_id']) {
+            \Log::error('Failed to get or create default account', [
+                'organization_id' => $this->organization->id,
+                'user_id' => $this->user->id ?? null,
+                'parameters' => $this->parameters,
+            ]);
+            throw new \Exception('No account specified and no default account available. Please specify an account.');
+        }
+        
+        \Log::info('Using account for transaction', [
+            'account_id' => $this->parameters['account_id'],
+            'organization_id' => $this->organization->id,
+        ]);
+        
+        [$category] = $this->resolveCategory();
+
+        $transaction = MoneyMovement::create([
+            'organization_id' => $this->organization->id,
+            'from_account_id' => $this->parameters['flow_type'] === 'expense' ? $this->parameters['account_id'] : null,
+            'to_account_id' => $this->parameters['flow_type'] === 'income' ? $this->parameters['account_id'] : null,
+            'flow_type' => $this->parameters['flow_type'],
+            'amount' => $this->parameters['amount'],
+            'category' => $category,
+            'description' => $this->parameters['description'] ?? '',
+            'transaction_date' => $this->parameters['date'] ?? now(),
+            'status' => 'approved',
+            'created_by_id' => $this->user->id,
+        ]);
+
+        // Update account balance
+        $account = MoneyAccount::find($this->parameters['account_id']);
+        if ($account) {
+            if ($this->parameters['flow_type'] === 'income') {
+                $account->increment('current_balance', $this->parameters['amount']);
+            } else {
+                $account->decrement('current_balance', $this->parameters['amount']);
+            }
+        }
+
+        return [
+            'success' => true,
+            'transaction_id' => $transaction->id,
+            'message' => "Transaction created successfully.",
+        ];
+    }
+
+    public function canUndo(): bool
+    {
+        return true;
+    }
+
+    public function undo(array $result): array
+    {
+        $transaction = MoneyMovement::find($result['transaction_id']);
+        
+        if ($transaction) {
+            // Reverse account balance
+            $account = $transaction->flow_type === 'income' 
+                ? $transaction->toAccount 
+                : $transaction->fromAccount;
+                
+            if ($account) {
+                if ($transaction->flow_type === 'income') {
+                    $account->decrement('current_balance', $transaction->amount);
+                } else {
+                    $account->increment('current_balance', $transaction->amount);
+                }
+            }
+
+            $transaction->delete();
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Transaction deleted.',
+        ];
+    }
+
+    protected function resolveCategory(): array
+    {
+        if (!empty($this->parameters['category'])) {
+            return [$this->parameters['category'], 1.0, false];
+        }
+
+        [$category, $confidence] = $this->categorizer->guess(
+            $this->parameters['description'] ?? '',
+            $this->parameters['flow_type'] ?? 'expense'
+        );
+
+        $this->parameters['category'] = $category;
+
+        return [$category, $confidence, true];
+    }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "Tax",
+  "alias": "tax",
+  "description": "Core tax functionality - tax rates are always available in Settings. This module provides the foundation for tax management and optional Digitax integration for ZRA Smart Invoice (Zambia).",
+  "version": "1.0.0",
+  "enabled": true,
+  "always_enabled": true,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "main_route": "/settings/tax",
+  "keywords": [
+    "tax",
+    "tax_rates",
+    "compliance",
+    "zra",
+    "vat",
+    "digitax",
+    "smart-invoice"
+  ],
+  "providers": [
+    "App\\Modules\\Tax\\Providers\\TaxServiceProvider"
+  ],
+  "features": [
+    "tax_configuration",
+    "tax_rates",
+    "compliance_hooks",
+    "digitax_integration"
+  ],
+  "suitable_for": [
+    "all_industries"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "PrintShop",
+  "alias": "print-shop",
+  "description": "Print shop cost calculator for materials, ink, pricing rules, and job management",
+  "version": "1.0.0",
+  "enabled": false,
+  "dependencies": [],
+  "author": "Penda Digital",
+  "main_route": "/print-shop",
+  "keywords": [
+    "print",
+    "printing",
+    "signage",
+    "vinyl",
+    "banner",
+    "calculator",
+    "cost-calculator",
+    "print-jobs",
+    "materials"
+  ],
+  "providers": [
+    "App\\Modules\\PrintShop\\Providers\\PrintShopServiceProvider"
+  ],
+  "features": [
+    "print_calculator",
+    "material_management",
+    "ink_configurations",
+    "pricing_rules",
+    "job_management",
+    "cost_breakdown",
+    "margin_tracking",
+    "material_comparison"
+  ],
+  "suitable_for": [
+    "print-shop",
+    "signage",
+    "advertising",
+    "graphics",
+    "large-format-printing",
+    "vinyl-cutting"
+  ]
+}
+

@@ -1,0 +1,288 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\GoodsAndService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+
+class ProductController extends Controller
+{
+    /**
+     * Get current organization ID
+     */
+    protected function getOrganizationId()
+    {
+        $user = Auth::user();
+        $currentOrgId = session('current_organization_id') ?? $user->current_organization_id;
+        
+        if ($currentOrgId) {
+            return $currentOrgId;
+        }
+        
+        // Fallback to first organization
+        return $user->organizations()->first()?->id;
+    }
+
+    public function index(Request $request)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to access products.');
+        }
+
+        $query = GoodsAndService::where('organization_id', $organizationId);
+
+        // Filters
+        if ($request->has('type') && $request->type !== '') {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->has('category') && $request->category !== '') {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->has('is_active') && $request->is_active !== '') {
+            $query->where('is_active', $request->is_active === 'true');
+        }
+
+        if ($request->has('low_stock') && $request->low_stock === 'true') {
+            $query->where('track_stock', true)
+                  ->whereColumn('current_stock', '<=', 'minimum_stock');
+        }
+
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+
+        // Get unique categories for filter
+        $categories = GoodsAndService::where('organization_id', $organizationId)
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->sort()
+            ->values();
+
+        $products = $query->orderBy('name')->paginate(20);
+        
+        // Add is_low_stock attribute to each product
+        $products->getCollection()->transform(function ($product) {
+            $product->is_low_stock = $product->isLowStock();
+            return $product;
+        });
+
+        return Inertia::render('Products/Index', [
+            'products' => $products,
+            'filters' => $request->only(['type', 'category', 'is_active', 'low_stock', 'search']),
+            'categories' => $categories,
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Products/Create');
+    }
+
+    public function store(Request $request)
+    {
+        // Normalize empty strings to null for numeric fields before validation
+        $data = $request->all();
+        foreach (['cost_price', 'selling_price', 'current_stock', 'minimum_stock'] as $field) {
+            if (isset($data[$field]) && $data[$field] === '') {
+                $data[$field] = null;
+            }
+        }
+        
+        // Normalize boolean fields
+        if (!isset($data['is_active'])) {
+            $data['is_active'] = true;
+        }
+        if (!isset($data['track_stock'])) {
+            $data['track_stock'] = false;
+        }
+        
+        // Replace request data with normalized data
+        $request->merge($data);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:product,service',
+            'description' => 'nullable|string',
+            'sku' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'current_stock' => 'nullable|numeric|min:0',
+            'minimum_stock' => 'nullable|numeric|min:0',
+            'unit' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
+            'track_stock' => 'boolean',
+        ]);
+
+        // Ensure current_stock defaults to 0 if not provided or null
+        if (!isset($validated['current_stock']) || $validated['current_stock'] === null) {
+            $validated['current_stock'] = 0;
+        }
+
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to create products.');
+        }
+
+        $product = GoodsAndService::create([
+            'id' => (string) Str::uuid(),
+            'organization_id' => $organizationId,
+            ...$validated,
+        ]);
+
+        return redirect()->route('products.show', $product->id)->with('message', 'Product created successfully');
+    }
+
+    public function show($id)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to view products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
+            ->with(['stockMovements' => function ($query) {
+                $query->latest()->limit(10);
+            }])
+            ->findOrFail($id);
+
+        return Inertia::render('Products/Show', [
+            'product' => $product,
+        ]);
+    }
+
+    public function edit($id)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to edit products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
+            ->findOrFail($id);
+
+        return Inertia::render('Products/Edit', [
+            'product' => $product,
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to update products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:product,service',
+            'description' => 'nullable|string',
+            'sku' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'current_stock' => 'nullable|numeric|min:0',
+            'minimum_stock' => 'nullable|numeric|min:0',
+            'unit' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
+            'track_stock' => 'boolean',
+        ]);
+
+        // Ensure current_stock is not null if provided (default to 0 if explicitly set to null)
+        if (array_key_exists('current_stock', $validated) && $validated['current_stock'] === null) {
+            $validated['current_stock'] = 0;
+        }
+
+        $product->update($validated);
+
+        return redirect()->route('products.show', $product->id)->with('message', 'Product updated successfully');
+    }
+
+    public function destroy($id)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization to delete products.');
+        }
+
+        $product = GoodsAndService::where('organization_id', $organizationId)
+            ->findOrFail($id);
+
+        // Check if product has been used in sales
+        if ($product->saleItems()->exists()) {
+            return back()->withErrors(['error' => 'Cannot delete product that has been used in sales. Deactivate it instead.']);
+        }
+
+        $product->delete();
+
+        return redirect()->route('products.index')->with('message', 'Product deleted successfully');
+    }
+
+    /**
+     * Quick create product via API (for inline creation in forms)
+     */
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:product,service',
+            'description' => 'nullable|string',
+            'sku' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'current_stock' => 'nullable|numeric|min:0',
+            'minimum_stock' => 'nullable|numeric|min:0',
+            'unit' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:255',
+            'is_active' => 'nullable|boolean',
+            'track_stock' => 'nullable|boolean',
+        ]);
+
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            return response()->json(['error' => 'You must belong to an organization'], 403);
+        }
+
+        $product = GoodsAndService::create([
+            'id' => (string) Str::uuid(),
+            'organization_id' => $organizationId,
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'description' => $validated['description'] ?? null,
+            'sku' => $validated['sku'] ?? null,
+            'barcode' => $validated['barcode'] ?? null,
+            'cost_price' => $validated['cost_price'] ?? null,
+            'selling_price' => $validated['selling_price'] ?? null,
+            'current_stock' => $validated['current_stock'] ?? 0,
+            'minimum_stock' => $validated['minimum_stock'] ?? null,
+            'unit' => $validated['unit'] ?? null,
+            'category' => $validated['category'] ?? null,
+            'is_active' => $validated['is_active'] ?? true,
+            'track_stock' => $validated['track_stock'] ?? false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'product' => $product,
+        ]);
+    }
+}
+
