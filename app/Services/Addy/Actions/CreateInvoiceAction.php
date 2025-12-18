@@ -167,11 +167,14 @@ class CreateInvoiceAction extends BaseAction
                 return $customer;
             }
             
-            // Create new customer
+            // Create new customer with required fields
             return Customer::create([
                 'id' => (string) Str::uuid(),
                 'organization_id' => $this->organization->id,
                 'name' => $customerName,
+                'type' => 'business', // Default type
+                'payment_terms' => 'net_30', // Default payment terms
+                'currency' => $this->organization->currency ?? 'ZMW', // Use org currency or default
                 'status' => 'active',
             ]);
         }

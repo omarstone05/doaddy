@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Customer extends Model
 {
@@ -65,9 +66,27 @@ class Customer extends Model
     {
         parent::boot();
 
+        // Use 'creating' event with higher priority to ensure organization_id is set first
+        // The BelongsToOrganization trait also uses 'creating', so we need to run after it
         static::creating(function ($customer) {
+            // Ensure organization_id is set (BelongsToOrganization trait should set it, but ensure it)
+            if (empty($customer->organization_id) && auth()->check() && auth()->user()->organization_id) {
+                $customer->organization_id = auth()->user()->organization_id;
+            }
+            
+            // Generate customer_code if not set
+            // customer_code must be globally unique (across all organizations)
             if (empty($customer->customer_code)) {
-                $customer->customer_code = self::generateCustomerCode();
+                try {
+                    $customer->customer_code = self::generateCustomerCode();
+                } catch (\Exception $e) {
+                    Log::error('Failed to generate customer code: ' . $e->getMessage(), [
+                        'exception' => $e,
+                        'organization_id' => $customer->organization_id ?? null,
+                    ]);
+                    // Fallback: use UUID-based code
+                    $customer->customer_code = 'CUS' . strtoupper(substr(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()), 0, 9));
+                }
             }
         });
     }
@@ -138,13 +157,63 @@ class Customer extends Model
     }
 
     // Methods
-    public static function generateCustomerCode(): string
+    public static function generateCustomerCode(?string $organizationId = null): string
     {
         $prefix = 'CUS';
-        $lastCustomer = self::latest('id')->first();
-        $number = $lastCustomer ? ((int) substr($lastCustomer->customer_code, 3)) + 1 : 1;
+        $number = 1;
         
-        return $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+        // Use created_at for ordering since we're using UUIDs
+        // NOTE: customer_code is UNIQUE globally (across all organizations), not per-organization
+        try {
+            // Use withoutGlobalScopes to avoid the BelongsToOrganization scope interfering
+            // We need to check globally, not per-organization
+            $lastCustomer = self::withoutGlobalScopes()
+                ->whereNotNull('customer_code')
+                ->where('customer_code', 'like', $prefix . '%')
+                ->latest('created_at')
+                ->first();
+            
+            if ($lastCustomer && !empty($lastCustomer->customer_code)) {
+                // Extract number from customer_code (format: CUS000001)
+                $code = $lastCustomer->customer_code;
+                if (strlen($code) > 3 && is_numeric(substr($code, 3))) {
+                    $number = (int) substr($code, 3) + 1;
+                }
+            }
+        } catch (\Exception $e) {
+            // If query fails, start from 1
+            Log::warning('Failed to generate customer code from existing customers: ' . $e->getMessage());
+            $number = 1;
+        }
+        
+        // Ensure GLOBAL uniqueness (customer_code is unique across all organizations)
+        $maxAttempts = 100;
+        $attempts = 0;
+        $customerCode = $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+        
+        // Check GLOBAL uniqueness without global scopes
+        while (self::withoutGlobalScopes()->where('customer_code', $customerCode)->exists() && $attempts < $maxAttempts) {
+            $number++;
+            $customerCode = $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+            $attempts++;
+        }
+        
+        if ($attempts >= $maxAttempts) {
+            // Fallback: use timestamp-based code if we can't find a unique sequential one
+            $timestamp = date('YmdHis');
+            $random = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+            $customerCode = $prefix . $timestamp . $random;
+            
+            // Double-check this is unique
+            $attempts = 0;
+            while (self::withoutGlobalScopes()->where('customer_code', $customerCode)->exists() && $attempts < 10) {
+                $random = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                $customerCode = $prefix . $timestamp . $random;
+                $attempts++;
+            }
+        }
+        
+        return $customerCode;
     }
 
     public function updateFinancialMetrics(): void

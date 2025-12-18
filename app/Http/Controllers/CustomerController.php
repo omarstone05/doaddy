@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerPersona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,38 +56,93 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'customer_persona_id' => 'nullable|exists:customer_personas,id',
-            'type' => 'required|in:individual,business',
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'website' => 'nullable|url|max:255',
-            'tax_id' => 'nullable|string|max:100',
-            'billing_address' => 'nullable|string',
-            'shipping_address' => 'nullable|string',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'country' => 'nullable|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
-            'credit_limit' => 'nullable|numeric|min:0',
-            'payment_terms' => 'required|in:immediate,net_15,net_30,net_60,net_90,custom',
-            'custom_payment_days' => 'nullable|integer|min:1',
-            'currency' => 'required|string|max:3',
-            'primary_contact_name' => 'nullable|string|max:255',
-            'primary_contact_email' => 'nullable|email|max:255',
-            'primary_contact_phone' => 'nullable|string|max:50',
-            'notes' => 'nullable|string',
-            'tags' => 'nullable|array',
-        ]);
+        try {
+            $validated = $request->validate([
+                'customer_persona_id' => 'nullable|exists:customer_personas,id',
+                'type' => 'required|in:individual,business',
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable|string|max:50',
+                'website' => 'nullable|url|max:255',
+                'tax_id' => 'nullable|string|max:100',
+                'billing_address' => 'nullable|string',
+                'shipping_address' => 'nullable|string',
+                'city' => 'nullable|string|max:100',
+                'state' => 'nullable|string|max:100',
+                'country' => 'nullable|string|max:100',
+                'postal_code' => 'nullable|string|max:20',
+                'credit_limit' => 'nullable|numeric|min:0',
+                'payment_terms' => 'required|in:immediate,net_15,net_30,net_60,net_90,custom',
+                'custom_payment_days' => 'nullable|integer|min:1',
+                'currency' => 'required|string|max:3',
+                'primary_contact_name' => 'nullable|string|max:255',
+                'primary_contact_email' => 'nullable|email|max:255',
+                'primary_contact_phone' => 'nullable|string|max:50',
+                'notes' => 'nullable|string',
+                'tags' => 'nullable|array',
+            ]);
 
-        $customer = Customer::create(array_merge($validated, [
-            'organization_id' => auth()->user()->organization_id,
-            'status' => 'active',
-        ]));
+            $user = auth()->user();
+            if (!$user || !$user->organization_id) {
+                return back()->withErrors([
+                    'error' => 'You must belong to an organization to create customers.',
+                ])->withInput();
+            }
 
-        return redirect()->route('customers.show', $customer)
-            ->with('success', 'Customer created successfully.');
+            $customer = Customer::create(array_merge($validated, [
+                'organization_id' => $user->organization_id,
+                'status' => 'active',
+            ]));
+
+            return redirect()->route('customers.show', $customer)
+                ->with('success', 'Customer created successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $errorMessage = 'Failed to create customer due to a database error.';
+            
+            // Check for specific constraint violations
+            if (str_contains($e->getMessage(), 'customer_code')) {
+                $errorMessage = 'Customer code already exists. Please try again.';
+            } elseif (str_contains($e->getMessage(), 'organization_id')) {
+                $errorMessage = 'Invalid organization. Please ensure you belong to an organization.';
+            } elseif (str_contains($e->getMessage(), 'foreign key')) {
+                $errorMessage = 'Invalid reference. Please check your organization and persona settings.';
+            }
+            
+            // In debug mode, show the actual error
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
+            Log::error('Database error creating customer: ' . $e->getMessage(), [
+                'exception' => $e,
+                'sql' => $e->getSql() ?? null,
+                'bindings' => $e->getBindings() ?? null,
+                'request_data' => $request->except(['password']),
+            ]);
+            
+            return back()->withErrors([
+                'error' => $errorMessage,
+            ])->withInput();
+        } catch (\Exception $e) {
+            $errorMessage = 'Failed to create customer. Please try again.';
+            
+            // In debug mode, show the actual error
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
+            Log::error('Create customer failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['password']),
+            ]);
+            
+            return back()->withErrors([
+                'error' => $errorMessage,
+            ])->withInput();
+        }
     }
 
     public function show(Customer $customer): Response
@@ -206,5 +262,150 @@ class CustomerController extends Controller
 
         return redirect()->route('customers.personas')
             ->with('success', 'Customer persona created successfully.');
+    }
+
+    /**
+     * Quick create customer via API (for modals and quick forms)
+     */
+    public function quickCreate(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable|string|max:50',
+                'company_name' => 'nullable|string|max:255',
+                'address' => 'nullable|string',
+                'tax_id' => 'nullable|string|max:100',
+            ]);
+
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must be authenticated to create customers.',
+                ], 401);
+            }
+
+            $organizationId = $user->organization_id ?? null;
+            
+            if (!$organizationId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must belong to an organization to create customers.',
+                ], 403);
+            }
+
+            // Determine customer type based on company_name
+            $type = !empty($validated['company_name']) ? 'business' : 'individual';
+            
+            // Use company_name as name if provided, otherwise use name
+            $customerName = !empty($validated['company_name']) 
+                ? $validated['company_name'] 
+                : $validated['name'];
+
+            $customer = Customer::create([
+                'organization_id' => $organizationId,
+                'type' => $type,
+                'name' => $customerName,
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'tax_id' => $validated['tax_id'] ?? null,
+                'billing_address' => $validated['address'] ?? null,
+                'payment_terms' => 'net_30', // Default payment terms
+                'currency' => 'ZMW', // Default currency
+                'status' => 'active',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'customer' => $customer->load('persona'),
+                'message' => 'Customer created successfully.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\QueryException $e) {
+            $errorMessage = 'Failed to create customer due to a database error.';
+            
+            // Check for specific constraint violations
+            if (str_contains($e->getMessage(), 'customer_code')) {
+                $errorMessage = 'Customer code already exists. Please try again.';
+            } elseif (str_contains($e->getMessage(), 'organization_id')) {
+                $errorMessage = 'Invalid organization. Please ensure you belong to an organization.';
+            } elseif (str_contains($e->getMessage(), 'foreign key')) {
+                $errorMessage = 'Invalid reference. Please check your organization settings.';
+            }
+            
+            // In debug mode, show the actual error
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
+            Log::error('Database error creating customer (quick): ' . $e->getMessage(), [
+                'exception' => $e,
+                'sql' => $e->getSql() ?? null,
+                'bindings' => $e->getBindings() ?? null,
+                'request_data' => $request->except(['password']),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+            ], 500);
+        } catch (\Exception $e) {
+            $errorMessage = 'Failed to create customer. Please try again.';
+            
+            // In debug mode, show the actual error
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
+            Log::error('Quick create customer failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['password']),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+            ], 500);
+        }
+    }
+
+    /**
+     * Search customers via API
+     */
+    public function search(Request $request)
+    {
+        $query = $request->input('q', '');
+        $user = auth()->user();
+        $organizationId = $user->organization_id ?? null;
+
+        if (!$organizationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must belong to an organization to search customers.',
+            ], 403);
+        }
+
+        $customers = Customer::where('organization_id', $organizationId)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('email', 'like', "%{$query}%")
+                  ->orWhere('phone', 'like', "%{$query}%")
+                  ->orWhere('customer_code', 'like', "%{$query}%");
+            })
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'customers' => $customers,
+        ]);
     }
 }
