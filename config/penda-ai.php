@@ -6,3 +6,5 @@ return [
     'timeout' => env('PENDA_AI_TIMEOUT', 60),
 ];
 
+
+
