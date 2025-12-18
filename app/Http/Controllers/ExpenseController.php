@@ -50,7 +50,8 @@ class ExpenseController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $query = MoneyMovement::where('organization_id', $organizationId)
@@ -116,7 +117,8 @@ class ExpenseController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $accounts = MoneyAccount::where('organization_id', $organizationId)
@@ -246,7 +248,8 @@ class ExpenseController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $expense = MoneyMovement::where('organization_id', $organizationId)
@@ -266,7 +269,8 @@ class ExpenseController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $expense = MoneyMovement::where('organization_id', $organizationId)

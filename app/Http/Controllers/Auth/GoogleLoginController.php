@@ -79,21 +79,10 @@ class GoogleLoginController extends Controller
                 $user->update(['organization_id' => $currentOrgId]);
             }
 
-            // If new user and no organization, redirect to onboarding
+            // If new user and no organization, redirect to Penda Cloud onboarding
             if ($isNewUser && !$currentOrgId) {
-                // Send welcome email for new Google users
-                try {
-                    // Create a temporary organization for welcome email (will be created in onboarding)
-                    // Or send welcome without organization
-                    $emailService = app(\App\Services\Admin\EmailService::class);
-                    // We'll send welcome email after organization is created in onboarding
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to send welcome email for Google user', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-                return redirect()->route('onboarding');
+                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+                return redirect($pendaCloudUrl . '/onboarding/step-1');
             }
 
             // Redirect super admins to admin dashboard
@@ -101,9 +90,10 @@ class GoogleLoginController extends Controller
                 return redirect()->intended('/admin/dashboard');
             }
 
-            // If user has no organization, redirect to onboarding
+            // If user has no organization, redirect to Penda Cloud onboarding
             if (!$currentOrgId) {
-                return redirect()->route('onboarding');
+                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+                return redirect($pendaCloudUrl . '/onboarding/step-1');
             }
 
             return redirect()->intended('/dashboard');

@@ -51,7 +51,8 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $query = Asset::where('organization_id', $organizationId)
@@ -104,7 +105,8 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $users = User::whereHas('organizations', function ($q) use ($organizationId) {
@@ -196,7 +198,8 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $asset = Asset::where('organization_id', $organizationId)
@@ -215,7 +218,8 @@ class AssetController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $asset = Asset::where('organization_id', $organizationId)->findOrFail($id);

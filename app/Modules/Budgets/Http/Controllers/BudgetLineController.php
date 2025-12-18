@@ -51,7 +51,8 @@ class BudgetLineController extends \App\Http\Controllers\Controller
 
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $response = $this->budgetClient->listBudgets($request->user(), ['per_page' => 100]);
@@ -70,7 +71,8 @@ class BudgetLineController extends \App\Http\Controllers\Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         return Inertia::render('Budgets/Create');
@@ -115,7 +117,8 @@ class BudgetLineController extends \App\Http\Controllers\Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         $response = $this->budgetClient->getBudget($request->user(), $id);

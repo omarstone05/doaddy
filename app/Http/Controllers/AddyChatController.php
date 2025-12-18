@@ -315,55 +315,19 @@ class AddyChatController extends Controller
                 throw new \Exception('Organization name cannot be empty.');
             }
 
-            // Generate unique slug
-            $baseSlug = Str::slug($organizationName);
-            if (empty($baseSlug)) {
-                // If slug is empty after slugging, use a fallback
-                $baseSlug = 'organization-' . time();
-            }
-            $slug = $baseSlug;
-            $counter = 1;
+            // Organization creation is now handled by Penda Cloud
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
             
-            while (Organization::where('slug', $slug)->exists()) {
-                $slug = $baseSlug . '-' . $counter;
-                $counter++;
-            }
-
-            // Create organization
-            $newOrganization = Organization::create([
-                'id' => (string) Str::uuid(),
-                'name' => trim($organizationName),
-                'slug' => $slug,
-                'tone_preference' => 'professional',
-                'currency' => 'ZMW',
-                'timezone' => 'Africa/Lusaka',
-            ]);
-
-            // Create default dashboard cards
-            $this->createDefaultDashboardCards($newOrganization->id);
-
-            // Add user to organization via pivot table
-            $user->organizations()->attach($newOrganization->id, [
-                'role' => 'owner',
-                'is_active' => true,
-                'joined_at' => now(),
-            ]);
-
-            // Switch to new organization
-            session(['current_organization_id' => $newOrganization->id]);
-            $user->update(['organization_id' => $newOrganization->id]);
-
-            // Save assistant response (use old org for this message since it was sent in that context)
+            // Save assistant response
             $assistantMessage = AddyChatMessage::create([
-                'organization_id' => $currentOrgId ?? $newOrganization->id,
+                'organization_id' => $currentOrgId,
                 'user_id' => $user->id,
                 'role' => 'assistant',
-                'content' => "Great! I've created the organization '{$organizationName}' and added you as the owner. Let's set it up!",
+                'content' => "I'll help you create the organization '{$organizationName}'. Let me redirect you to Penda Cloud to complete the setup!",
                 'metadata' => [
                     'intent' => $intent,
-                    'organization_created' => true,
-                    'new_organization_id' => $newOrganization->id,
-                    'redirect_to_onboarding' => true,
+                    'organization_name' => $organizationName,
+                    'redirect_to_penda_onboarding' => true,
                 ],
             ]);
 
@@ -371,8 +335,9 @@ class AddyChatController extends Controller
                 'message' => $assistantMessage->load('user'),
                 'quick_actions' => [],
                 'action' => null,
-                'redirect' => '/onboarding',
-                'organization_created' => true,
+                'redirect' => $pendaCloudUrl . '/onboarding/step-1',
+                'organization_created' => false,
+                'message_text' => 'Please create your organization through Penda Cloud onboarding.',
             ]);
 
         } catch (\Exception $e) {

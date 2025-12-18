@@ -91,15 +91,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/organizations', [\App\Http\Controllers\OrganizationSwitchController::class, 'index'])->name('organizations.index');
     Route::post('/api/organizations/create', [\App\Http\Controllers\OrganizationSwitchController::class, 'create'])->name('organizations.create');
     
-    // Onboarding
-    Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'index'])->name('onboarding');
-    Route::post('/onboarding/complete', [\App\Http\Controllers\OnboardingController::class, 'complete'])->name('onboarding.complete');
+    // Onboarding is now handled by Penda Cloud
+    // Redirect any onboarding requests to Penda Cloud
+    Route::get('/onboarding', function () {
+        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+        return redirect($pendaCloudUrl . '/onboarding/step-1');
+    })->name('onboarding');
     
-    // Onboarding API
     Route::prefix('api/onboarding')->group(function () {
-        Route::post('/classify', [\App\Http\Controllers\OnboardingController::class, 'classify'])->name('onboarding.classify');
-        Route::post('/save-progress', [\App\Http\Controllers\OnboardingController::class, 'saveProgress'])->name('onboarding.save-progress');
-        Route::get('/session', [\App\Http\Controllers\OnboardingController::class, 'getSession'])->name('onboarding.session');
+        Route::any('/{any}', function () {
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
+        })->where('any', '.*');
     });
     
     // Super Admin only routes - Platform management

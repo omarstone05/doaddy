@@ -43,7 +43,8 @@ class CRMDashboardController extends Controller
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
-            return redirect()->route('onboarding');
+            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+            return redirect($pendaCloudUrl . '/onboarding/step-1');
         }
 
         // Stats

@@ -135,9 +135,10 @@ class DashboardController extends Controller
         // Check if user needs onboarding
         if ($user && $user->organization) {
             $org = $user->organization;
-            // If organization is missing key onboarding fields, redirect to onboarding
+            // If organization is missing key onboarding fields, redirect to Penda Cloud onboarding
             if (!$org->industry || !$org->currency || !$org->tone_preference) {
-                return redirect()->route('onboarding');
+                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+                return redirect($pendaCloudUrl . '/onboarding/step-1');
             }
         }
         
@@ -505,7 +506,8 @@ class DashboardController extends Controller
         if ($user && $user->organization) {
             $org = $user->organization;
             if (!$org->industry || !$org->currency || !$org->tone_preference) {
-                return redirect()->route('onboarding');
+                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+                return redirect($pendaCloudUrl . '/onboarding/step-1');
             }
         }
         
