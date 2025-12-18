@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class OrganizationSwitchController extends Controller
 {
@@ -67,32 +66,8 @@ class OrganizationSwitchController extends Controller
         
         return response()->json([
             'success' => false,
-            'message' => 'Organization creation is now handled by Penda Cloud',
+            'message' => 'Organization creation is now handled by Penda Cloud. Please create organizations through Penda Cloud onboarding.',
             'redirect' => $pendaCloudUrl . '/onboarding/step-1',
         ], 302);
-    }
-    
-    /**
-     * Legacy create method - redirects to Penda Cloud
-     */
-    private function legacyCreate(Request $request)
-    {
-        // This method is kept for reference but should not be used
-        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-        return redirect($pendaCloudUrl . '/onboarding/step-1');
-        
-        /* OLD CODE - REMOVED
-        try {
-            \Log::error('Error creating organization', [
-                'user_id' => Auth::id(),
-                'name' => $request->name,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create business. Please try again.',
-            ], 500);
-        }
     }
 }
