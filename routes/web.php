@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardCardController;
 use App\Http\Controllers\MoneyAccountController;
@@ -65,17 +63,14 @@ Route::get('/enterprise', function () {
 Route::post('/lenco/webhook', [\App\Http\Controllers\LencoPaymentController::class, 'webhook'])->name('lenco.webhook');
 Route::post('/lenco/subscription-webhook', [\App\Http\Controllers\LencoSubscriptionWebhookController::class, 'handle'])->name('lenco.subscription-webhook');
 
+// Guest routes (not logged in) - Only Penda Cloud SSO
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->middleware('auth.rate:login');
-    Route::get('/register', [RegisterController::class, 'show'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store'])->middleware('auth.rate:register');
+    // Login page - auto-redirects to Penda Cloud
+    Route::get('/login', function () {
+        return Inertia::render('Auth/Login');
+    })->name('login');
     
-    // Google OAuth Login
-    Route::get('/auth/google/login', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('google.login');
-    Route::get('/auth/google/login/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('google.login.callback');
-    
-    // Penda Cloud SSO
+    // Penda Cloud SSO - Only authentication method
     Route::get('/auth/penda', [\App\Http\Controllers\Auth\PendaSSOController::class, 'redirect'])->name('penda.login');
 });
 
@@ -190,7 +185,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/actions/history', [AddyActionController::class, 'history'])->name('addy.actions.history');
         Route::get('/actions/suggestions', [AddyActionController::class, 'suggestions'])->name('addy.actions.suggestions');
     });
-    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+    Route::post('/logout', [\App\Http\Controllers\Auth\PendaSSOController::class, 'logout'])->name('logout');
     
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

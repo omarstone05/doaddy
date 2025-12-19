@@ -71,7 +71,7 @@ class PendaSSOController extends Controller
         try {
             // Exchange code for access token
             $tokenResponse = Http::asForm()->post(
-                config('services.penda_sso.base_url') . '/oauth/token',
+                config('services.penda_sso.base_url') . '/api/sso/token',
                 [
                     'grant_type' => 'authorization_code',
                     'client_id' => config('services.penda_sso.client_id'),
@@ -100,21 +100,23 @@ class PendaSSOController extends Controller
                 ]);
             }
 
-            // Get user info from Penda Cloud
+            // Get user info from Penda Cloud (includes organizations and subscriptions)
             $userResponse = Http::withToken($accessToken)->get(
-                config('services.penda_sso.base_url') . '/api/user'
+                config('services.penda_sso.base_url') . '/api/sso/user'
             );
 
             if (!$userResponse->successful()) {
                 Log::error('Penda SSO: Failed to get user info', [
                     'status' => $userResponse->status(),
+                    'body' => $userResponse->body(),
                 ]);
                 return redirect('/login')->withErrors([
                     'sso' => 'Failed to retrieve user information.',
                 ]);
             }
 
-            $pendaUser = $userResponse->json();
+            $userData = $userResponse->json();
+            $pendaUser = $userData;
 
             // Find or create local user
             $user = $this->findOrCreateUser($pendaUser, $tokens);
@@ -208,14 +210,20 @@ class PendaSSOController extends Controller
             'name' => $pendaUser['name'] ?? $email,
             'email' => $email,
             'avatar' => $pendaUser['avatar'] ?? null,
-            'penda_access_token' => $tokens['access_token'] ?? null,
-            'penda_refresh_token' => $tokens['refresh_token'] ?? null,
-            'penda_token_expires_at' => isset($tokens['expires_in'])
-                ? now()->addSeconds($tokens['expires_in'])
-                : null,
             'last_login_ip' => request()->ip(),
             'last_active_at' => now(),
         ];
+
+        // Store tokens in session instead of user model
+        if (isset($tokens['access_token'])) {
+            session(['penda_access_token' => $tokens['access_token']]);
+        }
+        if (isset($tokens['refresh_token'])) {
+            session(['penda_refresh_token' => $tokens['refresh_token']]);
+        }
+        if (isset($tokens['expires_in'])) {
+            session(['penda_token_expires_at' => now()->addSeconds($tokens['expires_in'])->timestamp]);
+        }
 
         if ($user) {
             // Update existing user
@@ -235,7 +243,7 @@ class PendaSSOController extends Controller
     }
 
     /**
-     * Logout and optionally redirect to Penda Cloud logout.
+     * Logout and redirect to Penda Cloud logout.
      */
     public function logout(Request $request)
     {
@@ -245,17 +253,26 @@ class PendaSSOController extends Controller
             SecurityEvent::logLogout($user, $request);
         }
 
+        // Revoke token in Penda Cloud if we have one
+        $token = session('penda_access_token');
+        if ($token) {
+            try {
+                Http::withToken($token)
+                    ->post(config('services.penda_sso.base_url') . '/api/sso/logout');
+            } catch (\Exception $e) {
+                Log::warning('Penda SSO: Failed to revoke token on logout', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Optionally redirect to Penda Cloud logout
-        if (config('services.penda_sso.logout_redirect', false)) {
-            $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-            return redirect("{$pendaUrl}/logout?redirect=" . urlencode(url('/login')));
-        }
-
-        return redirect('/login');
+        // Always redirect to Penda Cloud logout
+        $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+        return redirect("{$pendaUrl}/logout?redirect=" . urlencode(url('/login')));
     }
 }
 
