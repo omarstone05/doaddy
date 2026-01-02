@@ -117,9 +117,10 @@ class PendaSSOController extends Controller
 
             $userData = $userResponse->json();
             $pendaUser = $userData;
+            $pendaOrganizations = $userData['organizations'] ?? [];
 
             // Find or create local user
-            $user = $this->findOrCreateUser($pendaUser, $tokens);
+            $user = $this->findOrCreateUser($pendaUser, $tokens, $pendaOrganizations);
 
             if (!$user) {
                 return redirect('/login')->withErrors([
@@ -139,6 +140,9 @@ class PendaSSOController extends Controller
                 ]);
             }
 
+            // Sync organizations from Penda Cloud
+            $this->syncOrganizations($user, $pendaOrganizations, $accessToken);
+
             // Log the user in
             Auth::login($user, true);
             $request->session()->regenerate();
@@ -156,12 +160,14 @@ class PendaSSOController extends Controller
                 Log::warning('Failed to track SSO login metric', ['error' => $e->getMessage()]);
             }
 
-            // Set current organization
-            $currentOrgId = session('current_organization_id')
+            // Set current organization (use current from Penda Cloud or first one)
+            $currentOrgId = $pendaUser['current_organization']['id'] ?? null
+                ?? session('current_organization_id')
                 ?? $user->organizations()->first()?->id;
 
             if ($currentOrgId) {
                 session(['current_organization_id' => $currentOrgId]);
+                $user->update(['organization_id' => $currentOrgId]);
             }
 
             Log::info('Penda SSO: User logged in successfully', [
@@ -188,9 +194,65 @@ class PendaSSOController extends Controller
     }
 
     /**
+     * Sync user's organizations from Penda Cloud.
+     */
+    protected function syncOrganizations(User $user, array $pendaOrganizations, string $accessToken): void
+    {
+        if (empty($pendaOrganizations)) {
+            return;
+        }
+
+        foreach ($pendaOrganizations as $pendaOrg) {
+            $orgId = $pendaOrg['id'] ?? null;
+            if (!$orgId) {
+                continue;
+            }
+
+            // Find or create organization
+            $organization = \App\Models\Organization::firstOrCreate(
+                ['id' => $orgId],
+                [
+                    'name' => $pendaOrg['name'] ?? 'Organization',
+                    'slug' => \Illuminate\Support\Str::slug($pendaOrg['name'] ?? 'organization'),
+                    'currency' => $pendaOrg['currency'] ?? 'USD',
+                    'timezone' => $pendaOrg['timezone'] ?? 'UTC',
+                    'status' => 'active',
+                ]
+            );
+
+            // Attach user to organization if not already attached
+            if (!$user->belongsToOrganization($orgId)) {
+                $role = $pendaOrg['role'] ?? $pendaOrg['pivot']['role'] ?? 'member';
+                
+                $user->organizations()->attach($orgId, [
+                    'role' => $role,
+                    'is_active' => true,
+                    'joined_at' => now(),
+                ]);
+
+                Log::info('Penda SSO: Attached user to organization', [
+                    'user_id' => $user->id,
+                    'organization_id' => $orgId,
+                    'role' => $role,
+                ]);
+            } else {
+                // Update role if changed
+                $currentRole = $user->getRoleInOrganization($orgId);
+                $newRole = $pendaOrg['role'] ?? $pendaOrg['pivot']['role'] ?? 'member';
+                
+                if ($currentRole !== $newRole) {
+                    $user->organizations()->updateExistingPivot($orgId, [
+                        'role' => $newRole,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Find or create a local user from Penda SSO data.
      */
-    protected function findOrCreateUser(array $pendaUser, array $tokens): ?User
+    protected function findOrCreateUser(array $pendaUser, array $tokens, array $pendaOrganizations = []): ?User
     {
         $pendaAccountId = $pendaUser['penda_account_id'] ?? $pendaUser['id'] ?? null;
         $email = $pendaUser['email'] ?? null;
