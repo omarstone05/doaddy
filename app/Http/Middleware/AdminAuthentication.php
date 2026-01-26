@@ -14,11 +14,13 @@ class AdminAuthentication
             return redirect()->route('login')->with('error', 'Please login to continue');
         }
 
-        if (!auth()->user()->isSuperAdmin()) {
-            abort(403, 'Access denied. Super admin privileges required.');
+        $user = auth()->user();
+        $currentOrgId = session('current_organization_id') ?? $user->organization_id;
+
+        if (!$currentOrgId || !$user->isOwnerOf($currentOrgId)) {
+            abort(403, 'Access denied. Organization owner privileges required.');
         }
 
         return $next($request);
     }
 }
-

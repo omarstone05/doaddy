@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Retail\Models\Sale;
+use App\Models\ActivityLog;
 use App\Models\MoneyMovement;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\GoodsAndService;
+use App\Services\GamificationPublisher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -116,6 +119,8 @@ class ReportController extends Controller
             ->orderBy('date')
             ->get();
 
+        $this->publishReportGenerated('sales', $dateFrom, $dateTo);
+
         return Inertia::render('Reports/Sales', [
             'totalSales' => $totalSales,
             'totalRevenue' => $totalRevenue,
@@ -174,6 +179,8 @@ class ReportController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+
+        $this->publishReportGenerated('revenue', $dateFrom, $dateTo);
 
         return Inertia::render('Reports/Revenue', [
             'totalRevenue' => $salesRevenue + $paymentsRevenue + max(0, $incomeMovements - $paymentsRevenue),
@@ -235,6 +242,8 @@ class ReportController extends Controller
             ->orderBy('date')
             ->get();
 
+        $this->publishReportGenerated('expenses', $dateFrom, $dateTo);
+
         return Inertia::render('Reports/Expenses', [
             'totalExpenses' => $totalExpenses,
             'expensesByCategory' => $expensesByCategory,
@@ -270,6 +279,8 @@ class ReportController extends Controller
         // Profit
         $profit = $revenue - $expenses;
         $profitMargin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
+
+        $this->publishReportGenerated('profit_loss', $dateFrom, $dateTo);
 
         return Inertia::render('Reports/ProfitLoss', [
             'revenue' => $revenue,
@@ -371,6 +382,8 @@ class ReportController extends Controller
             return $bill->due_date && $bill->due_date->between($now, $day90);
         });
         $liabilities90Days = $bills90Days->sum('amount_due');
+
+        $this->publishReportGenerated('liabilities', $dateFrom, $dateTo);
 
         return Inertia::render('Reports/Liabilities', [
             'totalLiabilities' => $totalLiabilities,
@@ -498,6 +511,8 @@ class ReportController extends Controller
         });
         $projected90Days = $invoices90Days->sum('amount_due') + $quotations90Days->sum('total');
 
+        $this->publishReportGenerated('projected_income', $dateFrom, $dateTo);
+
         return Inertia::render('Reports/ProjectedIncome', [
             'totalProjectedIncome' => $totalProjectedIncome,
             'invoiceProjected' => $invoiceProjected,
@@ -537,5 +552,42 @@ class ReportController extends Controller
                 'date_to' => $dateTo,
             ],
         ]);
+    }
+
+    protected function publishReportGenerated(string $reportType, string $dateFrom, string $dateTo): void
+    {
+        try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return;
+            }
+
+            $hasPrevious = ActivityLog::where('user_id', $userId)
+                ->where('action_type', 'report_generated')
+                ->exists();
+
+            ActivityLog::log(
+                'report_generated',
+                "Generated {$reportType} report",
+                null,
+                [
+                    'report_type' => $reportType,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                ]
+            );
+
+            app(GamificationPublisher::class)->publish('report_generated', [
+                'report_type' => $reportType,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'is_first' => !$hasPrevious,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Gamification report_generated event failed', [
+                'report_type' => $reportType,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

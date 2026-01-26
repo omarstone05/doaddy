@@ -132,15 +132,7 @@ class DashboardController extends Controller
         
         $user = Auth::user();
         
-        // Check if user needs onboarding
-        if ($user && $user->organization) {
-            $org = $user->organization;
-            // If organization is missing key onboarding fields, redirect to Penda Cloud onboarding
-            if (!$org->industry || !$org->currency || !$org->tone_preference) {
-                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-                return redirect($pendaCloudUrl . '/onboarding/step-1');
-            }
-        }
+        // Onboarding is now handled in Penda Cloud; do not block dashboard here.
         
         $organizationId = $user->organization_id;
         $timeframe = $request->get('timeframe', 'today');
@@ -502,14 +494,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // Check if user needs onboarding
-        if ($user && $user->organization) {
-            $org = $user->organization;
-            if (!$org->industry || !$org->currency || !$org->tone_preference) {
-                $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-                return redirect($pendaCloudUrl . '/onboarding/step-1');
-            }
-        }
+        // Onboarding is handled in Penda Cloud; allow dashboard access.
         
         $organizationId = $user->organization_id;
         

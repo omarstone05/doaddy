@@ -88,4 +88,37 @@ return [
         'app_id' => 'addy',
     ],
 
+    'penda_cloud' => [
+        'url' => env('PENDA_CLOUD_URL', 'https://penda.cloud'),
+        'api_token' => env('PENDA_CLOUD_API_TOKEN'),
+    ],
+
+    'penda_apps' => [
+        'addy' => [
+            'name' => 'Addy Business',
+            'url' => env('ADDY_URL', 'https://addy.penda.cloud'),
+            'icon' => '/images/apps/addy.svg',
+        ],
+        'sendrr' => [
+            'name' => 'Sendrr',
+            'url' => env('SENDRR_URL', 'https://sendrr.penda.cloud'),
+            'icon' => '/images/apps/sendrr.svg',
+        ],
+        'projjo' => [
+            'name' => 'Projjo',
+            'url' => env('PROJJO_URL', 'https://projjo.penda.cloud'),
+            'icon' => '/images/apps/projjo.svg',
+        ],
+        'herro' => [
+            'name' => 'Herro',
+            'url' => env('HERRO_URL', 'https://herro.penda.cloud'),
+            'icon' => '/images/apps/herro.svg',
+        ],
+        'taxxy' => [
+            'name' => 'Taxxy',
+            'url' => env('TAXXY_URL', 'https://taxxy.penda.cloud'),
+            'icon' => '/images/apps/taxxy.svg',
+        ],
+    ],
+
 ];

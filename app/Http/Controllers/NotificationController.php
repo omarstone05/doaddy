@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\OrganizationRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -104,5 +105,48 @@ class NotificationController extends Controller
 
         return response()->json(['success' => true]);
     }
-}
 
+    /**
+     * Accept an actionable notification (e.g., org invitation)
+     */
+    public function accept(Notification $notification, Request $request)
+    {
+        $user = Auth::user();
+
+        if ($notification->user_id !== $user->id) {
+            abort(403, 'You do not have access to this notification.');
+        }
+
+        // Attach user to the organization if needed
+        if ($notification->organization_id) {
+            $orgId = $notification->organization_id;
+
+            if (!$user->belongsToOrganization($orgId)) {
+                $defaultRole = OrganizationRole::where('slug', 'member')->first();
+
+                $user->organizations()->attach($orgId, [
+                    'role_id' => $defaultRole?->id,
+                    'role' => $defaultRole?->slug ?? 'member',
+                    'is_active' => true,
+                    'joined_at' => now(),
+                ]);
+            }
+
+            session(['current_organization_id' => $orgId]);
+            $user->update(['organization_id' => $orgId]);
+        }
+
+        if (!$notification->is_read) {
+            $notification->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+        }
+
+        $redirectTo = $request->session()->pull('post_login_redirect')
+            ?? $request->session()->get('url.intended')
+            ?? '/dashboard';
+
+        return redirect($redirectTo)->with('message', 'Invitation accepted. You now have access.');
+    }
+}

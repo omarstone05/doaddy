@@ -85,11 +85,6 @@ class GoogleLoginController extends Controller
                 return redirect($pendaCloudUrl . '/onboarding/step-1');
             }
 
-            // Redirect super admins to admin dashboard
-            if ($user->isSuperAdmin()) {
-                return redirect()->intended('/admin/dashboard');
-            }
-
             // If user has no organization, redirect to Penda Cloud onboarding
             if (!$currentOrgId) {
                 $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
@@ -117,4 +112,3 @@ class GoogleLoginController extends Controller
         }
     }
 }
-

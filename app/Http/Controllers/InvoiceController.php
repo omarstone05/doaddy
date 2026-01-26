@@ -7,6 +7,7 @@ use App\Models\InvoiceItem;
 use App\Models\Customer;
 use App\Models\GoodsAndService;
 use App\Models\Quote;
+use App\Services\GamificationPublisher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -215,6 +216,14 @@ class InvoiceController extends Controller
                     \Log::warning('Failed to award XP for invoice', ['error' => $e->getMessage()]);
                 }
             }
+
+            $invoiceCount = Invoice::where('organization_id', $organizationId)->count();
+            app(GamificationPublisher::class)->publish('invoice_sent', [
+                'invoice_number' => $invoice->invoice_number,
+                'amount' => $totalAmount,
+                'is_first' => $invoiceCount === 1,
+                'total_invoices' => $invoiceCount,
+            ]);
 
             return redirect()->route('invoices.show', $invoice->id)->with('message', 'Invoice created successfully');
         } catch (\Exception $e) {

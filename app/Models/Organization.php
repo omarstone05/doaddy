@@ -14,6 +14,7 @@ class Organization extends Model
     use HasFactory, HasUuid;
 
     protected $fillable = [
+        'uuid',
         'name',
         'slug',
         'business_type',
@@ -172,4 +173,3 @@ class Organization extends Model
             ->first();
     }
 }
-

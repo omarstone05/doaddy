@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityEvent;
 use App\Models\User;
+use App\Services\GamificationPublisher;
 use App\Services\UserMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -90,12 +91,12 @@ class LoginController extends Controller
                 // Update organization_id for backward compatibility
                 $user->update(['organization_id' => $currentOrgId]);
             }
+
+            app(GamificationPublisher::class)->publish('user_login', [
+                'organization_id' => $currentOrgId,
+            ]);
             
             // Redirect super admins to admin dashboard
-            if ($user->isSuperAdmin()) {
-                return redirect()->intended('/admin/dashboard');
-            }
-            
             return redirect()->intended('/dashboard');
         }
 

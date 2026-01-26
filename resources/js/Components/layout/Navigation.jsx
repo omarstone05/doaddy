@@ -17,7 +17,7 @@ const baseNavItems = [
 ];
 
 export function Navigation() {
-  const { auth, url, unreadNotificationCount: initialUnreadCount } = usePage().props;
+  const { auth, url, unreadNotificationCount: initialUnreadCount, pendaOnboardingUrl } = usePage().props;
   // Inertia's url prop is the path without leading slash (e.g., "dashboard" not "/dashboard")
   // Fallback to window.location.pathname which includes leading slash
   const pathFromInertia = url || '';
@@ -277,26 +277,10 @@ export function Navigation() {
   };
 
   const handleCreateBusiness = async () => {
-    if (!newBusinessName.trim() || isCreatingBusiness) return;
-
-    setIsCreatingBusiness(true);
-    try {
-      const response = await axios.post('/api/organizations/create', {
-        name: newBusinessName.trim(),
-      });
-
-      if (response.data.success) {
-        // Reload the page to refresh organization list
-        window.location.reload();
-      } else {
-        alert(response.data.message || 'Failed to create business');
-      }
-    } catch (error) {
-      console.error('Error creating business:', error);
-      alert(error.response?.data?.message || 'Failed to create business. Please try again.');
-    } finally {
-      setIsCreatingBusiness(false);
-    }
+    // Creation is centralized in Penda Cloud; open onboarding directly
+    window.open(pendaOnboardingUrl, '_blank', 'noopener,noreferrer');
+    setShowNewBusinessModal(false);
+    setNewBusinessName('');
   };
 
   const handleMarkAsRead = async (id) => {
@@ -646,6 +630,20 @@ export function Navigation() {
                                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                         {notification.message}
                                       </p>
+                                      {notification.action_url && (
+                                        <div className="mt-2">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              router.visit(notification.action_url);
+                                              setShowNotifications(false);
+                                            }}
+                                            className="text-xs font-semibold text-teal-700 hover:text-teal-800"
+                                          >
+                                            {notification.type === 'invitation' ? 'Accept invitation' : 'Open'}
+                                          </button>
+                                        </div>
+                                      )}
                                       <p className="text-xs text-gray-400 mt-2">
                                         {notification.created_at}
                                       </p>
@@ -697,7 +695,7 @@ export function Navigation() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setShowNewBusinessModal(true);
+                            handleCreateBusiness();
                           }}
                           className="opacity-0 group-hover/org:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-teal-600"
                           title="Add new business"
@@ -742,6 +740,16 @@ export function Navigation() {
                         </div>
                       </div>
                     )}
+
+                    <a
+                      href={pendaOnboardingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-teal-700 hover:bg-teal-50 transition-colors font-semibold border-b border-gray-200"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Organization (Penda Cloud)
+                    </a>
 
                     <Link
                       href="/support/tickets"

@@ -451,8 +451,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/api/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::get('/notifications/{notification}/accept', [NotificationController::class, 'accept'])->name('notifications.accept');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+
+    // Organization chooser after SSO
+    Route::get('/auth/choose-organization', [\App\Http\Controllers\Auth\PendaSSOController::class, 'chooseOrganization'])->name('auth.choose-organization');
+    Route::post('/auth/choose-organization', [\App\Http\Controllers\Auth\PendaSSOController::class, 'storeOrganizationChoice'])->name('auth.choose-organization.store');
     
     // Commission Rules
     Route::resource('commissions/rules', CommissionRuleController::class)->names([

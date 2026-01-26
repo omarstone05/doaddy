@@ -31,12 +31,14 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
         email: teamMember.email || '',
         password: '',
         action: 'invite', // 'invite' or 'set_password'
+        role_id: '',
     });
     
-    const permissionsForm = useForm({
-        role_id: userRole?.id || '',
-    });
+const permissionsForm = useForm({
+    role_id: userRole?.id || '',
+});
 
+const roleOptions = organizationRoles || [];
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-ZM', {
             style: 'currency',
@@ -386,6 +388,25 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
                                         <p className="mt-1 text-xs text-gray-500">
                                             Email address is required for system access
                                         </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Role for this user
+                                        </label>
+                                        <select
+                                            value={accessSystemForm.data.role_id}
+                                            onChange={(e) => accessSystemForm.setData('role_id', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                        >
+                                            <option value="">Member (default)</option>
+                                            {roleOptions.map((role) => (
+                                                <option key={role.id} value={role.id}>{role.name}</option>
+                                            ))}
+                                        </select>
+                                        {accessSystemForm.errors.role_id && (
+                                            <p className="mt-1 text-sm text-red-600">{accessSystemForm.errors.role_id}</p>
+                                        )}
                                     </div>
 
                                     <div>
@@ -980,4 +1001,3 @@ export default function TeamShow({ teamMember, organizationRoles, userRole }) {
         </SectionLayout>
     );
 }
-

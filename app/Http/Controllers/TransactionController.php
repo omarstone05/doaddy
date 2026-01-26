@@ -8,10 +8,12 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Attachment;
+use App\Services\GamificationPublisher;
 use App\Services\FileManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -581,6 +583,7 @@ class TransactionController extends Controller
 
         $transaction = MoneyMovement::where('organization_id', $organizationId)
             ->findOrFail($id);
+        $wasVerified = (bool) $transaction->is_verified;
 
         $invoice = Invoice::where('organization_id', $organizationId)
             ->findOrFail($validated['invoice_id']);
@@ -637,6 +640,10 @@ class TransactionController extends Controller
 
             DB::commit();
 
+            if (!$wasVerified && $transaction->is_verified) {
+                $this->publishTransactionReconciled($transaction);
+            }
+
             return response()->json(['success' => true, 'message' => 'Transaction matched to invoice successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -657,6 +664,7 @@ class TransactionController extends Controller
 
         $transaction = MoneyMovement::where('organization_id', $organizationId)
             ->findOrFail($id);
+        $wasVerified = (bool) $transaction->is_verified;
 
         DB::beginTransaction();
         try {
@@ -668,6 +676,10 @@ class TransactionController extends Controller
 
             DB::commit();
 
+            if (!$wasVerified && $transaction->is_verified) {
+                $this->publishTransactionReconciled($transaction);
+            }
+
             return response()->json(['success' => true, 'message' => 'Transaction marked as verified']);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -676,6 +688,27 @@ class TransactionController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json(['success' => false, 'message' => 'Failed to mark transaction as verified'], 500);
+        }
+    }
+
+    protected function publishTransactionReconciled(MoneyMovement $transaction): void
+    {
+        try {
+            $userId = Auth::id();
+            $totalReconciled = MoneyMovement::where('is_verified', true)
+                ->where('verified_by_id', $userId)
+                ->count();
+
+            app(GamificationPublisher::class)->publish('transaction_reconciled', [
+                'transaction_id' => $transaction->id,
+                'transaction_amount' => $transaction->amount,
+                'total_reconciled' => $totalReconciled,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Gamification transaction_reconciled event failed', [
+                'transaction_id' => $transaction->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

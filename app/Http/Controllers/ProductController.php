@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\GoodsAndService;
+use App\Services\GamificationPublisher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -143,6 +145,8 @@ class ProductController extends Controller
             ...$validated,
         ]);
 
+        $this->publishInventoryTracked($organizationId, $product->id);
+
         return redirect()->route('products.show', $product->id)->with('message', 'Product created successfully');
     }
 
@@ -279,10 +283,30 @@ class ProductController extends Controller
             'track_stock' => $validated['track_stock'] ?? false,
         ]);
 
+        $this->publishInventoryTracked($organizationId, $product->id);
+
         return response()->json([
             'success' => true,
             'product' => $product,
         ]);
     }
-}
 
+    protected function publishInventoryTracked(string $organizationId, string $productId): void
+    {
+        try {
+            $totalItems = GoodsAndService::where('organization_id', $organizationId)
+                ->where('type', 'product')
+                ->count();
+
+            app(GamificationPublisher::class)->publish('inventory_updated', [
+                'item_id' => $productId,
+                'total_items' => $totalItems,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Gamification inventory_updated event failed', [
+                'product_id' => $productId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+}

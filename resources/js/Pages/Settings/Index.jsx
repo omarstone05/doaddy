@@ -1933,23 +1933,25 @@ export default function SettingsIndex({
                     </div>
                 )}
 
-                {/* Penda Cloud Notice */}
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                            <p className="text-sm text-blue-900 font-medium mb-1">
-                                Organization settings moved to Penda Cloud
-                            </p>
-                            <p className="text-sm text-blue-700">
-                                Organization profile, team management, security settings, and Google Drive integration are now managed in{' '}
-                                <a href="https://penda.cloud/dashboard" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900">
-                                    Penda Cloud
-                                </a>.
-                            </p>
+                {/* Penda Cloud Notice (owners only) */}
+                {auth?.user?.organization?.name && auth?.user?.organization?.role === 'owner' && (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-start gap-3">
+                            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm text-blue-900 font-medium mb-1">
+                                    Organization settings moved to Penda Cloud
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                    Organization profile, team management, security settings, and Google Drive integration are now managed in{' '}
+                                    <a href="https://penda.cloud/dashboard" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900">
+                                        Penda Cloud
+                                    </a>.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="flex gap-8">
                     {/* Sidebar Navigation */}

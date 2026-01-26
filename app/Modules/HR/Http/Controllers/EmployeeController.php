@@ -4,6 +4,7 @@ namespace App\Modules\HR\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\Notification;
 use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -189,6 +190,18 @@ class EmployeeController extends Controller
                         organization: $organization,
                         user: $existingUser
                     );
+
+                    // Drop an in-app notification for immediate acceptance
+                    $notification = Notification::createForUser(
+                        $existingUser->id,
+                        $organization->id,
+                        'invitation',
+                        "You're invited to {$organization->name}",
+                        'Accept to join this organization instantly.'
+                    );
+                    $notification->update([
+                        'action_url' => route('notifications.accept', $notification->id),
+                    ]);
                 } else {
                     $tempUser = new User([
                         'name' => trim("{$validated['first_name']} {$validated['last_name']}"),
@@ -706,4 +719,3 @@ class EmployeeController extends Controller
         return back()->with('message', $message);
     }
 }
-

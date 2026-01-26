@@ -149,13 +149,15 @@ export default function NotificationsIndex({ notifications, unreadCount, filters
                                             <div className="flex items-center gap-4 text-xs text-gray-500">
                                                 <span className="font-medium">{new Date(notification.created_at).toLocaleString()}</span>
                                                 {notification.action_url && (
-                                                    <Link 
-                                                        href={notification.action_url} 
-                                                        className="flex items-center gap-1 text-teal-600 hover:text-teal-700 font-semibold"
-                                                    >
-                                                        View details
-                                                        <ExternalLink className="h-3 w-3" />
-                                                    </Link>
+                                                    <div className="flex items-center gap-2">
+                                                        <Link 
+                                                            href={notification.action_url} 
+                                                            className="flex items-center gap-1 text-teal-600 hover:text-teal-700 font-semibold"
+                                                        >
+                                                            {notification.type === 'invitation' ? 'Accept invitation' : 'View details'}
+                                                            <ExternalLink className="h-3 w-3" />
+                                                        </Link>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

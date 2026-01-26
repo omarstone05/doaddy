@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Notification;
 use App\Models\TeamMember;
 use App\Models\Department;
 use App\Models\User;
@@ -109,6 +110,18 @@ class TeamMemberController extends Controller
                         organization: $organization,
                         user: $existingUser
                     );
+
+                    // In-app notification with instant accept
+                    $notification = Notification::createForUser(
+                        $existingUser->id,
+                        $organization->id,
+                        'invitation',
+                        "You're invited to {$organization->name}",
+                        'Accept to access this organization right away.'
+                    );
+                    $notification->update([
+                        'action_url' => route('notifications.accept', $notification->id),
+                    ]);
                 } else {
                     // New user, send invitation email
                     $tempUser = new User([
@@ -320,6 +333,7 @@ class TeamMemberController extends Controller
             'email' => 'required|email|max:255',
             'action' => 'required|in:invite,set_password',
             'password' => 'required_if:action,set_password|string|min:8',
+            'role_id' => 'nullable|exists:organization_roles,id',
         ]);
 
         $organizationId = Auth::user()->organization_id;
@@ -332,6 +346,7 @@ class TeamMemberController extends Controller
 
         // Find or create user account
         $user = User::where('email', $request->email)->first();
+        $userWasExisting = (bool) $user;
         
         if (!$user) {
             // Create new user account
@@ -362,17 +377,34 @@ class TeamMemberController extends Controller
         // Link team member to user
         $teamMember->update(['user_id' => $user->id]);
 
+        // Determine role for attachment (owner can choose)
+        $role = null;
+        $roleModel = null;
+        if ($request->filled('role_id')) {
+            $roleModel = \App\Models\OrganizationRole::find($request->role_id);
+            $role = $roleModel?->slug;
+        }
+        if (!$role) {
+            $roleModel = \App\Models\OrganizationRole::where('slug', 'member')->first();
+            $role = $roleModel?->slug ?? 'member';
+        }
+
         // Ensure user belongs to organization
         if (!$user->belongsToOrganization($organizationId)) {
-            // Get default role (Member) if no role specified
-            $defaultRole = \App\Models\OrganizationRole::where('slug', 'member')->first();
-            
             $user->organizations()->attach($organizationId, [
-                'role_id' => $defaultRole?->id,
-                'role' => $defaultRole?->slug ?? 'member',
+                'role_id' => $roleModel?->id,
+                'role' => $role,
                 'is_active' => true,
                 'joined_at' => now(),
             ]);
+        } else {
+            // Update role if specified
+            if ($request->filled('role_id')) {
+                $user->organizations()->updateExistingPivot($organizationId, [
+                    'role_id' => $roleModel?->id,
+                    'role' => $role,
+                ]);
+            }
         }
 
         // Send invitation email if action is 'invite'
@@ -380,6 +412,20 @@ class TeamMemberController extends Controller
             try {
                 $emailService = app(\App\Services\Admin\EmailService::class);
                 $emailService->sendTeamMemberInvitation($user, $organization, Auth::user()->name);
+
+                // If the user already had an account, drop an in-app notification they can accept instantly
+                if ($userWasExisting) {
+                    $notification = Notification::createForUser(
+                        $user->id,
+                        $organization->id,
+                        'invitation',
+                        "You're invited to {$organization->name}",
+                        'Accept to access this organization right away.'
+                    );
+                    $notification->update([
+                        'action_url' => route('notifications.accept', $notification->id),
+                    ]);
+                }
             } catch (\Exception $e) {
                 \Log::error('Failed to send invitation email', [
                     'user_id' => $user->id,
@@ -432,4 +478,3 @@ class TeamMemberController extends Controller
         return back()->with('message', 'User role updated successfully');
     }
 }
-
