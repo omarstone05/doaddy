@@ -140,6 +140,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\Admin\AdminTicketController::class, 'updateStatus'])->name('tickets.update-status');
         Route::post('/tickets/{ticket}/messages', [\App\Http\Controllers\Admin\AdminTicketController::class, 'addMessage'])->name('tickets.add-message');
         
+        // Integration Settings (Digitax, etc.)
+        Route::prefix('integrations')->name('integrations.')->group(function () {
+            Route::get('/digitax', [\App\Http\Controllers\Admin\AdminIntegrationController::class, 'digitax'])->name('digitax');
+        });
+        
         // Communication
         Route::prefix('communication')->name('communication.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\AdminCommunicationController::class, 'index'])->name('index');
