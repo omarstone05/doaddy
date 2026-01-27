@@ -13,6 +13,7 @@ export default function DigitaxSettings() {
   const [formData, setFormData] = useState({
     serialNumber: '',
     tpin: '',
+    digitaxApiKey: '',
     branchId: '',
     environment: 'sandbox'
   });
@@ -58,7 +59,7 @@ export default function DigitaxSettings() {
     setError(null);
     setSuccess(null);
 
-    if (!formData.serialNumber || !formData.tpin || !formData.branchId) {
+    if (!formData.serialNumber || !formData.tpin || !formData.digitaxApiKey || !formData.branchId) {
       setError('All fields are required');
       return;
     }
@@ -70,6 +71,7 @@ export default function DigitaxSettings() {
       const payload = {
         api_key: formData.serialNumber,
         api_secret: formData.tpin,
+        digitax_api_key: formData.digitaxApiKey,
         environment: formData.environment
       };
 
@@ -80,6 +82,7 @@ export default function DigitaxSettings() {
       setFormData({
         serialNumber: '',
         tpin: '',
+        digitaxApiKey: '',
         branchId: '',
         environment: 'sandbox'
       });
@@ -131,6 +134,7 @@ export default function DigitaxSettings() {
     setFormData({
       serialNumber: credentials.api_key || '',
       tpin: '',
+      digitaxApiKey: '',
       branchId: '',
       environment: credentials.environment || 'sandbox'
     });
@@ -328,6 +332,20 @@ export default function DigitaxSettings() {
                 required
               />
               <small>Your Digitax TPIN (will be encrypted)</small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="digitaxApiKey">Digitax API Key *</label>
+              <input
+                type="password"
+                id="digitaxApiKey"
+                name="digitaxApiKey"
+                value={formData.digitaxApiKey}
+                onChange={handleInputChange}
+                placeholder="e.g., api_key_KC4gxhqWqcYlgdpnJdVBoyE34fjAChOn"
+                required
+              />
+              <small>Your unique Digitax API Key (will be encrypted)</small>
             </div>
 
             <div className="form-group">

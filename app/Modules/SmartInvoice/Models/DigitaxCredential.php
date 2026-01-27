@@ -11,8 +11,9 @@ class DigitaxCredential extends Model
 
     protected $fillable = [
         'organization_id',
-        'api_key',
-        'api_secret',
+        'api_key',                  // Serial Number (e.g., NAMI26012180421379KB7DAE)
+        'api_secret',               // TPIN
+        'digitax_api_key',          // Digitax API Key (e.g., api_key_KC4gxhqWqcYlgdpnJdVBoyE34fjAChOn)
         'environment',
         'is_active',
         'last_tested_at',
@@ -21,7 +22,8 @@ class DigitaxCredential extends Model
     ];
 
     protected $hidden = [
-        'api_secret', // Never expose secret in API responses
+        'api_secret',               // Never expose secret in API responses
+        'digitax_api_key',          // Never expose Digitax API key in API responses
     ];
 
     protected $casts = [

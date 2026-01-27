@@ -36,8 +36,9 @@ class DigitaxCredentialController extends Controller
 
         // Validate input
         $validated = $request->validate([
-            'api_key' => 'required|string|min:10',
-            'api_secret' => 'required|string|min:10',
+            'api_key' => 'required|string|min:10',              // Serial Number
+            'api_secret' => 'required|string|min:10',           // TPIN
+            'digitax_api_key' => 'required|string|min:10',      // Digitax API Key
             'environment' => 'required|in:sandbox,production',
         ]);
 
@@ -49,7 +50,7 @@ class DigitaxCredentialController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Credentials stored. Please test the connection.',
-            'data' => $credential->makeHidden(['api_secret']),
+            'data' => $credential->makeHidden(['api_secret', 'digitax_api_key']),
         ], 201);
     }
 
@@ -64,12 +65,13 @@ class DigitaxCredentialController extends Controller
         $validated = $request->validate([
             'api_key' => 'sometimes|required|string|min:10',
             'api_secret' => 'sometimes|required|string|min:10',
+            'digitax_api_key' => 'sometimes|required|string|min:10',
             'environment' => 'sometimes|required|in:sandbox,production',
             'is_active' => 'sometimes|boolean',
         ]);
 
         // If credentials changed, reset test status
-        if (isset($validated['api_key']) || isset($validated['api_secret'])) {
+        if (isset($validated['api_key']) || isset($validated['api_secret']) || isset($validated['digitax_api_key'])) {
             $validated['is_active'] = false;
             $validated['test_result'] = null;
             $validated['test_error'] = null;

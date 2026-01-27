@@ -19,9 +19,12 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->onDelete('cascade');
             
-            // API Credentials
-            $table->string('api_key')->encrypted();
-            $table->string('api_secret')->encrypted();
+            // API Credentials (from Digitax business settings)
+            $table->string('api_key')->encrypted();           // Serial Number (e.g., NAMI26012180421379KB7DAE)
+            $table->string('api_secret')->encrypted();        // TPIN
+            
+            // Digitax API Key (unique per business, required for API authentication)
+            $table->string('digitax_api_key')->encrypted();   // API Key: api_key_KC4gxhqWqcYlgdpnJdVBoyE34fjAChOn
             
             // Configuration
             $table->enum('environment', ['sandbox', 'production'])->default('sandbox');
