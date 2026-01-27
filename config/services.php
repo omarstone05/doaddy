@@ -71,6 +71,8 @@ return [
     'digitax' => [
         'jwt_secret' => env('DIGITAX_JWT_SECRET'),
         'base_url' => env('DIGITAX_BASE_URL'),
+        // Path prefix for DigiTax Zambia API (zm.docs.digitax.tech). Adjust if your environment uses different paths.
+        'api_path_prefix' => env('DIGITAX_API_PATH_PREFIX', '/api/v1'),
     ],
 
     /*
