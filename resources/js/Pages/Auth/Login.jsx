@@ -2,9 +2,12 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect } from 'react';
 
 export default function Login({ errors }) {
-    // Auto-redirect to Penda Cloud SSO
+    // Build SSO URL with redirect parameter to ensure we return to this app
+    const ssoUrl = `/auth/penda?redirect=${encodeURIComponent('/dashboard')}`;
+
+    // Auto-redirect to Penda Cloud SSO with redirect parameter
     useEffect(() => {
-        router.visit('/auth/penda', { method: 'get' });
+        router.visit(ssoUrl, { method: 'get' });
     }, []);
 
     return (
@@ -58,7 +61,7 @@ export default function Login({ errors }) {
                         {/* Manual Redirect Button (if auto-redirect fails) */}
                         <div className="pt-4">
                             <a
-                                href="/auth/penda"
+                                href={ssoUrl}
                                 className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-[#4e4af9] to-[#56ce85] rounded-xl hover:opacity-90 transition-opacity text-white font-medium shadow-lg"
                             >
                                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">

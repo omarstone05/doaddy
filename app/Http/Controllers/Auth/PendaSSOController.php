@@ -23,6 +23,32 @@ class PendaSSOController extends Controller
         $state = Str::random(40);
         $request->session()->put('penda_sso_state', $state);
 
+        // Store intended URL before OAuth redirect - this is critical for returning to the app
+        // Check for explicit redirect parameter, then referer, then session intended, then default
+        $intendedUrl = $request->input('redirect')
+            ?? $request->session()->get('url.intended')
+            ?? null;
+
+        // If no intended URL, check if referer is from this app (not from login page)
+        if (!$intendedUrl && $request->headers->has('referer')) {
+            $referer = $request->headers->get('referer');
+            $appUrl = config('app.url');
+            // Only use referer if it's from this app and not the login page
+            if (Str::startsWith($referer, $appUrl) && !Str::contains($referer, '/login')) {
+                $intendedUrl = $referer;
+            }
+        }
+
+        // Default to dashboard
+        $intendedUrl = $intendedUrl ?: '/dashboard';
+
+        // Store for after OAuth callback
+        $request->session()->put('sso_intended_url', $intendedUrl);
+
+        Log::info('Penda SSO: Storing intended URL before OAuth redirect', [
+            'intended_url' => $intendedUrl,
+        ]);
+
         $query = http_build_query([
             'client_id' => config('services.penda_sso.client_id'),
             'redirect_uri' => config('services.penda_sso.redirect_uri'),
@@ -183,26 +209,25 @@ class PendaSSOController extends Controller
                 $user->update(['organization_id' => $currentOrgId]);
             }
 
-            // Persist intended redirect for use after org picker
-            $defaultRedirect = '/dashboard';
-            $request->session()->put(
-                'post_login_redirect',
-                $request->session()->get('url.intended', $defaultRedirect)
-            );
+            // Get the intended URL stored before OAuth redirect
+            $intendedUrl = $request->session()->pull('sso_intended_url', '/dashboard');
 
             Log::info('Penda SSO: User logged in successfully', [
                 'user_id' => $user->id,
                 'penda_account_id' => $user->penda_account_id,
+                'intended_url' => $intendedUrl,
             ]);
+
+            // Store for use after org picker if needed
+            $request->session()->put('post_login_redirect', $intendedUrl);
 
             // If user has multiple orgs, let them choose before entering the app
             if ($organizations->count() > 1 && !$request->session()->get('org_picker_completed')) {
                 return redirect()->route('auth.choose-organization');
             }
 
-            $redirectTo = $request->session()->pull('post_login_redirect', $defaultRedirect);
-
-            return redirect()->intended($redirectTo ?? '/dashboard');
+            // Redirect to intended URL (always back to this app)
+            return redirect($intendedUrl);
 
         } catch (\Exception $e) {
             Log::error('Penda SSO: Exception during callback', [

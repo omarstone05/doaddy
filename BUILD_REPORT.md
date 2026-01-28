@@ -437,3 +437,51 @@ The tab-based navigation system has been successfully implemented across all maj
 **Build Status:** ✅ Complete
 **Quality:** ✅ Production Ready
 **Testing:** ✅ Manual Testing Passed
+
+---
+
+## 📧 Mail Service Configuration (January 2026)
+
+### Production Mail Setup
+Addy uses SMTP via the Penda Digital mail server for all outbound emails.
+
+**Configuration (.env):**
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=penda.digital
+MAIL_PORT=465
+MAIL_USERNAME=info@penda.digital
+MAIL_PASSWORD=***
+MAIL_FROM_ADDRESS=info@penda.digital
+MAIL_FROM_NAME="Addy Business"
+MAIL_ENCRYPTION=ssl
+```
+
+### Email Notifications Implemented
+
+1. **Welcome Emails** (`welcome` template)
+   - Sent on user registration
+   - Uses `EmailService::send()`
+
+2. **Team Member Invitations** (`team_invitation` template)
+   - Sent when adding team members to organization
+   - Triggered from `TeamMemberController::store()`
+   - Handles both new users and existing users
+
+3. **Password Reset** (Laravel default)
+   - Uses Laravel's built-in password reset notification
+
+### EmailService
+- Located at `app/Services/Admin/EmailService.php`
+- Provides centralized email sending with logging to `email_logs` table
+- Supports templates via `template_slug` parameter
+- Tracks email status: `pending`, `sent`, `failed`
+
+### Email Logging
+All emails are logged to the `email_logs` table with:
+- Recipient, subject, body
+- Template slug
+- Status and error messages
+- Timestamps (created, sent)
+
+**Last Updated:** January 28, 2026
