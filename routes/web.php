@@ -70,6 +70,13 @@ Route::middleware('guest')->group(function () {
         return Inertia::render('Auth/Login');
     })->name('login');
     
+    // Register - redirects to Penda Cloud registration
+    Route::get('/register', function () {
+        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+        $returnUrl = urlencode(config('app.url'));
+        return redirect("{$pendaCloudUrl}/register?return_to={$returnUrl}");
+    })->name('register');
+    
     // Penda Cloud SSO - Only authentication method
     Route::get('/auth/penda', [\App\Http\Controllers\Auth\PendaSSOController::class, 'redirect'])->name('penda.login');
 });
