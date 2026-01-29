@@ -31,6 +31,9 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'organization_id' => \App\Models\Organization::factory(),
             'is_super_admin' => false,
+            'is_active' => true,
+            'penda_account_id' => null,
+            'last_active_at' => null,
         ];
     }
 
@@ -41,6 +44,37 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is deactivated.
+     */
+    public function deactivated(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a super admin.
+     */
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_super_admin' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is SSO-only (random password they don't know).
+     */
+    public function ssoOnly(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => Hash::make(Str::random(32)),
+            'penda_account_id' => 'penda-' . Str::random(8),
         ]);
     }
 }
