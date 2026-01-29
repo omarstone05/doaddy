@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('digitax_credentials', function (Blueprint $table) {
             $table->id();
             
-            // Foreign key to organizations
-            $table->foreignId('organization_id')
+            // Foreign key to organizations (UUID)
+            $table->foreignUuid('organization_id')
                 ->constrained('organizations')
                 ->onDelete('cascade');
             
