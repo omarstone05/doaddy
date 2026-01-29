@@ -111,7 +111,6 @@ class HandleInertiaRequests extends Middleware
             'entitlements' => [
                 'apps' => $request->session()->get('penda_entitled_apps', []),
             ],
-            'appSwitcher' => $this->buildAppSwitcher($request),
             'flash' => [
                 'message' => $request->session()->get('message'),
                 'error' => $request->session()->get('error'),
@@ -119,49 +118,6 @@ class HandleInertiaRequests extends Middleware
             ],
             'unreadNotificationCount' => $unreadNotificationCount,
             'url' => $request->path(),
-        ];
-    }
-
-    protected function buildAppSwitcher(Request $request): array
-    {
-        $apps = config('services.penda_apps', []);
-        $currentCode = config('services.penda_sso.app_id');
-        $currentConfig = $apps[$currentCode] ?? null;
-
-        $entitledApps = $request->session()->get('penda_entitled_apps', []);
-        $isSuperAdmin = (bool) ($request->user()?->is_super_admin ?? false);
-
-        $availableApps = collect($apps)
-            ->filter(function ($app, $code) use ($entitledApps, $isSuperAdmin, $currentCode) {
-                if ($isSuperAdmin) {
-                    return true;
-                }
-                if ($code === $currentCode) {
-                    return true; // always show current app
-                }
-                return in_array($code, $entitledApps, true);
-            })
-            ->map(function ($app, $code) {
-                return [
-                    'code' => $code,
-                    'name' => $app['name'] ?? ucfirst($code),
-                    'url' => $app['url'] ?? '#',
-                    'icon' => $app['icon'] ?? null,
-                ];
-            })
-            ->values()
-            ->all();
-
-        $currentApp = $currentConfig ? [
-            'code' => $currentCode,
-            'name' => $currentConfig['name'] ?? ucfirst($currentCode),
-            'url' => $currentConfig['url'] ?? '#',
-            'icon' => $currentConfig['icon'] ?? null,
-        ] : null;
-
-        return [
-            'currentApp' => $currentApp,
-            'availableApps' => $availableApps,
         ];
     }
 }
