@@ -57,7 +57,17 @@ class PendaSSOController extends Controller
             'state' => $state,
         ]);
 
-        $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+        // Always use Penda Cloud for OAuth - never redirect to Addy's own domain
+        $pendaUrl = rtrim(config('services.penda_sso.base_url', 'https://penda.cloud'), '/');
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+        $pendaHost = parse_url($pendaUrl, PHP_URL_HOST);
+        if ($appHost && $pendaHost && $appHost === $pendaHost) {
+            Log::warning('Penda SSO: base_url matches Addy domain - using fallback penda.cloud', [
+                'base_url' => $pendaUrl,
+                'app_url' => config('app.url'),
+            ]);
+            $pendaUrl = 'https://penda.cloud';
+        }
 
         return redirect("{$pendaUrl}/oauth/authorize?{$query}");
     }
