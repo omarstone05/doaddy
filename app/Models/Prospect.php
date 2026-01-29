@@ -73,7 +73,8 @@ class Prospect extends Model
 
         static::creating(function ($prospect) {
             if (empty($prospect->prospect_code)) {
-                $prospect->prospect_code = self::generateProspectCode();
+                // Pass organization_id to ensure unique codes per organization
+                $prospect->prospect_code = self::generateProspectCode($prospect->organization_id);
             }
             
             // Set currency from organization if not provided
@@ -156,13 +157,54 @@ class Prospect extends Model
     }
 
     // Methods
-    public static function generateProspectCode(): string
+    public static function generateProspectCode(?string $organizationId = null): string
     {
         $prefix = 'PRO';
-        $lastProspect = self::latest('id')->first();
-        $number = $lastProspect ? ((int) substr($lastProspect->prospect_code, 3)) + 1 : 1;
         
-        return $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+        // Filter by organization if provided
+        $query = self::query();
+        if ($organizationId) {
+            $query->where('organization_id', $organizationId);
+        }
+        
+        $lastProspect = $query->latest('id')->first();
+        
+        if ($lastProspect && !empty($lastProspect->prospect_code)) {
+            // Extract number from prospect_code (format: PRO000001)
+            $codePart = substr($lastProspect->prospect_code, 3);
+            if (is_numeric($codePart)) {
+                $number = ((int) $codePart) + 1;
+            } else {
+                $number = 1;
+            }
+        } else {
+            $number = 1;
+        }
+        
+        $code = $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+        
+        // Retry logic to handle race conditions
+        $maxRetries = 10;
+        $retries = 0;
+        while ($retries < $maxRetries) {
+            // Check if code already exists
+            $existsQuery = self::query()->where('prospect_code', $code);
+            if ($organizationId) {
+                $existsQuery->where('organization_id', $organizationId);
+            }
+            
+            if (!$existsQuery->exists()) {
+                return $code;
+            }
+            
+            // Code exists, increment and try again
+            $number++;
+            $code = $prefix . str_pad($number, 6, '0', STR_PAD_LEFT);
+            $retries++;
+        }
+        
+        // Fallback: use timestamp-based code if all retries fail
+        return $prefix . str_pad((int) substr(time(), -6), 6, '0', STR_PAD_LEFT);
     }
 
     public function moveToStage(string $stage): void
