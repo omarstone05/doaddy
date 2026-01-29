@@ -98,7 +98,7 @@ return [
     'penda_apps' => [
         'addy' => [
             'name' => 'Addy Business',
-            'url' => env('ADDY_URL', 'https://addy.penda.cloud'),
+            'url' => env('ADDY_URL', 'https://doaddy.com'),
             'icon' => '/images/apps/addy.svg',
         ],
         'sendrr' => [
