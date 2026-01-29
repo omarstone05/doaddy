@@ -22,7 +22,7 @@ return new class extends Migration
 
         // Add quotation_id and invoice_id to print_jobs table
         // Note: quotations.id is bigint, invoices.id is UUID
-        if (Schema::hasColumn('print_jobs', 'quotation_id') === false) {
+        if (Schema::hasTable('quotations') && Schema::hasColumn('print_jobs', 'quotation_id') === false) {
             Schema::table('print_jobs', function (Blueprint $table) {
                 $table->unsignedBigInteger('quotation_id')->nullable()->after('customer_id');
                 $table->foreign('quotation_id')->references('id')->on('quotations')->nullOnDelete();
@@ -30,7 +30,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasColumn('print_jobs', 'invoice_id') === false) {
+        if (Schema::hasTable('invoices') && Schema::hasColumn('print_jobs', 'invoice_id') === false) {
             Schema::table('print_jobs', function (Blueprint $table) {
                 $table->foreignUuid('invoice_id')->nullable()->after('quotation_id');
                 $table->foreign('invoice_id')->references('id')->on('invoices')->nullOnDelete();
@@ -40,7 +40,7 @@ return new class extends Migration
 
         // Add print_job_id to quotations table (nullable)
         // Note: print_jobs.id is bigint unsigned
-        if (Schema::hasColumn('quotations', 'print_job_id') === false) {
+        if (Schema::hasTable('quotations') && Schema::hasColumn('quotations', 'print_job_id') === false) {
             Schema::table('quotations', function (Blueprint $table) {
                 $table->unsignedBigInteger('print_job_id')->nullable()->after('customer_id');
                 $table->foreign('print_job_id')->references('id')->on('print_jobs')->nullOnDelete();
@@ -50,7 +50,7 @@ return new class extends Migration
 
         // Add print_job_id to invoices table (nullable)
         // Note: print_jobs.id is bigint unsigned
-        if (Schema::hasColumn('invoices', 'print_job_id') === false) {
+        if (Schema::hasTable('invoices') && Schema::hasColumn('invoices', 'print_job_id') === false) {
             Schema::table('invoices', function (Blueprint $table) {
                 $table->unsignedBigInteger('print_job_id')->nullable()->after('customer_id');
                 $table->foreign('print_job_id')->references('id')->on('print_jobs')->nullOnDelete();
