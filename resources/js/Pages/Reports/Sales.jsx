@@ -6,20 +6,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TimePeriodSelector } from '@/Components/ui/TimePeriodSelector';
 import { StatCard } from '@/Components/ui';
 import { exportToPdf } from '@/utils/exportPdf';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ReportsSales({ totalSales, totalRevenue, averageSale, salesByProduct, salesByCustomer, dailySales, period = 'month', filters }) {
     const [currentPeriod, setCurrentPeriod] = useState(period);
     const [isExporting, setIsExporting] = useState(false);
-
-    const formatCurrency = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const formatFullAmount = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const { formatCurrency, formatNumber, symbol } = useCurrency();
 
     const handlePeriodChange = (newPeriod) => {
         setCurrentPeriod(newPeriod);
@@ -155,7 +147,7 @@ export default function ReportsSales({ totalSales, totalRevenue, averageSale, sa
                                             border: '1px solid #e7e5e4',
                                             borderRadius: '12px',
                                         }}
-                                        formatter={(value) => [`K ${value.toLocaleString()}`, 'Revenue']}
+                                        formatter={(value) => [`${symbol} ${value.toLocaleString()}`, 'Revenue']}
                                     />
                                     <Bar dataKey="total_revenue" fill="#14b8a6" radius={[0, 6, 6, 0]} />
                                 </BarChart>
@@ -182,7 +174,7 @@ export default function ReportsSales({ totalSales, totalRevenue, averageSale, sa
                                         <tr key={index}>
                                             <td className="px-6 py-4 text-sm font-semibold text-gray-900">{item.name}</td>
                                             <td className="px-6 py-4 text-sm text-right text-gray-600">{item.total_quantity}</td>
-                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">K {formatFullAmount(item.total_revenue)}</td>
+                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">{symbol} {formatNumber(item.total_revenue)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -206,7 +198,7 @@ export default function ReportsSales({ totalSales, totalRevenue, averageSale, sa
                                         <tr key={index}>
                                             <td className="px-6 py-4 text-sm font-semibold text-gray-900">{item.name}</td>
                                             <td className="px-6 py-4 text-sm text-right text-gray-600">{item.total_sales}</td>
-                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">K {formatFullAmount(item.total_revenue)}</td>
+                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">{symbol} {formatNumber(item.total_revenue)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

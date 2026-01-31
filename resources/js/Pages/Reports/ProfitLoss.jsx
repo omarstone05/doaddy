@@ -5,20 +5,12 @@ import { ArrowLeft, Download, TrendingUp, TrendingDown, DollarSign, Percent, Tar
 import { TimePeriodSelector } from '@/Components/ui/TimePeriodSelector';
 import { StatCard } from '@/Components/ui';
 import { exportToPdf } from '@/utils/exportPdf';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ReportsProfitLoss({ revenue, expenses, profit, profitMargin, period = 'month', filters }) {
     const [currentPeriod, setCurrentPeriod] = useState(period);
     const [isExporting, setIsExporting] = useState(false);
-
-    const formatCurrency = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const formatFullAmount = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const { formatCurrency, formatNumber, symbol } = useCurrency();
 
     const handlePeriodChange = (newPeriod) => {
         setCurrentPeriod(newPeriod);
@@ -122,7 +114,7 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                         <div className="space-y-1">
                             <div className="flex justify-between items-center py-4 px-4 rounded-xl bg-teal-50/50">
                                 <span className="text-gray-700 font-medium">Revenue</span>
-                                <span className="font-bold text-teal-600">K {formatFullAmount(revenue)}</span>
+                                <span className="font-bold text-teal-600">{symbol} {formatNumber(revenue)}</span>
                             </div>
                             <div className="flex justify-between items-center py-4 px-4 rounded-xl hover:bg-gray-50 transition-colors">
                                 <span className="text-gray-600">Cost of Goods Sold</span>
@@ -130,18 +122,18 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                             </div>
                             <div className="flex justify-between items-center py-4 px-4 rounded-xl bg-gray-100/50 border-y-2 border-gray-200">
                                 <span className="font-bold text-gray-900">Gross Profit</span>
-                                <span className="font-black text-gray-900">K {formatFullAmount(revenue)}</span>
+                                <span className="font-black text-gray-900">{symbol} {formatNumber(revenue)}</span>
                             </div>
                             <div className="flex justify-between items-center py-4 px-4 rounded-xl bg-red-50/50">
                                 <span className="text-gray-700 font-medium">Operating Expenses</span>
-                                <span className="font-bold text-red-600">K {formatFullAmount(expenses)}</span>
+                                <span className="font-bold text-red-600">{symbol} {formatNumber(expenses)}</span>
                             </div>
                             <div className={`flex justify-between items-center py-5 px-4 rounded-xl ${isProfit ? 'bg-gradient-to-r from-emerald-100 to-teal-100' : 'bg-gradient-to-r from-red-100 to-rose-100'}`}>
                                 <span className={`font-black text-lg ${isProfit ? 'text-emerald-700' : 'text-red-700'}`}>
                                     {isProfit ? 'Net Profit' : 'Net Loss'}
                                 </span>
                                 <span className={`font-black text-2xl ${isProfit ? 'text-emerald-700' : 'text-red-700'}`}>
-                                    K {formatFullAmount(Math.abs(profit))}
+                                    {symbol} {formatNumber(Math.abs(profit))}
                                 </span>
                             </div>
                         </div>

@@ -6,20 +6,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TimePeriodSelector } from '@/Components/ui/TimePeriodSelector';
 import { StatCard } from '@/Components/ui';
 import { exportToPdf } from '@/utils/exportPdf';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRevenue, otherIncome, revenueBySource, dailyRevenue, period = 'month', filters }) {
     const [currentPeriod, setCurrentPeriod] = useState(period);
     const [isExporting, setIsExporting] = useState(false);
-
-    const formatCurrency = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const formatFullAmount = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const { formatCurrency, formatNumber, symbol } = useCurrency();
 
     const COLORS = ['#14b8a6', '#3b82f6', '#f59e0b', '#8b5cf6'];
 
@@ -137,7 +129,7 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                                             borderRadius: '12px',
                                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                         }}
-                                        formatter={(value) => [`K ${value.toLocaleString()}`, 'Revenue']}
+                                        formatter={(value) => [`${symbol} ${value.toLocaleString()}`, 'Revenue']}
                                     />
                                     <Line type="monotone" dataKey="revenue" stroke="#14b8a6" strokeWidth={2} dot={false} name="Revenue" />
                             </LineChart>
@@ -169,7 +161,7 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                                             border: '1px solid #e7e5e4',
                                             borderRadius: '12px',
                                         }}
-                                        formatter={(value) => [`K ${value.toLocaleString()}`, '']}
+                                        formatter={(value) => [`${symbol} ${value.toLocaleString()}`, '']}
                                     />
                             </PieChart>
                         </ResponsiveContainer>
@@ -200,7 +192,7 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                                                     <span className="text-sm font-semibold text-gray-900">{item.source}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">K {formatFullAmount(item.amount)}</td>
+                                            <td className="px-6 py-4 text-sm text-right font-bold text-teal-600">{symbol} {formatNumber(item.amount)}</td>
                                             <td className="px-6 py-4 text-sm text-right text-gray-600">{percentage}%</td>
                                         </tr>
                                     );
@@ -209,7 +201,7 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                             <tfoot className="bg-gray-50/80 border-t border-gray-200/50">
                                 <tr>
                                     <td className="px-6 py-4 text-sm font-bold text-gray-900">Total</td>
-                                    <td className="px-6 py-4 text-sm text-right font-black text-teal-600">K {formatFullAmount(totalRevenue)}</td>
+                                    <td className="px-6 py-4 text-sm text-right font-black text-teal-600">{symbol} {formatNumber(totalRevenue)}</td>
                                     <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">100%</td>
                                 </tr>
                             </tfoot>

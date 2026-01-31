@@ -6,20 +6,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TimePeriodSelector } from '@/Components/ui/TimePeriodSelector';
 import { StatCard } from '@/Components/ui';
 import { exportToPdf } from '@/utils/exportPdf';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ReportsExpenses({ totalExpenses, expensesByCategory, dailyExpenses, period = 'month', filters }) {
     const [currentPeriod, setCurrentPeriod] = useState(period);
     const [isExporting, setIsExporting] = useState(false);
-
-    const formatCurrency = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const formatFullAmount = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const { formatCurrency, formatNumber, symbol } = useCurrency();
 
     const handlePeriodChange = (newPeriod) => {
         setCurrentPeriod(newPeriod);
@@ -167,7 +159,7 @@ export default function ReportsExpenses({ totalExpenses, expensesByCategory, dai
                                         <tr key={index}>
                                             <td className="px-6 py-4 text-sm font-semibold text-gray-900">{item.category || 'Uncategorized'}</td>
                                             <td className="px-6 py-4 text-sm text-right text-gray-600">{item.count}</td>
-                                            <td className="px-6 py-4 text-sm text-right font-bold text-red-600">K {formatFullAmount(item.total)}</td>
+                                            <td className="px-6 py-4 text-sm text-right font-bold text-red-600">{symbol} {formatNumber(item.total)}</td>
                                             <td className="px-6 py-4 text-sm text-right text-gray-600">{percentage}%</td>
                                         </tr>
                                     );
@@ -179,7 +171,7 @@ export default function ReportsExpenses({ totalExpenses, expensesByCategory, dai
                                     <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                                         {expensesByCategory.reduce((sum, item) => sum + item.count, 0)}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-right font-black text-red-600">K {formatFullAmount(totalExpenses)}</td>
+                                    <td className="px-6 py-4 text-sm text-right font-black text-red-600">{symbol} {formatNumber(totalExpenses)}</td>
                                     <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">100%</td>
                                 </tr>
                             </tfoot>

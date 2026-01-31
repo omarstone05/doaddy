@@ -7,6 +7,7 @@ import DepartmentModal from '@/Components/Departments/DepartmentModal';
 import TaxRateModal from '@/Components/Tax/TaxRateModal';
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { currencies, getCurrenciesByRegion } from '@/utils/currency';
 
 // Icons
 import {
@@ -624,14 +625,16 @@ export default function SettingsIndex({
                             label="Currency"
                             value={orgForm.data.currency}
                             onChange={(e) => orgForm.setData('currency', e.target.value)}
-                                >
-                                    <option value="ZMW">ZMW - Zambian Kwacha</option>
-                                    <option value="USD">USD - US Dollar</option>
-                                    <option value="EUR">EUR - Euro</option>
-                                    <option value="GBP">GBP - British Pound</option>
-                                    <option value="ZAR">ZAR - South African Rand</option>
-                                    <option value="KES">KES - Kenyan Shilling</option>
-                                    <option value="NGN">NGN - Nigerian Naira</option>
+                        >
+                            {Object.entries(getCurrenciesByRegion()).map(([region, regionCurrencies]) => (
+                                <optgroup key={region} label={region}>
+                                    {regionCurrencies.map(c => (
+                                        <option key={c.code} value={c.code}>
+                                            {c.symbol} - {c.code} ({c.name})
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            ))}
                         </FormSelect>
                         <FormSelect
                             label="Timezone"

@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TimePeriodSelector } from '@/Components/ui/TimePeriodSelector';
 import { StatCard } from '@/Components/ui';
 import { exportToPdf } from '@/utils/exportPdf';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ReportsProjectedIncome({ 
     totalProjectedIncome, 
@@ -23,16 +24,7 @@ export default function ReportsProjectedIncome({
 }) {
     const [currentPeriod, setCurrentPeriod] = useState(period);
     const [isExporting, setIsExporting] = useState(false);
-
-    const formatCurrency = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const formatFullAmount = (amount) => {
-        const num = parseFloat(amount) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const { formatCurrency, formatNumber, symbol } = useCurrency();
 
     // Better color palette for pie chart
     const COLORS = [
@@ -294,7 +286,7 @@ export default function ReportsProjectedIncome({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                                            K {formatFullAmount(invoice.amount_due)}
+                                            {symbol} {formatNumber(invoice.amount_due)}
                                         </td>
                                     </tr>
                                 ))}
@@ -335,7 +327,7 @@ export default function ReportsProjectedIncome({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                                            K {formatFullAmount(quotation.total)}
+                                            {symbol} {formatNumber(quotation.total)}
                                         </td>
                                     </tr>
                                 ))}
