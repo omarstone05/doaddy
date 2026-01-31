@@ -1,0 +1,48 @@
+{
+    "name": "Accounting",
+    "alias": "accounting",
+    "description": "Advanced accounting system with chart of accounts, double-entry bookkeeping, journal entries, and financial statements",
+    "version": "1.0.0",
+    "enabled": false,
+    "dependencies": [],
+    "author": "Penda Digital",
+    "main_route": "/accounting/accounts",
+    "keywords": [
+        "accounting",
+        "chart-of-accounts",
+        "double-entry",
+        "journal-entries",
+        "general-ledger",
+        "trial-balance",
+        "balance-sheet",
+        "income-statement",
+        "financial-statements"
+    ],
+    "providers": [
+        "App\\Modules\\Accounting\\Providers\\AccountingServiceProvider"
+    ],
+    "features": [
+        "chart_of_accounts",
+        "account_types",
+        "account_hierarchy",
+        "double_entry_bookkeeping",
+        "journal_entries",
+        "general_ledger",
+        "trial_balance",
+        "balance_sheet",
+        "income_statement",
+        "cash_flow_statement",
+        "accounting_reports",
+        "period_closing",
+        "recurring_journals"
+    ],
+    "suitable_for": [
+        "all_industries",
+        "retail",
+        "consulting",
+        "manufacturing",
+        "services",
+        "ngo",
+        "government"
+    ]
+}
