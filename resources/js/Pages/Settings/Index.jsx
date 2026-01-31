@@ -61,6 +61,8 @@ import {
 const settingsNav = [
     { id: 'billing', name: 'Billing & Documents', icon: FileText, description: 'Invoices, quotes & banking' },
     { id: 'tax', name: 'Tax', icon: Receipt, description: 'Tax rates & compliance' },
+    { id: 'team', name: 'Team', icon: Users, description: 'Manage team members' },
+    { id: 'gamification', name: 'Gamification', icon: Sparkles, description: 'XP, badges & streaks' },
     { id: 'modules', name: 'Modules', icon: Package, description: 'Enable/disable features' },
     { id: 'assistant', name: 'AI Assistant', icon: Sparkles, description: 'Addy preferences' },
     { id: 'notifications', name: 'Notifications', icon: Bell, description: 'Alert preferences' },
@@ -84,6 +86,7 @@ export default function SettingsIndex({
     userPattern,
     taxRates: initialTaxRates = [],
     digitaxAvailable = false,
+    gamificationData = {},
 }) {
     const { flash, url } = usePage().props;
     const [activeSection, setActiveSection] = useState('billing');
@@ -112,6 +115,7 @@ export default function SettingsIndex({
     // Support modal
     const [showSupportModal, setShowSupportModal] = useState(false);
     const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+    const [editingDepartment, setEditingDepartment] = useState(null);
     
     // Team member forms
     const [showInviteForm, setShowInviteForm] = useState(false);
@@ -1885,6 +1889,178 @@ export default function SettingsIndex({
         </div>
     );
 
+    // Render Gamification Section
+    const renderGamificationSection = () => {
+        const {
+            xp_total = 0,
+            level = 1,
+            level_title = 'Emerging Business',
+            xp_for_next_level = 100,
+            xp_progress = 0,
+            xp_progress_percent = 0,
+            badges = [],
+            available_badges = {},
+            earned_badge_types = [],
+            streak = { current: 0, longest: 0 },
+            recent_xp = [],
+            leaderboard = [],
+        } = gamificationData;
+
+        const badgeCategories = {
+            revenue: { name: 'Revenue', color: 'bg-green-500' },
+            consistency: { name: 'Consistency', color: 'bg-orange-500' },
+            financial: { name: 'Financial', color: 'bg-blue-500' },
+            customer: { name: 'Customer', color: 'bg-purple-500' },
+            organization: { name: 'Organization', color: 'bg-teal-500' },
+        };
+
+        return (
+            <div className="space-y-6">
+                {/* XP Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <SectionCard>
+                        <div className="text-center">
+                            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                                <span className="text-2xl font-bold text-white">{level}</span>
+                            </div>
+                            <h3 className="font-semibold text-gray-900">{level_title}</h3>
+                            <p className="text-sm text-gray-500">Level {level}</p>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-teal-600 mb-1">{xp_total.toLocaleString()}</div>
+                            <p className="text-sm text-gray-500">Total XP</p>
+                            <div className="mt-3">
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>{xp_progress} XP</span>
+                                    <span>{xp_for_next_level} XP</span>
+                                </div>
+                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-teal-500 to-teal-600 transition-all duration-500"
+                                        style={{ width: `${xp_progress_percent}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard>
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <span className="text-3xl">🔥</span>
+                                <span className="text-3xl font-bold text-orange-500">{streak.current}</span>
+                            </div>
+                            <p className="text-sm text-gray-500">Day Streak</p>
+                            <p className="text-xs text-gray-400 mt-1">Best: {streak.longest} days</p>
+                        </div>
+                    </SectionCard>
+                </div>
+
+                {/* Badges */}
+                <SectionCard title="Badges" description="Unlock badges by reaching milestones">
+                    <div className="space-y-6">
+                        {Object.entries(badgeCategories).map(([categoryKey, category]) => {
+                            const categoryBadges = Object.entries(available_badges).filter(
+                                ([, badge]) => badge.category === categoryKey
+                            );
+                            if (categoryBadges.length === 0) return null;
+
+                            return (
+                                <div key={categoryKey}>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${category.color}`} />
+                                        {category.name}
+                                    </h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                        {categoryBadges.map(([badgeKey, badge]) => {
+                                            const isEarned = earned_badge_types.includes(badgeKey);
+                                            return (
+                                                <div
+                                                    key={badgeKey}
+                                                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                                                        isEarned
+                                                            ? 'border-teal-300 bg-teal-50'
+                                                            : 'border-gray-100 bg-gray-50 opacity-50'
+                                                    }`}
+                                                >
+                                                    <div className="text-2xl mb-1">{badge.icon}</div>
+                                                    <div className="text-xs font-medium text-gray-900 truncate">{badge.name}</div>
+                                                    <div className="text-[10px] text-gray-500 truncate">{badge.description}</div>
+                                                    {isEarned && (
+                                                        <div className="mt-1">
+                                                            <CheckCircle2 className="h-4 w-4 text-teal-500 mx-auto" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </SectionCard>
+
+                {/* Leaderboard */}
+                <SectionCard title="Leaderboard" description="Top performers in your organization">
+                    {leaderboard.length > 0 ? (
+                        <div className="divide-y divide-gray-100">
+                            {leaderboard.map((entry) => (
+                                <div key={entry.user_id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                            entry.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                            entry.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                                            entry.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                                            'bg-gray-50 text-gray-500'
+                                        }`}>
+                                            {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : entry.rank}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-900">{entry.name}</div>
+                                            <div className="text-xs text-gray-500">Level {entry.level}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-semibold text-teal-600">{entry.total_xp.toLocaleString()} XP</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-gray-500 py-8">No leaderboard data yet</p>
+                    )}
+                </SectionCard>
+
+                {/* Recent XP Activity */}
+                <SectionCard title="Recent Activity" description="Your latest XP earnings">
+                    {recent_xp.length > 0 ? (
+                        <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                            {recent_xp.map((xp, index) => (
+                                <div key={xp.id || index} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600">{xp.reason}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-teal-600">+{xp.xp_amount} XP</span>
+                                        <span className="text-xs text-gray-400">
+                                            {new Date(xp.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-gray-500 py-8">No activity yet. Start using Addy to earn XP!</p>
+                    )}
+                </SectionCard>
+            </div>
+        );
+    };
+
     // Render active section content
     const renderSectionContent = () => {
         switch (activeSection) {
@@ -1898,6 +2074,10 @@ export default function SettingsIndex({
                 return renderAssistantSection();
             case 'notifications':
                 return renderNotificationsSection();
+            case 'team':
+                return renderTeamSection();
+            case 'gamification':
+                return renderGamificationSection();
             default:
                 return renderBillingSection();
         }

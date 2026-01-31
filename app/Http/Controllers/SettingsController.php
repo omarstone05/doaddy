@@ -163,6 +163,9 @@ class SettingsController extends Controller
         // Check if Digitax is available (Zambia-specific)
         $digitaxAvailable = $this->isDigitaxAvailable($organization);
 
+        // Get gamification data
+        $gamificationData = $this->getGamificationData($user, $organization);
+
         return Inertia::render('Settings/Index', [
             'organization' => $organization,
             'user' => [
@@ -185,6 +188,7 @@ class SettingsController extends Controller
             'userPattern' => $userPattern,
             'taxRates' => $taxRates,
             'digitaxAvailable' => $digitaxAvailable,
+            'gamificationData' => $gamificationData,
         ]);
     }
 
@@ -484,6 +488,86 @@ class SettingsController extends Controller
         ]);
 
         return back()->with('message', 'Google Drive disconnected successfully');
+    }
+
+    private function getGamificationData($user, Organization $organization): array
+    {
+        $xpTotal = \App\Models\GamificationXP::where('user_id', $user->id)
+            ->where('organization_id', $organization->id)
+            ->sum('xp_amount');
+
+        $badges = \App\Models\GamificationBadge::where('user_id', $user->id)
+            ->where('organization_id', $organization->id)
+            ->orderBy('earned_at', 'desc')
+            ->get();
+
+        $streak = \App\Models\GamificationStreak::where('user_id', $user->id)
+            ->where('organization_id', $organization->id)
+            ->first();
+
+        // Calculate level from XP
+        $xpPerLevel = config('gamification.xp_per_level', 100);
+        $level = (int) floor($xpTotal / $xpPerLevel) + 1;
+        $xpForNextLevel = $level * $xpPerLevel;
+        $xpProgress = $xpTotal % $xpPerLevel;
+
+        // Get level title
+        $levelTitles = config('gamification.level_titles', []);
+        $levelTitle = 'Emerging Business';
+        foreach ($levelTitles as $lvl => $title) {
+            if ($level >= $lvl) {
+                $levelTitle = $title;
+            }
+        }
+
+        // Get all available badges from config
+        $availableBadges = config('gamification.badges', []);
+        $earnedBadgeTypes = $badges->pluck('badge_type')->toArray();
+
+        // Get recent XP history
+        $recentXP = \App\Models\GamificationXP::where('user_id', $user->id)
+            ->where('organization_id', $organization->id)
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get();
+
+        // Get organization-wide leaderboard (top 10)
+        $leaderboard = \App\Models\GamificationXP::where('organization_id', $organization->id)
+            ->selectRaw('user_id, SUM(xp_amount) as total_xp')
+            ->groupBy('user_id')
+            ->orderByDesc('total_xp')
+            ->take(10)
+            ->with('user:id,name,email')
+            ->get()
+            ->map(function ($entry, $index) {
+                return [
+                    'rank' => $index + 1,
+                    'user_id' => $entry->user_id,
+                    'name' => $entry->user->name ?? 'Unknown',
+                    'total_xp' => (int) $entry->total_xp,
+                    'level' => (int) floor($entry->total_xp / 100) + 1,
+                ];
+            });
+
+        return [
+            'xp_total' => (int) $xpTotal,
+            'level' => $level,
+            'level_title' => $levelTitle,
+            'xp_for_next_level' => $xpForNextLevel,
+            'xp_progress' => $xpProgress,
+            'xp_progress_percent' => $xpPerLevel > 0 ? round(($xpProgress / $xpPerLevel) * 100) : 0,
+            'badges' => $badges,
+            'earned_badge_types' => $earnedBadgeTypes,
+            'available_badges' => $availableBadges,
+            'streak' => $streak ? [
+                'current' => $streak->current_streak ?? 0,
+                'longest' => $streak->longest_streak ?? 0,
+                'last_activity' => $streak->last_activity_at,
+            ] : ['current' => 0, 'longest' => 0, 'last_activity' => null],
+            'recent_xp' => $recentXP,
+            'leaderboard' => $leaderboard,
+            'xp_rewards' => config('gamification.xp_rewards', []),
+        ];
     }
 
     private function syncAddyToneSetting(Organization $organization): void
