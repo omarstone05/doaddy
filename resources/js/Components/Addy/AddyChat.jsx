@@ -83,51 +83,110 @@ export default function AddyChat() {
             filesToSend.forEach((file) => {
                 formData.append('files[]', file);
             });
+            formData.append('stream', '1');
 
-            const response = await window.axios.post('/api/addy/chat', formData, {
+            // Set up assistant message placeholder
+            const assistantMsgId = Date.now() + 1;
+            setMessages(prev => [...prev, {
+                id: assistantMsgId,
+                role: 'assistant',
+                content: '',
+                created_at: new Date().toISOString(),
+                metadata: { quick_actions: [] }
+            }]);
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const response = await fetch('/api/addy/chat', {
+                method: 'POST',
+                body: formData,
                 headers: {
-                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'text/event-stream',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
             });
 
-            // Check for error in response
-            if (response.data.error) {
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 1,
-                    role: 'assistant',
-                    content: response.data.error,
-                    created_at: new Date().toISOString(),
-                }]);
-                return;
+            if (!response.ok) {
+                throw new Error(response.statusText);
             }
 
-            // Add assistant response
-            if (response.data.message) {
-                setMessages(prev => [...prev, response.data.message]);
-            }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-            // Handle organization creation redirect
-            if (response.data.organization_created && response.data.redirect) {
-                // Close chat and redirect to onboarding
-                closeAddy();
-                setTimeout(() => {
-                    router.visit(response.data.redirect);
-                }, 1000); // Small delay to show the success message
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop(); // Keep the last partial line in buffer
+
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('data: ')) {
+                        const dataStr = trimmedLine.slice(6);
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+
+                            if (data.error) {
+                                // Update message with error
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === assistantMsgId
+                                        ? { ...msg, content: data.error }
+                                        : msg
+                                ));
+                                return;
+                            }
+
+                            // Update message state
+                            setMessages(prev => prev.map(msg => {
+                                if (msg.id === assistantMsgId) {
+                                    // Handle redirects/actions
+                                    if (data.organization_created && data.redirect) {
+                                        closeAddy();
+                                        setTimeout(() => router.visit(data.redirect), 1000);
+                                    }
+
+                                    return {
+                                        ...msg,
+                                        content: msg.content + (data.content || ''),
+                                        metadata: {
+                                            ...msg.metadata,
+                                            quick_actions: data.quick_actions || msg.metadata?.quick_actions,
+                                            action: data.action || msg.metadata?.action
+                                        }
+                                    };
+                                }
+                                return msg;
+                            }));
+                        } catch (e) {
+                            console.error('Error parsing SSE:', e);
+                        }
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to send message:', error);
-            // Add error message with more details
-            const errorMessage = error.response?.data?.error
-                || error.response?.data?.message
-                || error.message
-                || "Sorry, I'm having trouble responding right now. Please try again.";
-
-            setMessages(prev => [...prev, {
-                id: Date.now() + 1,
-                role: 'assistant',
-                content: errorMessage,
-                created_at: new Date().toISOString(),
-            }]);
+            // Remove the placeholder or show error
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMsg = newMessages[newMessages.length - 1];
+                if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content) {
+                    // Update placeholder to error
+                    lastMsg.content = "Sorry, I'm having trouble responding right now.";
+                    return [...newMessages];
+                }
+                return [...prev, {
+                    id: Date.now() + 1,
+                    role: 'assistant',
+                    content: "Sorry, I'm having trouble responding right now.",
+                    created_at: new Date().toISOString(),
+                }];
+            });
         } finally {
             setSending(false);
         }

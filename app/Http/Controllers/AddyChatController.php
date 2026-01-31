@@ -50,6 +50,48 @@ class AddyChatController extends Controller
                         return $user;
                     });
                     
+                try {
+                    // Extract text for context (RAG Lite)
+                    try {
+                        $parser = app(\App\Services\Files\FileParserService::class);
+                        $text = $parser->extractText($file->getPathname(), $file->getMimeType());
+                        
+                        if (!empty($text)) {
+                            // Extract basic structured data if possible (e.g., amounts)
+                            // This is a naive extraction for demo purposes
+                            if (preg_match('/(?:total|amount|due).*?([\d,]+\.?\d*)/i', $text, $matches)) {
+                                $extractedData[] = [
+                                    'type' => 'Potential Amount',
+                                    'amount' => $matches[1],
+                                    'currency' => 'ZMW', // Default for now
+                                    'description' => 'Extracted from document',
+                                    'raw_snippet' => substr($text, 0, 200) . '...'
+                                ];
+                            }
+                            // Store full text in extracted data for the AI context
+                            $extractedData[] = [
+                                'type' => 'document_content',
+                                'content' => substr($text, 0, 2000), // Terminate at 2000 chars to avoid token limits
+                                'file_name' => $file->getClientOriginalName()
+                            ];
+                        }
+                    } catch (\Exception $e) {
+                         \Log::warning('Extraction failed: ' . $e->getMessage());
+                    }
+
+                    $uploadRequest = new \Illuminate\Http\Request();
+                    $uploadRequest->setMethod('POST');
+                    $uploadRequest->request->add([
+                        'file' => $file,
+                        'source' => 'chat',
+                    ]);
+                    $uploadRequest->files->set('file', $file);
+                    
+                    // Manually inject user if needed by upload controller
+                    $uploadRequest->setUserResolver(function () use ($user) {
+                        return $user;
+                    });
+                    
                     $uploadResponse = $controller->upload($uploadRequest);
                     $responseData = json_decode($uploadResponse->getContent(), true);
                     
@@ -169,6 +211,7 @@ class AddyChatController extends Controller
 
         // Generate response
         try {
+            $shouldStream = $request->boolean('stream');
             $generator = new AddyResponseGenerator($organization, $user);
             $response = $generator->generateResponse(
                 $intent, 
@@ -177,9 +220,76 @@ class AddyChatController extends Controller
                     'role' => $msg->role,
                     'content' => $msg->content,
                 ])->toArray(),
-                $extractedData // Pass extracted data as context
+                $extractedData, // Pass extracted data as context
+                $shouldStream
             );
             
+            // Handle Streaming Response
+            if ($shouldStream && $response instanceof \Generator) {
+                return response()->stream(function() use ($response, $organization, $user, $intent, $chatMessageId) {
+                    $fullContent = '';
+                    $quickActions = [];
+                    $actionData = null; // Rename to avoid conflict with potential $action variable
+                    
+                    try {
+                        foreach ($response as $chunk) {
+                            echo "data: " . json_encode($chunk) . "\n\n";
+                            if (ob_get_level() > 0) ob_flush();
+                            flush();
+
+                            if (isset($chunk['content'])) {
+                                $fullContent .= $chunk['content'];
+                            }
+                            if (isset($chunk['quick_actions'])) {
+                                $quickActions = $chunk['quick_actions'];
+                            }
+                            if (isset($chunk['action'])) {
+                                $actionData = $chunk['action'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Stream error during iteration: ' . $e->getMessage());
+                        echo "data: " . json_encode(['error' => 'Stream interrupted']) . "\n\n";
+                    }
+                    
+                    echo "data: [DONE]\n\n";
+                    if (ob_get_level() > 0) ob_flush();
+                    flush();
+                    
+                    // Post-stream: Save assistant message
+                    try {
+                        // If action was created, link it to the chat message
+                        if (isset($actionData['action_id'])) {
+                            $actionModel = \App\Models\AddyAction::find($actionData['action_id']);
+                            if ($actionModel) {
+                                $actionModel->update(['chat_message_id' => $chatMessageId]);
+                            }
+                        }
+
+                        AddyChatMessage::create([
+                            'organization_id' => $organization->id,
+                            'user_id' => $user->id,
+                            'role' => 'assistant',
+                            'content' => $fullContent ?? '', // Ensure content is not null
+                            'metadata' => [
+                                'intent' => $intent,
+                                'quick_actions' => $quickActions,
+                                'action' => $actionData,
+                            ],
+                        ]);
+                    } catch (\Exception $e) {
+                         \Log::error('Failed to save streamed message', ['error' => $e->getMessage()]);
+                    }
+
+                }, 200, [
+                    'Content-Type' => 'text/event-stream',
+                    'Cache-Control' => 'no-cache',
+                    'Connection' => 'keep-alive',
+                    'X-Accel-Buffering' => 'no',
+                ]);
+            }
+            
+            // Handle Standard (Blocking) Response
             // If action was created, link it to the chat message
             if (isset($response['action']['action_id'])) {
                 $action = \App\Models\AddyAction::find($response['action']['action_id']);

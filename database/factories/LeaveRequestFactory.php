@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Organization;
 use App\Models\TeamMember;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,7 +25,7 @@ class LeaveRequestFactory extends Factory
         return [
             'organization_id' => Organization::factory(),
             'team_member_id' => TeamMember::factory(),
-            'leave_type_id' => null, // Can be set if LeaveType model exists
+            'leave_type_id' => LeaveType::factory(),
             'start_date' => $startDate,
             'end_date' => $endDate,
             'number_of_days' => $days,
@@ -48,6 +49,13 @@ class LeaveRequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'pending',
+        ]);
+    }
+
+    public function rejected(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'rejected',
         ]);
     }
 }

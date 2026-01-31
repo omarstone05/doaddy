@@ -106,25 +106,30 @@ class PendaSSOController extends Controller
         }
 
         try {
-            // Exchange code for access token
-            $tokenResponse = Http::asForm()->post(
-                config('services.penda_sso.base_url') . '/api/sso/token',
-                [
-                    'grant_type' => 'authorization_code',
-                    'client_id' => config('services.penda_sso.client_id'),
-                    'client_secret' => config('services.penda_sso.client_secret'),
-                    'redirect_uri' => config('services.penda_sso.redirect_uri'),
-                    'code' => $code,
-                ]
-            );
+            // Exchange code for access token with timeout
+            $tokenResponse = Http::asForm()
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->post(
+                    config('services.penda_sso.base_url') . '/api/sso/token',
+                    [
+                        'grant_type' => 'authorization_code',
+                        'client_id' => config('services.penda_sso.client_id'),
+                        'client_secret' => config('services.penda_sso.client_secret'),
+                        'redirect_uri' => config('services.penda_sso.redirect_uri'),
+                        'code' => $code,
+                    ]
+                );
 
             if (!$tokenResponse->successful()) {
                 Log::error('Penda SSO: Token exchange failed', [
                     'status' => $tokenResponse->status(),
                     'body' => $tokenResponse->body(),
                 ]);
+                
+                $errorMessage = $this->getTokenErrorMessage($tokenResponse->status());
                 return redirect('/login')->withErrors([
-                    'sso' => 'Failed to authenticate with Penda Cloud.',
+                    'sso' => $errorMessage,
                 ]);
             }
 
@@ -138,17 +143,20 @@ class PendaSSOController extends Controller
             }
 
             // Get user info from Penda Cloud (includes organizations and subscriptions)
-            $userResponse = Http::withToken($accessToken)->get(
-                config('services.penda_sso.base_url') . '/api/sso/user'
-            );
+            $userResponse = Http::withToken($accessToken)
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->get(config('services.penda_sso.base_url') . '/api/sso/user');
 
             if (!$userResponse->successful()) {
                 Log::error('Penda SSO: Failed to get user info', [
                     'status' => $userResponse->status(),
                     'body' => $userResponse->body(),
                 ]);
+                
+                $errorMessage = $this->getUserInfoErrorMessage($userResponse->status());
                 return redirect('/login')->withErrors([
-                    'sso' => 'Failed to retrieve user information.',
+                    'sso' => $errorMessage,
                 ]);
             }
 
@@ -283,13 +291,27 @@ class PendaSSOController extends Controller
             // Redirect to intended URL (always back to this app)
             return redirect($intendedUrl);
 
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('Penda SSO: Connection failed - Penda Cloud may be down', [
+                'error' => $e->getMessage(),
+            ]);
+            return redirect('/login')->withErrors([
+                'sso' => 'Unable to connect to Penda Cloud. Please check your internet connection and try again. If the problem persists, our authentication service may be temporarily unavailable.',
+            ]);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            Log::error('Penda SSO: Request failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return redirect('/login')->withErrors([
+                'sso' => 'Authentication request failed. Please try again in a few moments.',
+            ]);
         } catch (\Exception $e) {
             Log::error('Penda SSO: Exception during callback', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
             return redirect('/login')->withErrors([
-                'sso' => 'An error occurred during authentication. Please try again.',
+                'sso' => 'An unexpected error occurred during authentication. Please try again.',
             ]);
         }
     }
@@ -538,6 +560,7 @@ class PendaSSOController extends Controller
     {
         try {
             $response = Http::withToken($accessToken)
+                ->timeout(10)
                 ->post(config('services.penda_sso.base_url') . '/api/sso/check-access', [
                     'app' => $appSlug,
                 ]);
@@ -552,5 +575,35 @@ class PendaSSOController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * Get user-friendly error message for token exchange failures.
+     */
+    protected function getTokenErrorMessage(int $statusCode): string
+    {
+        return match ($statusCode) {
+            400 => 'The authentication request was invalid. Please try logging in again.',
+            401 => 'Your authentication credentials were rejected. Please try logging in again.',
+            403 => 'Access to Addy is not authorized for your account. Please contact your administrator.',
+            404 => 'The authentication service could not be found. Please try again later.',
+            429 => 'Too many login attempts. Please wait a few minutes before trying again.',
+            500, 502, 503 => 'Penda Cloud is temporarily unavailable. Please try again in a few minutes.',
+            default => 'Failed to authenticate with Penda Cloud. Please try again.',
+        };
+    }
+
+    /**
+     * Get user-friendly error message for user info retrieval failures.
+     */
+    protected function getUserInfoErrorMessage(int $statusCode): string
+    {
+        return match ($statusCode) {
+            401 => 'Your session has expired. Please log in again.',
+            403 => 'You do not have permission to access this application.',
+            404 => 'Your user profile could not be found. Please contact support.',
+            500, 502, 503 => 'Penda Cloud is temporarily unavailable. Please try again in a few minutes.',
+            default => 'Failed to retrieve your user information. Please try again.',
+        };
     }
 }

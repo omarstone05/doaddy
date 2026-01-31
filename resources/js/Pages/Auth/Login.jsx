@@ -1,14 +1,23 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Login({ errors }) {
     // Build SSO URL with redirect parameter to ensure we return to this app
     const ssoUrl = `/auth/penda?redirect=${encodeURIComponent('/dashboard')}`;
+    const [showManualLogin, setShowManualLogin] = useState(!!errors?.sso);
 
-    // Auto-redirect to Penda Cloud SSO with redirect parameter
+    // Auto-redirect to Penda Cloud SSO with redirect parameter (only if no errors)
     useEffect(() => {
-        router.visit(ssoUrl, { method: 'get' });
-    }, []);
+        if (!errors?.sso) {
+            // Add a small delay before redirect to show the UI briefly
+            const timer = setTimeout(() => {
+                router.visit(ssoUrl, { method: 'get' });
+            }, 500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowManualLogin(true);
+        }
+    }, [errors]);
 
     return (
         <>
@@ -42,21 +51,30 @@ export default function Login({ errors }) {
 
                         {/* Error Message */}
                         {errors?.sso && (
-                            <div className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2">
-                                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                                <span>{errors.sso}</span>
+                            <div className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-4 rounded-lg text-sm">
+                                <div className="flex items-start gap-3">
+                                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p className="font-medium">{errors.sso}</p>
+                                        <p className="text-red-600/80 mt-1 text-xs">
+                                            If this problem continues, please contact support.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {/* Loading State */}
-                        <div className="text-center space-y-4">
-                            <div className="flex justify-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                        {/* Loading State - Only show when not showing errors */}
+                        {!showManualLogin && (
+                            <div className="text-center space-y-4">
+                                <div className="flex justify-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                                </div>
+                                <p className="text-teal-600">Redirecting to Penda Cloud...</p>
                             </div>
-                            <p className="text-teal-600">Redirecting to Penda Cloud...</p>
-                        </div>
+                        )}
 
                         {/* Manual Redirect Button (if auto-redirect fails) */}
                         <div className="pt-4">
@@ -70,6 +88,16 @@ export default function Login({ errors }) {
                                 </svg>
                                 Sign in with Penda Cloud
                             </a>
+                        </div>
+
+                        {/* Forgot Password Link */}
+                        <div className="text-center pt-2">
+                            <Link
+                                href="/forgot-password"
+                                className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                            >
+                                Forgot your password?
+                            </Link>
                         </div>
                     </div>
                 </div>

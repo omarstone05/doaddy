@@ -92,6 +92,42 @@ class AIService
         }
     }
 
+
+    /**
+     * Stream chat response
+     */
+    public function streamChat(array $messages): \Generator
+    {
+        try {
+            $token = $this->getJwtToken();
+            $this->client->setToken($token);
+            
+            // Convert messages array to single message for Penda Cloud API
+            $userMessage = '';
+            $systemPrompt = null;
+            
+            foreach ($messages as $msg) {
+                if ($msg['role'] === 'user') {
+                    $userMessage = $msg['content'];
+                } elseif ($msg['role'] === 'system') {
+                    $systemPrompt = $msg['content'];
+                }
+            }
+            
+            if (empty($userMessage)) {
+                // Extract from last user message
+                $userMessages = array_filter($messages, fn($m) => $m['role'] === 'user');
+                $lastUserMsg = end($userMessages);
+                $userMessage = $lastUserMsg['content'] ?? '';
+            }
+            
+            return $this->client->streamChat($userMessage, $systemPrompt ? ['system_prompt' => $systemPrompt] : []);
+        } catch (\Exception $e) {
+            Log::error('AI Stream Chat error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
     /**
      * Quick helper for single message
      */

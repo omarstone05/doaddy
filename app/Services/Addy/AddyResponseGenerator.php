@@ -36,7 +36,12 @@ class AddyResponseGenerator
      * Generate response based on intent
      * NEW FLOW: OpenAI handles all conversation, code assists with data/actions
      */
-    public function generateResponse(array $intent, string $userMessage, array $chatHistory = [], array $extractedData = []): array
+    /**
+     * Generate response based on intent
+     * NEW FLOW: OpenAI handles all conversation, code assists with data/actions
+     * @return array|\Generator
+     */
+    public function generateResponse(array $intent, string $userMessage, array $chatHistory = [], array $extractedData = [], bool $shouldStream = false)
     {
         // Check if user pasted bank statement text directly
         if ($intent['intent'] === 'action' && 
@@ -130,6 +135,40 @@ class AddyResponseGenerator
         // 1. Get data from code if it's a data query
         // 2. Pass everything to OpenAI with cultural context to format conversationally
         $dataContext = $this->getDataContext($intent);
+
+        // Streaming Path
+        if ($shouldStream) {
+             $generator = $this->streamConversationalQuery($userMessage, $chatHistory, $intent, $dataContext);
+             
+             // Inject upload button if needed by modifying the first chunk (quick_actions)
+             if ($shouldShowUploadCenter || $this->shouldSuggestUploadCenter($userMessage, $intent)) {
+                 // We wrap the generator to intercept the first chunk
+                 return (function() use ($generator) {
+                     $first = true;
+                     foreach ($generator as $chunk) {
+                         if ($first && isset($chunk['quick_actions'])) {
+                             $hasUploadButton = false;
+                             foreach ($chunk['quick_actions'] as $action) {
+                                 if (isset($action['url']) && str_contains($action['url'], 'data-upload')) {
+                                     $hasUploadButton = true;
+                                     break;
+                                 }
+                             }
+                             if (!$hasUploadButton) {
+                                 $chunk['quick_actions'][] = [
+                                     'label' => '📤 Go to Upload Center',
+                                     'url' => '/data-upload',
+                                 ];
+                             }
+                             $first = false;
+                         }
+                         yield $chunk;
+                     }
+                 })();
+             }
+             
+             return $generator;
+        }
         
         $response = $this->handleConversationalQuery($userMessage, $chatHistory, $intent, $dataContext);
         
@@ -1440,6 +1479,68 @@ class AddyResponseGenerator
                 'content' => $fallbackContent,
                 'quick_actions' => $quickActions,
             ];
+        }
+    }
+
+    /**
+     * Stream all conversational queries through OpenAI
+     * Uses System Prompt for tone, skips post-processing
+     */
+    protected function streamConversationalQuery(string $userMessage, array $chatHistory, array $intent, ?array $dataContext = null): \Generator
+    {
+        // Get current business context
+        $state = $this->core->getState();
+        $thought = $this->core->getCurrentThought();
+        
+        // Get historical document context if relevant
+        $historicalContext = $this->getHistoricalDocumentContext($userMessage);
+        
+        // Get cultural settings for personality
+        $culturalEngine = new AddyCulturalEngine($this->organization, $this->user);
+        $tone = $culturalEngine->getTone();
+        
+        // Build comprehensive system message with personality and data context
+        $systemMessage = $this->buildConversationalSystemMessage($state, $thought, $tone, $dataContext, $culturalEngine, $historicalContext);
+        
+        // Prepare quick actions immediately (sent as first chunk metadata if possible, or we just generate them and user deals with them)
+        // Streaming: we usually stream content. Quick actions are metadata.
+        // We can yield a "metadata" chunk first.
+        
+        $quickActions = $this->generateQuickActions($intent, $dataContext);
+        yield ['quick_actions' => $quickActions];
+        
+        try {
+            $ai = new AIService();
+            
+            // Build message array with history
+            $messages = [
+                ['role' => 'system', 'content' => $systemMessage]
+            ];
+            
+            // Add recent chat history for context (limit to last 10 messages)
+            $recentHistory = array_slice($chatHistory, -10);
+            foreach ($recentHistory as $msg) {
+                $messages[] = [
+                    'role' => $msg['role'],
+                    'content' => $msg['content']
+                ];
+            }
+            
+            // Add current message
+            $messages[] = [
+                'role' => 'user',
+                'content' => $userMessage
+            ];
+            
+            // Stream the response
+            foreach ($ai->streamChat($messages) as $chunk) {
+                yield $chunk;
+            }
+            
+        } catch (\Exception $e) {
+            // Fallback response when AI is not available
+            $fallbackContent = $this->getFallbackResponse($intent, $dataContext);
+            yield ['content' => $fallbackContent];
         }
     }
     

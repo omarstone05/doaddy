@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardCardController;
 use App\Http\Controllers\MoneyAccountController;
@@ -63,67 +65,22 @@ Route::get('/enterprise', function () {
 Route::post('/lenco/webhook', [\App\Http\Controllers\LencoPaymentController::class, 'webhook'])->name('lenco.webhook');
 Route::post('/lenco/subscription-webhook', [\App\Http\Controllers\LencoSubscriptionWebhookController::class, 'handle'])->name('lenco.subscription-webhook');
 
-// Test login route - bypasses SSO for local testing (REMOVE IN PRODUCTION)
-Route::get('/test-login/{email?}', function ($email = 'demo@abcfurnitures.com') {
-    if (!app()->environment('local', 'testing')) {
-        abort(404);
-    }
-    
-    $user = \App\Models\User::where('email', $email)->first();
-    if (!$user) {
-        return redirect('/login')->with('error', 'Test user not found');
-    }
-    
-    auth()->login($user);
-    
-    // Set current organization in session
-    if ($user->organization_id) {
-        session(['current_organization_id' => $user->organization_id]);
-    }
-    
-    return redirect('/dashboard');
-})->name('test.login');
-
-// Guest routes (not logged in) - Only Penda Cloud SSO
 Route::middleware('guest')->group(function () {
-    // Login page - auto-redirects to Penda Cloud
-    Route::get('/login', function () {
-        return Inertia::render('Auth/Login');
-    })->name('login');
+    Route::get('/login', [LoginController::class, 'show'])->name('login');
+    Route::post('/login', [LoginController::class, 'store'])->middleware('auth.rate:login');
+    Route::get('/register', [RegisterController::class, 'show'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store'])->middleware('auth.rate:register');
     
-    // Register - redirects to Penda Cloud registration
-    Route::get('/register', function () {
-        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-        $returnUrl = urlencode(config('app.url'));
-        return redirect("{$pendaCloudUrl}/register?return_to={$returnUrl}");
-    })->name('register');
+    // Google OAuth Login
+    Route::get('/auth/google/login', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'redirect'])->name('google.login');
+    Route::get('/auth/google/login/callback', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'callback'])->name('google.login.callback');
     
-    // Password Reset Routes
-    Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])->name('password.request');
-    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])->name('password.email');
-    Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])->name('password.reset');
-    Route::post('/reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])->name('password.store');
-    
-    // Penda Cloud SSO - Only authentication method
+    // Penda Cloud SSO
     Route::get('/auth/penda', [\App\Http\Controllers\Auth\PendaSSOController::class, 'redirect'])->name('penda.login');
 });
 
 // Penda SSO Callback (must be accessible for redirect)
 Route::get('/auth/penda/callback', [\App\Http\Controllers\Auth\PendaSSOController::class, 'callback'])->name('penda.callback');
-
-// SSO Callback alias (Penda Cloud may redirect to /auth/sso/callback)
-Route::get('/auth/sso/callback', [\App\Http\Controllers\Auth\PendaSSOController::class, 'callback'])->name('sso.callback');
-
-// Subscription required/upgrade pages (redirect to Penda Cloud)
-Route::get('/subscription/required', function () {
-    $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-    return redirect($pendaUrl . '/pricing?app=addy');
-})->name('subscription.required');
-
-Route::get('/subscription/upgrade', function () {
-    $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-    return redirect($pendaUrl . '/pricing?app=addy');
-})->name('subscription.upgrade');
 
 // Google Drive OAuth Callback (must be accessible without auth for Google redirect)
 Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
@@ -134,18 +91,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/organizations', [\App\Http\Controllers\OrganizationSwitchController::class, 'index'])->name('organizations.index');
     Route::post('/api/organizations/create', [\App\Http\Controllers\OrganizationSwitchController::class, 'create'])->name('organizations.create');
     
-    // Onboarding is now handled by Penda Cloud
-    // Redirect any onboarding requests to Penda Cloud
-    Route::get('/onboarding', function () {
-        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-        return redirect($pendaCloudUrl . '/onboarding/step-1');
-    })->name('onboarding');
+    // Onboarding
+    Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'index'])->name('onboarding');
+    Route::post('/onboarding/complete', [\App\Http\Controllers\OnboardingController::class, 'complete'])->name('onboarding.complete');
     
+    // Onboarding API
     Route::prefix('api/onboarding')->group(function () {
-        Route::any('/{any}', function () {
-            $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-            return redirect($pendaCloudUrl . '/onboarding/step-1');
-        })->where('any', '.*');
+        Route::post('/classify', [\App\Http\Controllers\OnboardingController::class, 'classify'])->name('onboarding.classify');
+        Route::post('/save-progress', [\App\Http\Controllers\OnboardingController::class, 'saveProgress'])->name('onboarding.save-progress');
+        Route::get('/session', [\App\Http\Controllers\OnboardingController::class, 'getSession'])->name('onboarding.session');
     });
     
     // Super Admin only routes - Platform management
@@ -187,11 +141,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/tickets/{ticket}/assign', [\App\Http\Controllers\Admin\AdminTicketController::class, 'assign'])->name('tickets.assign');
         Route::post('/tickets/{ticket}/status', [\App\Http\Controllers\Admin\AdminTicketController::class, 'updateStatus'])->name('tickets.update-status');
         Route::post('/tickets/{ticket}/messages', [\App\Http\Controllers\Admin\AdminTicketController::class, 'addMessage'])->name('tickets.add-message');
-        
-        // Integration Settings (Digitax, etc.)
-        Route::prefix('integrations')->name('integrations.')->group(function () {
-            Route::get('/digitax', [\App\Http\Controllers\Admin\AdminIntegrationController::class, 'digitax'])->name('digitax');
-        });
         
         // Communication
         Route::prefix('communication')->name('communication.')->group(function () {
@@ -238,7 +187,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/actions/history', [AddyActionController::class, 'history'])->name('addy.actions.history');
         Route::get('/actions/suggestions', [AddyActionController::class, 'suggestions'])->name('addy.actions.suggestions');
     });
-    Route::post('/logout', [\App\Http\Controllers\Auth\PendaSSOController::class, 'logout'])->name('logout');
+    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
     
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -504,13 +453,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/api/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
-    Route::get('/notifications/{notification}/accept', [NotificationController::class, 'accept'])->name('notifications.accept');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-
-    // Organization chooser after SSO
-    Route::get('/auth/choose-organization', [\App\Http\Controllers\Auth\PendaSSOController::class, 'chooseOrganization'])->name('auth.choose-organization');
-    Route::post('/auth/choose-organization', [\App\Http\Controllers\Auth\PendaSSOController::class, 'storeOrganizationChoice'])->name('auth.choose-organization.store');
     
     // Commission Rules
     Route::resource('commissions/rules', CommissionRuleController::class)->names([
