@@ -16,14 +16,16 @@ Route::prefix('customers')->name('customers.')->group(function () {
     Route::get('/', [CustomerController::class, 'index'])->name('index');
     Route::get('/create', [CustomerController::class, 'create'])->name('create');
     Route::post('/', [CustomerController::class, 'store'])->name('store');
+    
+    // Customer Personas - must be before /{customer} to avoid route conflicts
+    Route::get('/personas', [CustomerController::class, 'personas'])->name('personas');
+    Route::post('/personas', [CustomerController::class, 'storePersona'])->name('personas.store');
+    
+    // Customer show/edit/update/delete routes
     Route::get('/{customer}', [CustomerController::class, 'show'])->name('show');
     Route::get('/{customer}/edit', [CustomerController::class, 'edit'])->name('edit');
     Route::put('/{customer}', [CustomerController::class, 'update'])->name('update');
     Route::delete('/{customer}', [CustomerController::class, 'destroy'])->name('destroy');
-    
-    // Customer Personas
-    Route::get('/personas', [CustomerController::class, 'personas'])->name('personas');
-    Route::post('/personas', [CustomerController::class, 'storePersona'])->name('personas.store');
 });
 
 // Vendors

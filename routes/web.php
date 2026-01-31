@@ -84,6 +84,20 @@ Route::middleware('guest')->group(function () {
 // Penda SSO Callback (must be accessible for redirect)
 Route::get('/auth/penda/callback', [\App\Http\Controllers\Auth\PendaSSOController::class, 'callback'])->name('penda.callback');
 
+// SSO Callback alias (Penda Cloud may redirect to /auth/sso/callback)
+Route::get('/auth/sso/callback', [\App\Http\Controllers\Auth\PendaSSOController::class, 'callback'])->name('sso.callback');
+
+// Subscription required/upgrade pages (redirect to Penda Cloud)
+Route::get('/subscription/required', function () {
+    $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+    return redirect($pendaUrl . '/pricing?app=addy');
+})->name('subscription.required');
+
+Route::get('/subscription/upgrade', function () {
+    $pendaUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
+    return redirect($pendaUrl . '/pricing?app=addy');
+})->name('subscription.upgrade');
+
 // Google Drive OAuth Callback (must be accessible without auth for Google redirect)
 Route::get('/auth/google/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('google.callback');
 

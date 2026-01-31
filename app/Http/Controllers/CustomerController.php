@@ -63,7 +63,7 @@ class CustomerController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'nullable|email|max:255',
                 'phone' => 'nullable|string|max:50',
-                'website' => 'nullable|url|max:255',
+                'website' => 'nullable|string|max:255',
                 'tax_id' => 'nullable|string|max:100',
                 'billing_address' => 'nullable|string',
                 'shipping_address' => 'nullable|string',

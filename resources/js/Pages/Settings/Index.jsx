@@ -1934,7 +1934,7 @@ export default function SettingsIndex({
                 )}
 
                 {/* Penda Cloud Notice (owners only) */}
-                {auth?.user?.organization?.name && auth?.user?.organization?.role === 'owner' && (
+                {organization?.name && user?.role === 'owner' && (
                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                         <div className="flex items-start gap-3">
                             <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />

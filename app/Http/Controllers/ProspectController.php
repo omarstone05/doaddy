@@ -27,6 +27,11 @@ class ProspectController extends Controller
     {
         $organization = Auth::user()->organization;
         
+        if (!$organization) {
+            return redirect()->route('prospects.index')
+                ->withErrors(['error' => 'No organization found. Please ensure you are part of an organization.']);
+        }
+        
         return Inertia::render('Prospects/Create', [
             'organizationCurrency' => $organization->currency ?? 'ZMW',
         ]);
@@ -47,17 +52,72 @@ class ProspectController extends Controller
 
         $organization = Auth::user()->organization;
         
-        $validated['organization_id'] = Auth::user()->organization_id;
+        if (!$organization) {
+            return redirect()->back()
+                ->withErrors(['error' => 'No organization found. Please ensure you are part of an organization.'])
+                ->withInput();
+        }
+        
+        $validated['organization_id'] = $organization->id;
         
         // Set currency from organization if not provided
         if (empty($validated['currency'])) {
             $validated['currency'] = $organization->currency ?? 'ZMW';
         }
+        if (!array_key_exists('probability', $validated) || $validated['probability'] === null) {
+            $validated['probability'] = 0;
+        }
 
-        Prospect::create($validated);
+        try {
+            Prospect::create($validated);
 
-        return redirect()->route('prospects.index')
-            ->with('success', 'Prospect created successfully.');
+            return redirect()->route('prospects.index')
+                ->with('success', 'Prospect created successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle unique constraint violations (e.g., duplicate prospect_code)
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'Duplicate entry')) {
+                \Log::error('Prospect creation failed: duplicate prospect_code', [
+                    'error' => $e->getMessage(),
+                    'organization_id' => $organization->id,
+                ]);
+                
+                // Retry once with a new code
+                try {
+                    // Force regeneration of prospect_code
+                    unset($validated['prospect_code']);
+                    Prospect::create($validated);
+                    
+                    return redirect()->route('prospects.index')
+                        ->with('success', 'Prospect created successfully.');
+                } catch (\Exception $retryException) {
+                    \Log::error('Prospect creation retry failed', [
+                        'error' => $retryException->getMessage(),
+                    ]);
+                    
+                    return redirect()->back()
+                        ->withErrors(['error' => 'Failed to create prospect. Please try again.'])
+                        ->withInput();
+                }
+            }
+            
+            \Log::error('Prospect creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return redirect()->back()
+                ->withErrors(['error' => 'An error occurred while creating the prospect. Please try again.'])
+                ->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Prospect creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return redirect()->back()
+                ->withErrors(['error' => 'An error occurred while creating the prospect: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
     public function show(Prospect $prospect)
@@ -92,6 +152,9 @@ class ProspectController extends Controller
         // Set currency from organization if not provided
         if (empty($validated['currency'])) {
             $validated['currency'] = $organization->currency ?? 'ZMW';
+        }
+        if (!array_key_exists('probability', $validated) || $validated['probability'] === null) {
+            $validated['probability'] = 0;
         }
 
         $prospect->update($validated);

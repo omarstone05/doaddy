@@ -3,47 +3,41 @@ import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
 
-export default function CustomersCreate({ personas }) {
-    const { data, setData, post, processing, errors } = useForm({
-        customer_persona_id: '',
-        type: 'business',
-        name: '',
-        email: '',
-        phone: '',
-        website: '',
-        tax_id: '',
-        billing_address: '',
-        shipping_address: '',
-        city: '',
-        state: '',
-        country: '',
-        postal_code: '',
-        credit_limit: '',
-        payment_terms: 'net_30',
-        custom_payment_days: '',
-        currency: 'ZMW',
-        primary_contact_name: '',
-        primary_contact_email: '',
-        primary_contact_phone: '',
-        notes: '',
-        tags: [],
+export default function CustomersEdit({ customer, personas }) {
+    const { data, setData, put, processing, errors } = useForm({
+        customer_persona_id: customer.customer_persona_id || '',
+        type: customer.type || 'business',
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        website: customer.website || '',
+        tax_id: customer.tax_id || '',
+        billing_address: customer.billing_address || '',
+        shipping_address: customer.shipping_address || '',
+        city: customer.city || '',
+        state: customer.state || '',
+        country: customer.country || '',
+        postal_code: customer.postal_code || '',
+        credit_limit: customer.credit_limit ?? null,
+        payment_terms: customer.payment_terms || 'net_30',
+        custom_payment_days: customer.custom_payment_days ?? null,
+        currency: customer.currency || 'ZMW',
+        status: customer.status || 'active',
+        primary_contact_name: customer.primary_contact_name || '',
+        primary_contact_email: customer.primary_contact_email || '',
+        primary_contact_phone: customer.primary_contact_phone || '',
+        notes: customer.notes || '',
+        tags: customer.tags || [],
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post('/customers', {
-            onError: (errors) => {
-                console.error('Customer creation errors:', errors);
-            },
-            onSuccess: () => {
-                console.log('Customer created successfully');
-            },
-        });
+        put(`/customers/${customer.id}`);
     };
 
     return (
         <SectionLayout sectionName="Sales">
-            <Head title="Create Customer" />
+            <Head title={`Edit Customer - ${customer.name}`} />
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                     <Button
@@ -54,18 +48,11 @@ export default function CustomersCreate({ personas }) {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back
                     </Button>
-                    <h1 className="text-3xl font-bold text-gray-900">Create Customer</h1>
-                    <p className="text-gray-500 mt-1">Add a new customer to your database</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Edit Customer</h1>
+                    <p className="text-gray-500 mt-1">Update customer information</p>
                 </div>
 
                 <form onSubmit={submit} className="bg-white border border-gray-200 rounded-lg p-6">
-                    {/* Display general errors */}
-                    {errors.error && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-600">{errors.error}</p>
-                        </div>
-                    )}
-                    
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -286,8 +273,8 @@ export default function CustomersCreate({ personas }) {
                                             id="custom_payment_days"
                                             type="number"
                                             min="1"
-                                            value={data.custom_payment_days}
-                                            onChange={(e) => setData('custom_payment_days', e.target.value)}
+                                            value={data.custom_payment_days ?? ''}
+                                            onChange={(e) => setData('custom_payment_days', e.target.value === '' ? null : Number(e.target.value))}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                             required={data.payment_terms === 'custom'}
                                         />
@@ -323,11 +310,29 @@ export default function CustomersCreate({ personas }) {
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        value={data.credit_limit}
-                                        onChange={(e) => setData('credit_limit', e.target.value)}
+                                        value={data.credit_limit ?? ''}
+                                        onChange={(e) => setData('credit_limit', e.target.value === '' ? null : Number(e.target.value))}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                     />
                                     {errors.credit_limit && <p className="mt-1 text-sm text-red-600">{errors.credit_limit}</p>}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Status *
+                                    </label>
+                                    <select
+                                        id="status"
+                                        value={data.status}
+                                        onChange={(e) => setData('status', e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="blocked">Blocked</option>
+                                    </select>
+                                    {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status}</p>}
                                 </div>
                             </div>
                         </div>
@@ -392,7 +397,7 @@ export default function CustomersCreate({ personas }) {
 
                         <div className="flex gap-4 pt-4">
                             <Button type="submit" disabled={processing} className="flex-1">
-                                Create Customer
+                                {processing ? 'Updating...' : 'Update Customer'}
                             </Button>
                             <Button
                                 type="button"
@@ -408,4 +413,3 @@ export default function CustomersCreate({ personas }) {
         </SectionLayout>
     );
 }
-

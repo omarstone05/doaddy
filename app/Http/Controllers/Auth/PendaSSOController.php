@@ -178,8 +178,52 @@ class PendaSSOController extends Controller
                 ]);
             }
 
-            // Enforce Addy subscription access via Penda Cloud entitlements
-            if (!in_array('addy', $entitledApps, true)) {
+            // Enforce Addy subscription access via Penda Cloud entitlements OR local subscription
+            $hasAddyAccess = in_array('addy', $entitledApps, true);
+            
+            // If not entitled via Penda Cloud, check local subscriptions
+            if (!$hasAddyAccess) {
+                // Check if user's organization has a local active subscription
+                $userOrgIds = collect($pendaOrganizations)->pluck('id')->filter()->toArray();
+                if (!empty($userOrgIds)) {
+                    $hasLocalSubscription = \DB::table('organization_subscriptions')
+                        ->whereIn('organization_id', $userOrgIds)
+                        ->where('app_id', 'addy')
+                        ->where('status', 'active')
+                        ->where(function ($q) {
+                            $q->whereNull('expires_at')
+                              ->orWhere('expires_at', '>', now());
+                        })
+                        ->exists();
+                    
+                    if ($hasLocalSubscription) {
+                        $hasAddyAccess = true;
+                        Log::info('Penda SSO: User has local Addy subscription', [
+                            'user_id' => $user->id,
+                            'organization_ids' => $userOrgIds,
+                        ]);
+                    }
+                }
+                
+                // Also check user's current organization_id
+                if (!$hasAddyAccess && $user->organization_id) {
+                    $hasLocalSubscription = \DB::table('organization_subscriptions')
+                        ->where('organization_id', $user->organization_id)
+                        ->where('app_id', 'addy')
+                        ->where('status', 'active')
+                        ->where(function ($q) {
+                            $q->whereNull('expires_at')
+                              ->orWhere('expires_at', '>', now());
+                        })
+                        ->exists();
+                    
+                    if ($hasLocalSubscription) {
+                        $hasAddyAccess = true;
+                    }
+                }
+            }
+            
+            if (!$hasAddyAccess) {
                 return redirect('/login')->withErrors([
                     'sso' => 'You do not have an active Addy subscription. Please contact your admin or update your plan in Penda Cloud.',
                 ]);
@@ -266,18 +310,34 @@ class PendaSSOController extends Controller
             }
 
             // Find or create organization
-            $organization = \App\Models\Organization::firstOrCreate(
-                ['id' => $orgId],
-                [
-                    'name' => $pendaOrg['name'] ?? 'Organization',
-                    'slug' => $pendaOrg['slug'] ?? \Illuminate\Support\Str::slug($pendaOrg['name'] ?? 'organization'),
-                    'currency' => $pendaOrg['currency'] ?? 'USD',
-                    'timezone' => $pendaOrg['timezone'] ?? 'UTC',
-                    'status' => $pendaOrg['status'] ?? 'active',
-                    'uuid' => $pendaOrg['uuid'] ?? null,
-                    'logo' => $pendaOrg['logo'] ?? null,
-                ]
-            );
+            // First try to find by ID, then by slug (to handle cases where org exists with different ID)
+            $organization = \App\Models\Organization::find($orgId);
+            
+            if (!$organization) {
+                $slug = $pendaOrg['slug'] ?? \Illuminate\Support\Str::slug($pendaOrg['name'] ?? 'organization');
+                $organization = \App\Models\Organization::where('slug', $slug)->first();
+                
+                if (!$organization) {
+                    // Create new organization with unique slug
+                    $baseSlug = $slug;
+                    $counter = 1;
+                    while (\App\Models\Organization::where('slug', $slug)->exists()) {
+                        $slug = $baseSlug . '-' . $counter;
+                        $counter++;
+                    }
+                    
+                    $organization = \App\Models\Organization::create([
+                        'id' => $orgId,
+                        'name' => $pendaOrg['name'] ?? 'Organization',
+                        'slug' => $slug,
+                        'currency' => $pendaOrg['currency'] ?? 'USD',
+                        'timezone' => $pendaOrg['timezone'] ?? 'UTC',
+                        'status' => $pendaOrg['status'] ?? 'active',
+                        'penda_organization_id' => $pendaOrg['uuid'] ?? $orgId,
+                        'logo' => $pendaOrg['logo'] ?? null,
+                    ]);
+                }
+            }
 
             // Always refresh organization details from Penda Cloud (source of truth)
             $organization->fill([
@@ -286,16 +346,19 @@ class PendaSSOController extends Controller
                 'currency' => $pendaOrg['currency'] ?? $organization->currency,
                 'timezone' => $pendaOrg['timezone'] ?? $organization->timezone,
                 'status' => $pendaOrg['status'] ?? $organization->status,
-                'uuid' => $pendaOrg['uuid'] ?? $organization->uuid,
+                'penda_organization_id' => $pendaOrg['uuid'] ?? $organization->penda_organization_id,
                 'logo' => $pendaOrg['logo'] ?? $organization->logo,
             ]);
             $organization->save();
 
+            // Use the actual organization ID (UUID) not the Penda org ID which may be an integer
+            $actualOrgId = $organization->id;
+            
             // Attach user to organization if not already attached
-            if (!$user->belongsToOrganization($orgId)) {
+            if (!$user->belongsToOrganization($actualOrgId)) {
                 $role = $pendaOrg['role'] ?? $pendaOrg['pivot']['role'] ?? 'member';
                 
-                $user->organizations()->attach($orgId, [
+                $user->organizations()->attach($actualOrgId, [
                     'role' => $role,
                     'is_active' => true,
                     'joined_at' => now(),
@@ -303,16 +366,16 @@ class PendaSSOController extends Controller
 
                 Log::info('Penda SSO: Attached user to organization', [
                     'user_id' => $user->id,
-                    'organization_id' => $orgId,
+                    'organization_id' => $actualOrgId,
                     'role' => $role,
                 ]);
             } else {
                 // Update role if changed
-                $currentRole = $user->getRoleInOrganization($orgId);
+                $currentRole = $user->getRoleInOrganization($actualOrgId);
                 $newRole = $pendaOrg['role'] ?? $pendaOrg['pivot']['role'] ?? 'member';
                 
                 if ($currentRole !== $newRole) {
-                    $user->organizations()->updateExistingPivot($orgId, [
+                    $user->organizations()->updateExistingPivot($actualOrgId, [
                         'role' => $newRole,
                     ]);
                 }
