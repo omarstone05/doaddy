@@ -237,10 +237,14 @@ class ABCFurnituresSeeder extends Seeder
             $customers[] = Customer::create([
                 'id' => (string) Str::uuid(),
                 'organization_id' => $organization->id,
+                'customer_code' => 'CUS' . str_pad(count($customers) + 1, 5, '0', STR_PAD_LEFT),
                 'name' => $name,
                 'email' => strtolower(str_replace(' ', '', $name)) . '@email.com',
                 'phone' => '097' . rand(1000000, 9999999),
-                'address' => 'Zambia',
+                'billing_address' => 'Lusaka, Zambia',
+                'city' => 'Lusaka',
+                'country' => 'Zambia',
+                'status' => 'active',
                 'created_at' => Carbon::now()->subYears(2)->addDays(rand(0, 730)),
             ]);
         }
@@ -456,6 +460,7 @@ class ABCFurnituresSeeder extends Seeder
                     'id' => (string) Str::uuid(),
                     'invoice_id' => $invoice->id,
                     'goods_service_id' => $product->id,
+                    'name' => $product->name,
                     'description' => $product->name,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
@@ -581,6 +586,7 @@ class ABCFurnituresSeeder extends Seeder
                     'id' => (string) Str::uuid(),
                     'quote_id' => $quote->id,
                     'goods_service_id' => $product->id,
+                    'name' => $product->name,
                     'description' => $product->name,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
