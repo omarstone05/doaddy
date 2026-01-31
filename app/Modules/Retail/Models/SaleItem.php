@@ -10,7 +10,7 @@ class SaleItem extends Model
 {
     use HasUuid;
 
-    protected $table = 'retail_sale_items';
+    protected $table = 'sale_items';
 
     protected $fillable = [
         'sale_id',

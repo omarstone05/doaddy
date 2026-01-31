@@ -14,7 +14,7 @@ class Sale extends Model
 {
     use HasUuid, BelongsToOrganization, SoftDeletes;
 
-    protected $table = 'retail_sales';
+    protected $table = 'sales';
 
     protected $fillable = [
         'organization_id',
