@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\BelongsToOrganization;
 use App\Traits\HasUuid;
+use Database\Factories\VendorFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Vendor extends Model
 {
-    use HasUuid, BelongsToOrganization, SoftDeletes;
+    use HasFactory, HasUuid, BelongsToOrganization, SoftDeletes;
+
+    protected static function newFactory()
+    {
+        return VendorFactory::new();
+    }
 
     protected $fillable = [
         'organization_id',

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\BelongsToOrganization;
 use App\Traits\HasUuid;
+use Database\Factories\BillFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Bill extends Model
 {
-    use HasUuid, BelongsToOrganization, SoftDeletes;
+    use HasFactory, HasUuid, BelongsToOrganization, SoftDeletes;
+
+    protected static function newFactory()
+    {
+        return BillFactory::new();
+    }
 
     protected $fillable = [
         'organization_id',

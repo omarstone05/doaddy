@@ -606,6 +606,21 @@ Addy is a comprehensive AI-powered business COO assistant that combines:
 - Action rating and feedback
 - Pattern learning from actions
 
+### ✅ Phase 6: RAG & Context Awareness (COMPLETE - January 2026)
+- **FileParserService**: PDF/text extraction using `smalot/pdfparser`
+- **Document Context**: Uploaded files parsed on-the-fly
+- **Text Injection**: Extracted text (first 2000 chars) injected into AI prompts
+- **Chat with Documents**: Users can upload PDFs and ask questions about content
+- **Context Enrichment**: File content available immediately after upload
+
+### ✅ Phase 7: Agency & Actions (COMPLETE - January 2026)
+- **Complex Plan Support**: AI can understand multi-step workflows
+- **Intent Parsing**: Detects requests like "Create project X with tasks A, B, C"
+- **Action Chaining**: Executes multiple actions sequentially
+- **Context Passing**: References between actions (e.g., `$LAST_PROJECT_ID`)
+- **Smart Summarization**: User-friendly summaries of multi-step results
+- **Example**: "Create project 'Website' with Design, Dev, Testing tasks" → 4 actions executed automatically
+
 ---
 
 ## 🐛 RECENT FIXES

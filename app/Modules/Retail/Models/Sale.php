@@ -4,6 +4,8 @@ namespace App\Modules\Retail\Models;
 
 use App\Traits\BelongsToOrganization;
 use App\Traits\HasUuid;
+use Database\Factories\SaleFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +14,12 @@ use Illuminate\Support\Str;
 
 class Sale extends Model
 {
-    use HasUuid, BelongsToOrganization, SoftDeletes;
+    use HasFactory, HasUuid, BelongsToOrganization, SoftDeletes;
+
+    protected static function newFactory()
+    {
+        return SaleFactory::new();
+    }
 
     protected $table = 'sales';
 
