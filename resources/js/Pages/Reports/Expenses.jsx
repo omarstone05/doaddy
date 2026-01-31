@@ -13,12 +13,7 @@ export default function ReportsExpenses({ totalExpenses, expensesByCategory, dai
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -100,7 +95,6 @@ export default function ReportsExpenses({ totalExpenses, expensesByCategory, dai
                         <StatCard
                             title="Total Expenses"
                             value={formatCurrency(totalExpenses)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={Receipt}
                             variant="gradient-negative"

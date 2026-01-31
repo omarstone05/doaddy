@@ -26,12 +26,7 @@ export default function ReportsProjectedIncome({
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -155,7 +150,7 @@ export default function ReportsProjectedIncome({
                                 <div className="w-3 h-3 rounded-full bg-teal-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(projected30Days || 0)}
+                                {formatCurrency(projected30Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {((projected30Days / totalProjectedIncome) * 100).toFixed(1)}% of total
@@ -167,7 +162,7 @@ export default function ReportsProjectedIncome({
                                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(projected60Days || 0)}
+                                {formatCurrency(projected60Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {((projected60Days / totalProjectedIncome) * 100).toFixed(1)}% of total
@@ -179,7 +174,7 @@ export default function ReportsProjectedIncome({
                                 <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(projected90Days || 0)}
+                                {formatCurrency(projected90Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {((projected90Days / totalProjectedIncome) * 100).toFixed(1)}% of total
@@ -199,7 +194,7 @@ export default function ReportsProjectedIncome({
                                 <XAxis dataKey="week" stroke="#6b7280" fontSize={12} />
                                 <YAxis stroke="#6b7280" fontSize={12} />
                                 <Tooltip 
-                                    formatter={(value) => `$${formatFullAmount(value)}`}
+                                    formatter={(value) => `K ${formatFullAmount(value)}`}
                                     contentStyle={{ 
                                         backgroundColor: 'white', 
                                         border: '1px solid #e5e7eb',
@@ -240,7 +235,7 @@ export default function ReportsProjectedIncome({
                                 </Pie>
                                 <Tooltip 
                                     formatter={(value, name) => [
-                                        `$${formatFullAmount(value)}`,
+                                        `K ${formatFullAmount(value)}`,
                                         name
                                     ]}
                                     contentStyle={{ 
@@ -255,7 +250,7 @@ export default function ReportsProjectedIncome({
                                     height={36}
                                     formatter={(value) => {
                                         const entry = incomeByCustomer.find(e => e.customer_name === value);
-                                        return entry ? `${value}: $${formatCurrency(entry.total_due)}` : value;
+                                        return entry ? `${value}: ${formatCurrency(entry.total_due)}` : value;
                                     }}
                                     wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
                                 />
@@ -299,7 +294,7 @@ export default function ReportsProjectedIncome({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                                            ${formatFullAmount(invoice.amount_due)}
+                                            K {formatFullAmount(invoice.amount_due)}
                                         </td>
                                     </tr>
                                 ))}
@@ -340,7 +335,7 @@ export default function ReportsProjectedIncome({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                                            ${formatFullAmount(quotation.total)}
+                                            K {formatFullAmount(quotation.total)}
                                         </td>
                                     </tr>
                                 ))}

@@ -13,12 +13,7 @@ export default function ReportsSales({ totalSales, totalRevenue, averageSale, sa
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -113,14 +108,12 @@ export default function ReportsSales({ totalSales, totalRevenue, averageSale, sa
                         <StatCard
                             title="Total Revenue"
                             value={formatCurrency(totalRevenue)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={TrendingUp}
                         />
                         <StatCard
                             title="Average Sale"
                             value={formatCurrency(averageSale)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={Calculator}
                         />

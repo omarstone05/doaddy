@@ -26,12 +26,7 @@ export default function ReportsLiabilities({
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -155,7 +150,7 @@ export default function ReportsLiabilities({
                                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(liabilities30Days || 0)}
+                                {formatCurrency(liabilities30Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {totalLiabilities > 0 ? ((liabilities30Days / totalLiabilities) * 100).toFixed(1) : 0}% of total
@@ -167,7 +162,7 @@ export default function ReportsLiabilities({
                                 <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(liabilities60Days || 0)}
+                                {formatCurrency(liabilities60Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {totalLiabilities > 0 ? ((liabilities60Days / totalLiabilities) * 100).toFixed(1) : 0}% of total
@@ -179,7 +174,7 @@ export default function ReportsLiabilities({
                                 <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                             </div>
                             <p className="text-3xl font-black text-gray-900 mb-1">
-                                ${formatCurrency(liabilities90Days || 0)}
+                                {formatCurrency(liabilities90Days || 0)}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {totalLiabilities > 0 ? ((liabilities90Days / totalLiabilities) * 100).toFixed(1) : 0}% of total
@@ -199,7 +194,7 @@ export default function ReportsLiabilities({
                                 <XAxis dataKey="week" stroke="#6b7280" fontSize={12} />
                                 <YAxis stroke="#6b7280" fontSize={12} />
                                 <Tooltip 
-                                    formatter={(value) => `$${formatFullAmount(value)}`}
+                                    formatter={(value) => `K ${formatFullAmount(value)}`}
                                     contentStyle={{ 
                                         backgroundColor: 'white', 
                                         border: '1px solid #e5e7eb',
@@ -240,7 +235,7 @@ export default function ReportsLiabilities({
                                 </Pie>
                                 <Tooltip 
                                     formatter={(value, name) => [
-                                        `$${formatFullAmount(value)}`,
+                                        `K ${formatFullAmount(value)}`,
                                         name
                                     ]}
                                     contentStyle={{ 
@@ -255,7 +250,7 @@ export default function ReportsLiabilities({
                                     height={36}
                                     formatter={(value) => {
                                         const entry = billsByVendor.find(e => e.vendor_name === value);
-                                        return entry ? `${value}: $${formatCurrency(entry.total_due)}` : value;
+                                        return entry ? `${value}: ${formatCurrency(entry.total_due)}` : value;
                                     }}
                                     wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
                                 />
@@ -281,7 +276,7 @@ export default function ReportsLiabilities({
                                         ></div>
                                     </div>
                                     <p className="text-2xl font-black text-gray-900 mb-1">
-                                        ${formatCurrency(category.total_due || 0)}
+                                        {formatCurrency(category.total_due || 0)}
                                     </p>
                                     <p className="text-xs text-gray-500">
                                         {category.bill_count || 0} bills
@@ -329,7 +324,7 @@ export default function ReportsLiabilities({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                                            ${formatFullAmount(bill.amount_due)}
+                                            K {formatFullAmount(bill.amount_due)}
                                         </td>
                                     </tr>
                                 ))}

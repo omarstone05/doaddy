@@ -13,12 +13,7 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -102,7 +97,6 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                         <StatCard
                             title="Total Revenue"
                             value={formatCurrency(totalRevenue)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={DollarSign}
                             variant="gradient-positive"
@@ -110,21 +104,18 @@ export default function ReportsRevenue({ totalRevenue, salesRevenue, paymentsRev
                         <StatCard
                             title="Sales Revenue"
                             value={formatCurrency(salesRevenue)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={Wallet}
                         />
                         <StatCard
                             title="Payments"
                             value={formatCurrency(paymentsRevenue)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={CreditCard}
                         />
                         <StatCard
                             title="Other Income"
                             value={formatCurrency(otherIncome)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={DollarSign}
                         />

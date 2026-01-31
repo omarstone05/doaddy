@@ -12,12 +12,7 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
 
     const formatCurrency = (amount) => {
         const num = parseFloat(amount) || 0;
-        return new Intl.NumberFormat('en-ZM', {
-            style: 'currency',
-            currency: 'ZMW',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(num);
+        return 'K ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatFullAmount = (amount) => {
@@ -101,7 +96,6 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                         <StatCard
                             title="Total Revenue"
                             value={formatCurrency(revenue)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={TrendingUp}
                             variant="gradient-positive"
@@ -109,7 +103,6 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                         <StatCard
                             title="Total Expenses"
                             value={formatCurrency(expenses)}
-                            prefix="K "
                             subtitle={getPeriodLabel()}
                             icon={TrendingDown}
                             variant="gradient-negative"
@@ -117,7 +110,6 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                         <StatCard
                             title={isProfit ? 'Net Profit' : 'Net Loss'}
                             value={formatCurrency(Math.abs(profit))}
-                            prefix="K "
                             subtitle={`${profitMargin.toFixed(1)}% margin`}
                             icon={DollarSign}
                             variant={isProfit ? 'gradient-positive' : 'gradient-negative'}
@@ -174,7 +166,6 @@ export default function ReportsProfitLoss({ revenue, expenses, profit, profitMar
                         <StatCard
                             title="Break-Even Point"
                             value={formatCurrency(expenses)}
-                            prefix="K "
                             subtitle="Revenue needed to break even"
                             icon={Target}
                         />
