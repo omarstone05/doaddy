@@ -43,6 +43,18 @@ class Invoice extends Model
         'next_invoice_date',
         'recurrence_end_date',
         'parent_invoice_id',
+        // DigiTax Smart Invoice fields
+        'digitax_sale_id',
+        'digitax_queue_status',
+        'digitax_receipt_url',
+        'digitax_receipt_number',
+        'digitax_serial_number',
+        'digitax_receipt_signature',
+        'digitax_response',
+        'digitax_error',
+        'digitax_submitted_at',
+        'digitax_completed_at',
+        'digitax_retry_count',
     ];
 
     protected function casts(): array
@@ -63,7 +75,45 @@ class Invoice extends Model
             'is_recurring' => 'boolean',
             'recurrence_day' => 'integer',
             'payment_details' => 'array',
+            // DigiTax fields
+            'digitax_response' => 'array',
+            'digitax_error' => 'array',
+            'digitax_submitted_at' => 'datetime',
+            'digitax_completed_at' => 'datetime',
+            'digitax_retry_count' => 'integer',
         ];
+    }
+
+    /**
+     * Check if this invoice has been submitted to DigiTax
+     */
+    public function isDigitaxSubmitted(): bool
+    {
+        return !empty($this->digitax_sale_id);
+    }
+
+    /**
+     * Check if DigiTax processing is complete and receipt is available
+     */
+    public function hasDigitaxReceipt(): bool
+    {
+        return $this->digitax_queue_status === 'complete' && !empty($this->digitax_receipt_url);
+    }
+
+    /**
+     * Check if DigiTax submission failed
+     */
+    public function isDigitaxFailed(): bool
+    {
+        return $this->digitax_queue_status === 'failed';
+    }
+
+    /**
+     * Check if DigiTax is still processing
+     */
+    public function isDigitaxProcessing(): bool
+    {
+        return in_array($this->digitax_queue_status, ['queued', 'processing']);
     }
 
     public function customer(): BelongsTo

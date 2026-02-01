@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class InvoiceController extends Controller
 {
@@ -324,6 +325,33 @@ class InvoiceController extends Controller
             $bankDetails = $organizationBankDetails;
         }
 
+        // Generate QR code if DigiTax receipt is available
+        $qrCodeBase64 = null;
+        $digitaxData = null;
+        
+        if ($invoice->hasDigitaxReceipt() && $invoice->digitax_receipt_url) {
+            try {
+                // Generate QR code from DigiTax receipt_url
+                $qrCodeSvg = QrCode::format('svg')
+                    ->size(120)
+                    ->margin(1)
+                    ->generate($invoice->digitax_receipt_url);
+                
+                $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
+                
+                $digitaxData = [
+                    'receipt_number' => $invoice->digitax_receipt_number,
+                    'serial_number' => $invoice->digitax_serial_number,
+                    'verified' => true,
+                ];
+            } catch (\Exception $e) {
+                Log::warning('Failed to generate QR code for invoice', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $pdfService = new \App\Services\PDF\PdfService();
         $filename = 'Invoice-' . $invoice->invoice_number . '.pdf';
 
@@ -332,6 +360,8 @@ class InvoiceController extends Controller
             'organization' => $organization,
             'logoUrl' => $logoBase64,
             'bankDetails' => $bankDetails,
+            'qrCodeBase64' => $qrCodeBase64,
+            'digitaxData' => $digitaxData,
         ], $filename);
     }
 

@@ -956,28 +956,74 @@ export default function SettingsIndex({
                     </div>
                 </SectionCard>
 
-                {/* Digitax Integration (if available) */}
-                {digitaxAvailable && (
+                {/* Digitax Integration (Smart Invoice enabled) */}
+                {(digitaxAvailable || modules?.some(m => m.alias === 'smart-invoice' && m.enabled)) && (
                     <SectionCard 
-                        title="Digitax Integration" 
-                        description="Connect to Digitax for ZRA Smart Invoice compliance (Zambia only)"
+                        title="DigiTax Smart Invoice" 
+                        description="ZRA Smart Invoice compliance for Zambia"
                     >
                         <div className="space-y-4">
-                            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex items-start gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
+                                <Receipt className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
                                 <div className="flex-1">
-                                    <p className="text-sm text-blue-900 font-medium mb-1">ZRA Smart Invoice Compliance</p>
-                                    <p className="text-sm text-blue-700">
-                                        Digitax integration enables automatic submission of invoices to ZRA's Smart Invoice system. 
-                                        This is only available for organizations operating in Zambia.
+                                    <p className="text-sm text-emerald-900 font-medium mb-1">ZRA Smart Invoice Integration</p>
+                                    <p className="text-sm text-emerald-700">
+                                        Connect to DigiTax to automatically submit invoices to ZRA's Smart Invoice system.
+                                        Invoices will include a QR code for ZRA verification.
                                     </p>
                                 </div>
                             </div>
-                            <div className="pt-4 border-t border-gray-100">
-                                <Button variant="secondary">
-                                    <Link2 className="h-4 w-4 mr-2" />
-                                    Connect to Digitax
-                                </Button>
+                            
+                            {/* DigiTax Configuration Form */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        DigiTax API Key
+                                    </label>
+                                    <input
+                                        type="password"
+                                        placeholder="api_key_..."
+                                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        defaultValue=""
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">From DigiTax Integrations tab</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Environment
+                                    </label>
+                                    <select
+                                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        defaultValue="sandbox"
+                                    >
+                                        <option value="sandbox">Sandbox (Testing)</option>
+                                        <option value="production">Production (Live)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-4">
+                                <div className="flex items-center gap-2">
+                                    <a 
+                                        href="https://zm.docs.digitax.tech/docs/start-using-the-api" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-teal-600 hover:text-teal-700 flex items-center gap-1"
+                                    >
+                                        <HelpCircle className="h-4 w-4" />
+                                        DigiTax Documentation
+                                        <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="secondary" size="sm">
+                                        Test Connection
+                                    </Button>
+                                    <Button variant="primary" size="sm">
+                                        <Save className="h-4 w-4 mr-1" />
+                                        Save
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </SectionCard>

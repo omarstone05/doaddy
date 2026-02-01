@@ -255,11 +255,13 @@ Route::middleware('auth')->group(function () {
     
     // HR module routes are handled by module system
     
-    Route::get('/compliance/tax', function () {
-        return Inertia::render('Placeholder', [
-            'message' => 'Tax feature coming soon',
-        ]);
-    })->name('compliance.tax');
+    // Tax Routes (standalone section, compliance deprecated)
+    Route::get('/tax', [\App\Http\Controllers\TaxController::class, 'index'])->name('tax.index');
+    Route::post('/tax/auto-populate', [\App\Http\Controllers\TaxController::class, 'autoPopulate'])->name('tax.auto-populate');
+    
+    // Tax Reports (in Reports section)
+    Route::get('/reports/tax', [\App\Http\Controllers\TaxController::class, 'reports'])->name('reports.tax');
+    Route::get('/reports/tax/export', [\App\Http\Controllers\TaxController::class, 'export'])->name('reports.tax.export');
     
     // Money Section
     Route::get('/money', [App\Http\Controllers\MoneyController::class, 'index'])->name('money.index');

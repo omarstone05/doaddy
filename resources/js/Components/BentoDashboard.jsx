@@ -583,6 +583,66 @@ const PerformanceCard = ({ onRemove, stats, theme }) => {
   );
 };
 
+// Tax Summary Card - links to Tax Overview
+const TaxSummaryCard = ({ onRemove, stats, theme }) => {
+  const taxCollected = stats?.tax_collected || 0;
+  const taxPaid = stats?.tax_paid || 0;
+  const netLiability = taxCollected - taxPaid;
+  const currency = stats?.currency || 'ZMW';
+
+  return (
+    <div className="bg-white/70 backdrop-blur-lg border border-white/20 rounded-2xl p-6 relative group hover:shadow-xl transition-all h-full flex flex-col">
+      <button onClick={onRemove} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white rounded-lg p-1.5 z-10 shadow-sm">
+        <X size={14} className="text-gray-600" />
+      </button>
+      
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
+          <Receipt className="text-white" size={20} />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Tax Summary</h3>
+          <p className="text-xs text-gray-500">This period</p>
+        </div>
+      </div>
+
+      {/* Tax Stats */}
+      <div className="space-y-3 flex-1">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600">Tax Collected</span>
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatCurrency(taxCollected, currency)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600">Tax Paid</span>
+          <span className="text-sm font-semibold text-red-500">
+            {formatCurrency(taxPaid, currency)}
+          </span>
+        </div>
+        <div className="pt-3 border-t border-gray-200">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-700">Net Liability</span>
+            <span className={`text-lg font-bold ${netLiability >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatCurrency(netLiability, currency)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Link to Tax Overview */}
+      <button
+        onClick={() => router.visit('/tax')}
+        className="mt-4 w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+      >
+        View Tax Overview
+        <ExternalLink size={14} />
+      </button>
+    </div>
+  );
+};
+
 const AddyInsightsCard = ({ onRemove, userName, stats, organizationName }) => {
   // Addy Insights card is non-removable, so onRemove is ignored
   return (
@@ -618,6 +678,7 @@ const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {}
     'customers': CustomersCard,
     'pending-invoices': PendingInvoicesCard,
     'performance': PerformanceCard,
+    'tax-summary': TaxSummaryCard,
   };
 
   // Convert modular cards to Bento format and merge with legacy cards
@@ -652,6 +713,7 @@ const BentoDashboard = ({ stats, user, modularCards = [], preloadedCardData = {}
     { id: 'customers', active: true, size: 'small', isModular: false },
     { id: 'pending-invoices', active: true, size: 'small', isModular: false },
     { id: 'performance', active: true, size: 'medium', isModular: false },
+    { id: 'tax-summary', active: true, size: 'small', isModular: false, name: 'Tax Summary', description: 'View tax collected, paid, and net liability' },
   ]);
 
   const [showCardManager, setShowCardManager] = useState(false);

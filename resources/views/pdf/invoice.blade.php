@@ -375,6 +375,63 @@
             line-height: 1.7;
         }
         
+        /* ZRA Smart Invoice / QR Code Section */
+        .zra-section {
+            margin-top: 32px;
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #10b981;
+            border-radius: 8px;
+        }
+        .zra-grid {
+            display: table;
+            width: 100%;
+        }
+        .zra-info {
+            display: table-cell;
+            vertical-align: middle;
+            padding-right: 24px;
+        }
+        .zra-qr {
+            display: table-cell;
+            vertical-align: middle;
+            width: 140px;
+            text-align: right;
+        }
+        .zra-badge {
+            display: inline-block;
+            background-color: #059669;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .zra-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #065f46;
+            margin-bottom: 4px;
+        }
+        .zra-details {
+            font-size: 10px;
+            color: #047857;
+            line-height: 1.6;
+        }
+        .zra-qr img {
+            width: 120px;
+            height: 120px;
+        }
+        .zra-scan-text {
+            font-size: 8px;
+            color: #059669;
+            text-align: center;
+            margin-top: 4px;
+        }
+        
         /* Footer */
         .footer {
             margin-top: 60px;
@@ -592,6 +649,31 @@
                         <div class="bank-item-value">{{ $bankDetails['mobile_money'] }}</div>
                     </div>
                 @endif
+            </div>
+        @endif
+        
+        <!-- ZRA Smart Invoice / QR Code Section -->
+        @if(isset($qrCodeBase64) && $qrCodeBase64 && isset($digitaxData))
+            <div class="zra-section">
+                <div class="zra-grid">
+                    <div class="zra-info">
+                        <span class="zra-badge">ZRA Verified</span>
+                        <div class="zra-title">Smart Invoice</div>
+                        <div class="zra-details">
+                            @if($digitaxData['receipt_number'] ?? null)
+                                Receipt No: {{ $digitaxData['receipt_number'] }}<br>
+                            @endif
+                            @if($digitaxData['serial_number'] ?? null)
+                                Serial: {{ $digitaxData['serial_number'] }}<br>
+                            @endif
+                            This invoice has been registered with the Zambia Revenue Authority.
+                        </div>
+                    </div>
+                    <div class="zra-qr">
+                        <img src="{{ $qrCodeBase64 }}" alt="ZRA Verification QR Code" />
+                        <div class="zra-scan-text">Scan to verify</div>
+                    </div>
+                </div>
             </div>
         @endif
         
