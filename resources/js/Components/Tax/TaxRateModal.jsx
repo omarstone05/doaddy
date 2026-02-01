@@ -88,10 +88,14 @@ const TaxRateModal = ({ taxRate, onClose, onSave }) => {
                 <div 
                     className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
                     onClick={onClose}
+                    aria-hidden="true"
                 />
 
+                {/* Centering trick for sm screens */}
+                <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
                 {/* Modal panel */}
-                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-medium text-gray-900">
