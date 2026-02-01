@@ -32,12 +32,16 @@ class DigitaxSettingsController extends Controller
 
         try {
             // Find or create credential for this organization
+            // Note: api_key (Serial Number) and api_secret (TPIN) are populated 
+            // automatically after successful connection test from DigiTax /info endpoint
             $credential = DigitaxCredential::updateOrCreate(
                 ['organization_id' => $organizationId],
                 [
                     'digitax_api_key' => $validated['api_key'],
                     'environment' => $validated['environment'],
                     'is_active' => false, // Will be activated after successful test
+                    'api_key' => 'pending', // Will be populated from DigiTax /info
+                    'api_secret' => 'pending', // Will be populated from DigiTax /info
                 ]
             );
 
@@ -84,19 +88,38 @@ class DigitaxSettingsController extends Controller
             ])->timeout(15)->get($baseUrl . '/info');
 
             if ($response->successful()) {
-                // Update credential as active
+                $data = $response->json();
+                
+                // Update credential as active and populate business info from DigiTax
                 if ($organizationId) {
+                    $updateData = [
+                        'is_active' => true,
+                        'last_tested_at' => now(),
+                        'test_error' => null,
+                        'test_result' => $data,
+                    ];
+                    
+                    // Extract TPIN and Serial Number from DigiTax response if available
+                    if (!empty($data['tpin'])) {
+                        $updateData['api_secret'] = $data['tpin'];
+                    }
+                    if (!empty($data['serial_number'])) {
+                        $updateData['api_key'] = $data['serial_number'];
+                    }
+                    
                     DigitaxCredential::where('organization_id', $organizationId)
-                        ->update([
-                            'is_active' => true,
-                            'last_tested_at' => now(),
-                            'test_error' => null,
-                        ]);
+                        ->update($updateData);
                 }
 
+                $businessName = $data['business_name'] ?? $data['name'] ?? 'Your business';
+                
                 return response()->json([
                     'success' => true,
-                    'message' => 'Connection successful! Your DigiTax credentials are valid.',
+                    'message' => "Connection successful! Connected to {$businessName}.",
+                    'data' => [
+                        'tpin' => $data['tpin'] ?? null,
+                        'business_name' => $businessName,
+                    ],
                 ]);
             }
 
