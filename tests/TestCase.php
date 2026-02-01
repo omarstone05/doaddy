@@ -18,6 +18,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Set required config for penda-jwt package
+        config(['penda-jwt.secret' => 'test-secret-key-for-testing-12345']);
+
         // Create test organization and user for each test
         $this->testOrganization = Organization::factory()->create([
             'name' => 'Test Org',

@@ -16,6 +16,9 @@ trait CreatesApplication
 
         $app->make(Kernel::class)->bootstrap();
 
+        // Set penda-jwt config for testing (needed before service providers are booted)
+        $app['config']->set('penda-jwt.secret', 'test-secret-key-for-testing-12345');
+
         return $app;
     }
 }
