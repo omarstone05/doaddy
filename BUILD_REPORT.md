@@ -1,8 +1,8 @@
 # Addy Business 2.0 - Master Build Report
 
-**Last Updated:** January 31, 2026  
+**Last Updated:** February 1, 2026  
 **Project:** Addy Business 2.0  
-**Overall Completion:** ~85%  
+**Overall Completion:** ~88%  
 **Status:** ✅ Production Ready
 
 ---
@@ -21,7 +21,7 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 | Inventory | 100% | ✅ Complete |
 | HR & People | 100% | ✅ Complete |
 | Strategic Planning | 100% | ✅ Complete |
-| Compliance | 90% | ⚠️ Tax module placeholder |
+| Compliance | 100% | ✅ Complete (incl. Tax & Smart Invoice) |
 | AI Features | 85% | ⚠️ 8 actions pending |
 | Optional Modules | 100% | ✅ All 10 modules built |
 | Testing | 75% | ⚠️ Integration tests pending |
@@ -104,7 +104,8 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 | Documents | ✅ Complete | Versioning, assignment |
 | Licenses | ✅ Complete | Expiry alerts |
 | Certificates | ✅ Complete | Management |
-| Tax | ⚠️ Placeholder | Shows "coming soon" |
+| Tax Module | ✅ Complete | Tax rates, reports, country auto-populate |
+| Smart Invoice (DigiTax) | ✅ Complete | ZRA integration for Zambia |
 
 ### AI Features (Addy)
 
@@ -144,14 +145,7 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 - **Priority:** HIGH
 - **Effort:** 2-4 hours
 
-### 2. Tax Module
-- **Planned:** Full tax management
-- **Status:** ⚠️ Shows "Tax feature coming soon" placeholder
-- **Location:** `routes/web.php:259`
-- **Priority:** MEDIUM
-- **Effort:** 2-3 days
-
-### 3. AI Actions (8 of 9 pending)
+### 2. AI Actions (8 of 9 pending)
 - **Planned:** 9 action types
 - **Status:** ⚠️ Only `CreateTransactionAction` fully implemented
 - **Missing implementations:**
@@ -166,14 +160,14 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 - **Framework:** Ready, just needs business logic
 - **Effort:** 1-2 hours per action
 
-### 4. Monthly Goal Amount
+### 3. Monthly Goal Amount
 - **Planned:** Configurable per organization
 - **Status:** ⚠️ Hardcoded to 100,000
 - **Location:** `DashboardCardDataController.php:282`
 - **Priority:** LOW
 - **Effort:** 1 hour
 
-### 5. Data Upload - Invoice Creation
+### 4. Data Upload - Invoice Creation
 - **Planned:** OCR-uploaded invoices create Invoice records
 - **Status:** ⚠️ Only creates expenses
 - **Location:** `AgentDataUploadController.php:446`
@@ -207,8 +201,7 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 
 ### Short-term (Next 2 weeks)
 4. **Implement `approve_leave` action** - HR workflow automation
-5. **Tax Module** - If users in tax-heavy regions
-6. **Monthly Goal Configuration** - Move to organization settings
+5. **Monthly Goal Configuration** - Move to organization settings
 
 ### Medium-term (Next month)
 7. **Remaining AI Actions** - Complete action framework
@@ -217,7 +210,24 @@ Addy Business 2.0 is a comprehensive AI-powered business management platform. Th
 
 ---
 
-## 📈 RECENT UPDATES (January 2026)
+## 📈 RECENT UPDATES (January-February 2026)
+
+### February 1, 2026
+- ✅ **Tax Module** - Complete implementation
+  - Tax rates management with CRUD
+  - Country-based auto-population (ZM, ZA, KE, GB, US, NG, GH, BW)
+  - Tax reports with period filtering and export
+  - Tax summary card on dashboard
+  - Tax overview page (`/tax`)
+- ✅ **Smart Invoice (DigiTax ZRA Integration)** - Complete implementation
+  - DigiTax API integration for Zambia ZRA Smart Invoice
+  - Settings UI with API key configuration
+  - Connection testing with real-time validation
+  - Business details panel showing TPIN, Branch ID, status
+  - QR code generation for invoices (via DigiTax receipt_url)
+  - Support for both Sandbox (Test) and Production (Live) modes
+- ✅ Fixed module toggle persistence issue
+- ✅ Fixed TaxRateModal z-index rendering issue
 
 ### January 31, 2026
 - ✅ Added OCR integration directly into Addy chat
