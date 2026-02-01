@@ -58,15 +58,18 @@ class DigitaxCredential extends Model
 
     /**
      * Get the full API URL
+     * 
+     * DigiTax uses a single API URL for both sandbox and production.
+     * The distinction is made by whether the business is marked as TEST or LIVE
+     * in the DigiTax dashboard, not by different URLs.
+     * 
+     * @see https://zm.docs.digitax.tech/docs/getting-started
      */
     public function getApiUrl(): string
     {
-        $baseUrl = match($this->environment) {
-            'production' => 'https://api.digitax.io',
-            default => 'https://sandbox-api.digitax.io',
-        };
-
-        return $baseUrl;
+        // DigiTax Zambia uses a single API endpoint
+        // Sandbox/Production is determined by business type (TEST/LIVE) in DigiTax dashboard
+        return 'https://api.digitax.tech/zm/v1';
     }
 
     /**

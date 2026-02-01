@@ -72,17 +72,16 @@ class DigitaxSettingsController extends Controller
         $user = $request->user();
         $organizationId = session('current_organization_id') ?? $user->current_organization_id ?? $user->organization_id;
 
-        // Determine the base URL based on environment
-        $baseUrl = $validated['environment'] === 'production'
-            ? 'https://api.digitax.zm'
-            : 'https://sandbox.api.digitax.zm';
+        // DigiTax uses a single API URL - sandbox/production is determined by 
+        // business type (TEST/LIVE) in DigiTax dashboard, not by different URLs
+        $baseUrl = 'https://api.digitax.tech/zm/v1';
 
         try {
-            // Test the connection by calling the items endpoint
+            // Test the connection by calling the info endpoint
             $response = Http::withHeaders([
                 'X-API-Key' => $validated['api_key'],
                 'Accept' => 'application/json',
-            ])->timeout(10)->get($baseUrl . '/api/v1/items');
+            ])->timeout(15)->get($baseUrl . '/info');
 
             if ($response->successful()) {
                 // Update credential as active
