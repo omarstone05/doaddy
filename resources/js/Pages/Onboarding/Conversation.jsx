@@ -156,12 +156,8 @@ const onboardingSteps = [
             // Complete onboarding
             router.post('/onboarding/complete', formData, {
                 onSuccess: () => {
-                    // If user wants to upload data, redirect to upload page
-                    if (formData.wants_data_upload === 'yes') {
-                        router.visit('/data-upload');
-                    } else {
-                        router.visit('/dashboard');
-                    }
+                    // Redirect to dashboard - OCR upload now available via Addy chat
+                    router.visit('/dashboard');
                 },
                 onError: (errors) => {
                     console.error('Onboarding completion error:', errors);

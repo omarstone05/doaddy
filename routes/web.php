@@ -222,6 +222,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/chat', [AddyChatController::class, 'sendMessage']);
         Route::get('/chat/history', [AddyChatController::class, 'getHistory']);
         Route::delete('/chat/history', [AddyChatController::class, 'clearHistory']);
+        Route::post('/chat/import-document', [AddyChatController::class, 'importDocument']);
         
         // Attachments (for entities like Customer, Invoice, Quote, etc.)
         Route::prefix('attachments')->group(function () {

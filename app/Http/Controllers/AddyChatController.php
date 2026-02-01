@@ -10,12 +10,20 @@ use App\Services\Addy\AddyCommandParser;
 use App\Services\Addy\AddyResponseGenerator;
 use App\Services\Addy\DocumentProcessorService;
 use App\Services\Document\DocumentStorageService;
+use App\Services\ContextAwareOcrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AddyChatController extends Controller
 {
+    protected ContextAwareOcrService $ocrService;
+
+    public function __construct(ContextAwareOcrService $ocrService)
+    {
+        $this->ocrService = $ocrService;
+    }
+
     public function sendMessage(Request $request)
     {
         $request->validate([
@@ -31,92 +39,105 @@ class AddyChatController extends Controller
             return response()->json(['error' => 'No organization found'], 400);
         }
 
-        // Process file uploads if any - queue for background processing
+        // Process file uploads with OCR
         $attachments = [];
         $extractedData = [];
-        $queuedJobs = [];
+        $ocrResults = [];
+        $organizationId = session('current_organization_id') ?? $organization->id;
         
         if ($request->hasFile('files')) {
-            $organizationId = session('current_organization_id') ?? $organization->id;
-            
             foreach ($request->file('files') as $file) {
                 try {
-                    // Queue file for background processing via agent
-                    $controller = new \App\Http\Controllers\AgentDataUploadController();
-                    $uploadRequest = new \Illuminate\Http\Request();
-                    $uploadRequest->files->set('file', $file);
-                    $uploadRequest->merge(['is_historical' => false]);
-                    $uploadRequest->setUserResolver(function () use ($user) {
-                        return $user;
-                    });
+                    $mimeType = $file->getMimeType();
+                    $isOcrCapable = in_array($mimeType, [
+                        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+                        'application/pdf'
+                    ]);
                     
-                try {
-                    // Extract text for context (RAG Lite)
-                    try {
-                        $parser = app(\App\Services\Files\FileParserService::class);
-                        $text = $parser->extractText($file->getPathname(), $file->getMimeType());
+                    if ($isOcrCapable) {
+                        // Store file temporarily and process with OCR
+                        $filePath = $file->store('temp/chat-uploads');
+                        $fullPath = Storage::path($filePath);
                         
-                        if (!empty($text)) {
-                            // Extract basic structured data if possible (e.g., amounts)
-                            // This is a naive extraction for demo purposes
-                            if (preg_match('/(?:total|amount|due).*?([\d,]+\.?\d*)/i', $text, $matches)) {
-                                $extractedData[] = [
-                                    'type' => 'Potential Amount',
-                                    'amount' => $matches[1],
-                                    'currency' => 'ZMW', // Default for now
-                                    'description' => 'Extracted from document',
-                                    'raw_snippet' => substr($text, 0, 200) . '...'
-                                ];
-                            }
-                            // Store full text in extracted data for the AI context
+                        $ocrResult = $this->ocrService->processDocumentWithContext(
+                            $fullPath,
+                            [
+                                'user_id' => $user->id,
+                                'organization_id' => $organizationId,
+                            ],
+                            false // not historical
+                        );
+                        
+                        if ($ocrResult['success'] ?? false) {
+                            $ocrResults[] = [
+                                'file_name' => $file->getClientOriginalName(),
+                                'file_path' => $filePath,
+                                'document_type' => $ocrResult['document_type'] ?? 'unknown',
+                                'data' => $ocrResult['data'] ?? [],
+                                'confidence' => $ocrResult['confidence'] ?? 0,
+                                'auto_importable' => $ocrResult['auto_importable'] ?? false,
+                                'requires_review' => $ocrResult['requires_review'] ?? true,
+                                'questions' => $ocrResult['questions'] ?? [],
+                                'uncertainty_analysis' => $ocrResult['uncertainty_analysis'] ?? null,
+                            ];
+                            
+                            // Add to extracted data for AI context
                             $extractedData[] = [
-                                'type' => 'document_content',
-                                'content' => substr($text, 0, 2000), // Terminate at 2000 chars to avoid token limits
-                                'file_name' => $file->getClientOriginalName()
+                                'type' => 'ocr_document',
+                                'document_type' => $ocrResult['document_type'] ?? 'unknown',
+                                'data' => $ocrResult['data'] ?? [],
+                                'confidence' => $ocrResult['confidence'] ?? 0,
+                                'file_name' => $file->getClientOriginalName(),
+                            ];
+                            
+                            $attachments[] = [
+                                'file_path' => $filePath,
+                                'file_name' => $file->getClientOriginalName(),
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $mimeType,
+                                'status' => 'processed',
+                                'ocr_result' => $ocrResult,
+                            ];
+                        } else {
+                            // OCR failed, fall back to basic extraction
+                            $attachments[] = [
+                                'file_path' => $filePath,
+                                'file_name' => $file->getClientOriginalName(),
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $mimeType,
+                                'status' => 'ocr_failed',
+                                'error' => $ocrResult['error'] ?? 'OCR processing failed',
                             ];
                         }
-                    } catch (\Exception $e) {
-                         \Log::warning('Extraction failed: ' . $e->getMessage());
-                    }
-
-                    $uploadRequest = new \Illuminate\Http\Request();
-                    $uploadRequest->setMethod('POST');
-                    $uploadRequest->request->add([
-                        'file' => $file,
-                        'source' => 'chat',
-                    ]);
-                    $uploadRequest->files->set('file', $file);
-                    
-                    // Manually inject user if needed by upload controller
-                    $uploadRequest->setUserResolver(function () use ($user) {
-                        return $user;
-                    });
-                    
-                    $uploadResponse = $controller->upload($uploadRequest);
-                    $responseData = json_decode($uploadResponse->getContent(), true);
-                    
-                    if ($responseData['success'] ?? false) {
-                        $jobId = $responseData['job_id'];
-                        $queuedJobs[] = $jobId;
+                    } else {
+                        // Non-OCR file - extract text if possible
+                        try {
+                            $parser = app(\App\Services\Files\FileParserService::class);
+                            $text = $parser->extractText($file->getPathname(), $mimeType);
+                            
+                            if (!empty($text)) {
+                                $extractedData[] = [
+                                    'type' => 'document_content',
+                                    'content' => substr($text, 0, 2000),
+                                    'file_name' => $file->getClientOriginalName()
+                                ];
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Text extraction failed: ' . $e->getMessage());
+                        }
                         
+                        $filePath = $file->store('temp/chat-uploads');
                         $attachments[] = [
-                            'file_path' => null, // File is being processed
+                            'file_path' => $filePath,
                             'file_name' => $file->getClientOriginalName(),
                             'file_size' => $file->getSize(),
-                            'mime_type' => $file->getMimeType(),
-                            'job_id' => $jobId,
-                            'status' => 'queued',
+                            'mime_type' => $mimeType,
+                            'status' => 'stored',
                         ];
-                        
-                        \Log::info('File queued for background processing', [
-                            'file_name' => $file->getClientOriginalName(),
-                            'job_id' => $jobId,
-                        ]);
                     }
                 } catch (\Exception $e) {
-                    \Log::error('File upload error', [
+                    \Log::error('File processing error', [
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
                         'file' => $file->getClientOriginalName(),
                     ]);
                     
@@ -125,7 +146,8 @@ class AddyChatController extends Controller
                         'file_name' => $file->getClientOriginalName(),
                         'file_size' => $file->getSize(),
                         'mime_type' => $file->getMimeType(),
-                        'processing_error' => 'Failed to queue file: ' . $e->getMessage(),
+                        'status' => 'error',
+                        'error' => $e->getMessage(),
                     ];
                 }
             }
@@ -133,16 +155,11 @@ class AddyChatController extends Controller
 
         // Build message content
         $messageContent = $request->message ?? '';
-        if (!empty($queuedJobs)) {
-            $messageContent .= "\n\n[Document(s) uploaded and queued for background processing]";
-            if (count($queuedJobs) === 1) {
-                $messageContent .= "\nJob ID: " . $queuedJobs[0];
-            } else {
-                $messageContent .= "\n" . count($queuedJobs) . " jobs queued";
-            }
+        if (!empty($ocrResults)) {
+            $messageContent .= "\n\n[Document(s) analyzed]";
         }
 
-        // Save user message
+        // Save user message with OCR results
         $userMessage = AddyChatMessage::create([
             'organization_id' => $organization->id,
             'user_id' => $user->id,
@@ -151,6 +168,7 @@ class AddyChatController extends Controller
             'attachments' => $attachments,
             'metadata' => [
                 'extracted_data' => $extractedData,
+                'ocr_results' => $ocrResults,
             ],
         ]);
         
@@ -479,6 +497,84 @@ class AddyChatController extends Controller
                 'quick_actions' => [],
                 'action' => null,
             ]);
+        }
+    }
+
+    /**
+     * Import document from chat OCR result
+     */
+    public function importDocument(Request $request)
+    {
+        $request->validate([
+            'file_path' => 'required|string',
+            'document_type' => 'required|string',
+            'data' => 'required|array',
+            'reviewed' => 'boolean',
+        ]);
+
+        $user = $request->user();
+        $organization = $user->organization;
+        
+        if (!$organization) {
+            return response()->json(['error' => 'No organization found'], 400);
+        }
+
+        $organizationId = session('current_organization_id') ?? $organization->id;
+        $data = $request->data;
+        $docType = strtolower($data['document_type'] ?? $request->document_type);
+
+        \Log::info('Importing document from chat', [
+            'document_type' => $docType,
+            'data' => $data,
+            'reviewed' => $request->boolean('reviewed'),
+        ]);
+
+        try {
+            // Use EnhancedDataUploadController's import methods
+            $importController = app(EnhancedDataUploadController::class);
+            
+            // Create a mock request for the import
+            $importRequest = new Request();
+            $importRequest->merge([
+                'file_path' => $request->file_path,
+                'document_type' => $docType,
+                'data' => $data,
+                'reviewed' => $request->boolean('reviewed'),
+            ]);
+            $importRequest->setUserResolver(fn() => $user);
+
+            $result = $importController->importOcrReviewed($importRequest);
+            $responseData = json_decode($result->getContent(), true);
+
+            // If successful, save a chat message about the import
+            if ($responseData['success'] ?? false) {
+                $docTypeName = ucfirst(str_replace('_', ' ', $docType));
+                $amount = $data['total'] ?? $data['amount'] ?? null;
+                $amountStr = $amount ? ' (' . ($data['currency'] ?? 'ZMW') . ' ' . number_format($amount, 2) . ')' : '';
+                
+                AddyChatMessage::create([
+                    'organization_id' => $organizationId,
+                    'user_id' => $user->id,
+                    'role' => 'assistant',
+                    'content' => "✅ {$docTypeName} imported successfully{$amountStr}. " . ($responseData['message'] ?? ''),
+                    'metadata' => [
+                        'import_result' => $responseData,
+                        'document_type' => $docType,
+                    ],
+                ]);
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error('Document import from chat failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Import failed: ' . $e->getMessage(),
+            ], 500);
         }
     }
 

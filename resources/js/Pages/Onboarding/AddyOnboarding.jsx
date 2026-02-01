@@ -274,7 +274,7 @@ const AddyOnboarding = ({ user, session: existingSession }) => {
       budgets: '/money/budgets',
       products: '/products',
       team: '/people',
-      upload: '/data-upload',
+      upload: '/dashboard', // OCR upload now available via Addy chat
     };
     return urls[action] || '/dashboard';
   };

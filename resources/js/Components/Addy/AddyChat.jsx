@@ -4,7 +4,9 @@ import { router } from '@inertiajs/react';
 import ActionConfirmation from './ActionConfirmation';
 import ReactMarkdown from 'react-markdown';
 import UploadModal from '../UploadModal';
-import { X, Trash2, Lightbulb, Paperclip, Send, Image, FileText } from 'lucide-react';
+import DocumentDataCard from './DocumentDataCard';
+import InlineChatOcrReview from './InlineChatOcrReview';
+import { X, Trash2, Lightbulb, Paperclip, Send, Image, FileText, Loader2 } from 'lucide-react';
 
 export default function AddyChat() {
     const addyContext = useAddy();
@@ -21,8 +23,89 @@ export default function AddyChat() {
     const [loading, setLoading] = useState(true);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [importingDocuments, setImportingDocuments] = useState({}); // Track importing state per document
+    const [importedDocuments, setImportedDocuments] = useState({}); // Track imported documents
+    const [reviewingDocument, setReviewingDocument] = useState(null); // Currently reviewing document
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+
+    // Handle document import
+    const handleDocumentImport = async (ocrResult, messageId) => {
+        const key = `${messageId}-${ocrResult.file_name}`;
+        setImportingDocuments(prev => ({ ...prev, [key]: true }));
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await fetch('/api/addy/chat/import-document', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    file_path: ocrResult.file_path,
+                    document_type: ocrResult.document_type,
+                    data: ocrResult.data,
+                    reviewed: false,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setImportedDocuments(prev => ({ ...prev, [key]: true }));
+                // Reload history to get the success message
+                loadHistory();
+            } else {
+                alert('Import failed: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Import failed: ' + error.message);
+        } finally {
+            setImportingDocuments(prev => ({ ...prev, [key]: false }));
+        }
+    };
+
+    // Handle reviewed document submission
+    const handleReviewSubmit = async (reviewedData, ocrResult, messageId) => {
+        const key = `${messageId}-${ocrResult.file_name}`;
+        setImportingDocuments(prev => ({ ...prev, [key]: true }));
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await fetch('/api/addy/chat/import-document', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    file_path: ocrResult.file_path,
+                    document_type: ocrResult.document_type,
+                    data: reviewedData,
+                    reviewed: true,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setImportedDocuments(prev => ({ ...prev, [key]: true }));
+                setReviewingDocument(null);
+                loadHistory();
+            } else {
+                alert('Import failed: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Import failed: ' + error.message);
+        } finally {
+            setImportingDocuments(prev => ({ ...prev, [key]: false }));
+        }
+    };
 
     // Load chat history on mount
     useEffect(() => {
@@ -432,6 +515,41 @@ export default function AddyChat() {
                                                                 )}
                                                             </div>
                                                         ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Display OCR Results */}
+                                                {message.role === 'user' && message.metadata?.ocr_results && message.metadata.ocr_results.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        {message.metadata.ocr_results.map((ocrResult, idx) => {
+                                                            const docKey = `${message.id}-${ocrResult.file_name}`;
+                                                            const isImporting = importingDocuments[docKey];
+                                                            const isImported = importedDocuments[docKey];
+                                                            const isReviewing = reviewingDocument === docKey;
+
+                                                            if (isReviewing) {
+                                                                return (
+                                                                    <InlineChatOcrReview
+                                                                        key={idx}
+                                                                        ocrResult={ocrResult}
+                                                                        onSubmit={(reviewedData) => handleReviewSubmit(reviewedData, ocrResult, message.id)}
+                                                                        onSkip={() => setReviewingDocument(null)}
+                                                                        isSubmitting={isImporting}
+                                                                    />
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <DocumentDataCard
+                                                                    key={idx}
+                                                                    ocrResult={ocrResult}
+                                                                    onImport={() => handleDocumentImport(ocrResult, message.id)}
+                                                                    onReview={() => setReviewingDocument(docKey)}
+                                                                    isImporting={isImporting}
+                                                                    isImported={isImported}
+                                                                />
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                             </div>
