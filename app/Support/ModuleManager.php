@@ -110,6 +110,11 @@ class ModuleManager
             return false;
         }
 
+        // Check for always_enabled flag first - these modules are always on
+        if (!empty($module['config']['always_enabled'])) {
+            return true;
+        }
+
         $organization = $this->getCurrentOrganization();
         if ($organization) {
             $enabledModules = $organization->enabled_modules ?? [];
