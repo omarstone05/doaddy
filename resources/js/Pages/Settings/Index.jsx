@@ -895,7 +895,16 @@ export default function SettingsIndex({
                 
                 if (response.data?.success) {
                     setDigitaxCredentialId(response.data.credential_id);
-                    setDigitaxStatus('disconnected'); // Saved but not tested yet
+                    setDigitaxStatus('pending'); // Saved but not tested yet
+                    // Update details to show saved state
+                    setDigitaxDetails(prev => ({
+                        ...(prev || {}),
+                        id: response.data.credential_id,
+                        environment: digitaxEnvironment,
+                        is_active: false,
+                        status: 'pending',
+                        has_api_key: true,
+                    }));
                     setSuccessMessage('DigiTax credentials saved. Please test the connection.');
                     setTimeout(() => setSuccessMessage(null), 3000);
                 } else {
@@ -927,19 +936,28 @@ export default function SettingsIndex({
                 if (response.data?.success) {
                     setDigitaxStatus('connected');
                     // Update details with response data
+                    const newDetails = {
+                        ...(digitaxDetails || {}),
+                        is_active: true,
+                        status: 'connected',
+                        last_tested_at: new Date().toISOString(),
+                        environment: digitaxEnvironment,
+                        has_api_key: true,
+                    };
+                    
+                    // Merge in any data from the response
                     if (response.data?.data) {
-                        setDigitaxDetails(prev => ({
-                            ...prev,
-                            ...response.data.data,
-                            is_active: true,
-                            status: 'connected',
-                            last_tested_at: new Date().toISOString(),
-                        }));
+                        if (response.data.data.tpin) newDetails.tpin = response.data.data.tpin;
+                        if (response.data.data.business_name) newDetails.business_name = response.data.data.business_name;
+                        if (response.data.data.serial_number) newDetails.serial_number = response.data.data.serial_number;
+                        if (response.data.data.device_id) newDetails.device_id = response.data.data.device_id;
+                        if (response.data.data.branch_name) newDetails.branch_name = response.data.data.branch_name;
+                        if (response.data.data.address) newDetails.address = response.data.data.address;
                     }
+                    
+                    setDigitaxDetails(newDetails);
                     setSuccessMessage(response.data?.message || 'DigiTax connection successful!');
                     setTimeout(() => setSuccessMessage(null), 3000);
-                    // Reload page to get fresh data from backend
-                    setTimeout(() => window.location.reload(), 1500);
                 } else {
                     setDigitaxStatus('error');
                     throw new Error(response.data?.error || 'Connection test failed');
