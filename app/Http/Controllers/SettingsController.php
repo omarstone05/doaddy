@@ -163,6 +163,9 @@ class SettingsController extends Controller
         // Check if Digitax is available (Zambia-specific)
         $digitaxAvailable = $this->isDigitaxAvailable($organization);
 
+        // Get DigiTax credentials if available
+        $digitaxCredentials = $this->getDigitaxCredentials($organization);
+
         // Get gamification data
         $gamificationData = $this->getGamificationData($user, $organization);
 
@@ -188,6 +191,7 @@ class SettingsController extends Controller
             'userPattern' => $userPattern,
             'taxRates' => $taxRates,
             'digitaxAvailable' => $digitaxAvailable,
+            'digitaxCredentials' => $digitaxCredentials,
             'gamificationData' => $gamificationData,
         ]);
     }
@@ -198,6 +202,43 @@ class SettingsController extends Controller
         // You can expand this logic based on country/region
         return $organization->currency === 'ZMW' || 
                strtolower($organization->timezone ?? '') === 'africa/lusaka';
+    }
+
+    private function getDigitaxCredentials(Organization $organization): ?array
+    {
+        try {
+            $credential = \Addy\Modules\SmartInvoice\Models\DigitaxCredential::where('organization_id', $organization->id)
+                ->first();
+
+            if (!$credential) {
+                return null;
+            }
+
+            // Extract business info from test_result if available
+            $testResult = $credential->test_result ?? [];
+            
+            return [
+                'id' => $credential->id,
+                'environment' => $credential->environment,
+                'is_active' => $credential->is_active,
+                'last_tested_at' => $credential->last_tested_at?->toIso8601String(),
+                'has_api_key' => !empty($credential->digitax_api_key),
+                // Business details from DigiTax /info response
+                'tpin' => $testResult['tpin'] ?? $credential->api_secret ?? null,
+                'business_name' => $testResult['business_name'] ?? $testResult['name'] ?? null,
+                'serial_number' => $testResult['serial_number'] ?? $credential->api_key ?? null,
+                'device_id' => $testResult['device_id'] ?? null,
+                'branch_name' => $testResult['branch_name'] ?? null,
+                'address' => $testResult['address'] ?? null,
+                'phone' => $testResult['phone'] ?? null,
+                // Status
+                'status' => $credential->is_active ? 'connected' : ($credential->test_error ? 'error' : 'pending'),
+                'test_error' => $credential->test_error,
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Failed to get DigiTax credentials', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     private function getModules(Organization $organization): array

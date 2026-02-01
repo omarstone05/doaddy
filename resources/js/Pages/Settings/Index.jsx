@@ -86,6 +86,7 @@ export default function SettingsIndex({
     userPattern,
     taxRates: initialTaxRates = [],
     digitaxAvailable = false,
+    digitaxCredentials = null,
     gamificationData = {},
 }) {
     const { flash, url } = usePage().props;
@@ -114,11 +115,12 @@ export default function SettingsIndex({
     
     // DigiTax states
     const [digitaxApiKey, setDigitaxApiKey] = useState('');
-    const [digitaxEnvironment, setDigitaxEnvironment] = useState('sandbox');
+    const [digitaxEnvironment, setDigitaxEnvironment] = useState(digitaxCredentials?.environment || 'sandbox');
     const [digitaxSaving, setDigitaxSaving] = useState(false);
     const [digitaxTesting, setDigitaxTesting] = useState(false);
-    const [digitaxCredentialId, setDigitaxCredentialId] = useState(null);
-    const [digitaxStatus, setDigitaxStatus] = useState(null); // 'connected', 'disconnected', 'error'
+    const [digitaxCredentialId, setDigitaxCredentialId] = useState(digitaxCredentials?.id || null);
+    const [digitaxStatus, setDigitaxStatus] = useState(digitaxCredentials?.status || null); // 'connected', 'pending', 'error'
+    const [digitaxDetails, setDigitaxDetails] = useState(digitaxCredentials || null);
     
     // Support modal
     const [showSupportModal, setShowSupportModal] = useState(false);
@@ -924,8 +926,20 @@ export default function SettingsIndex({
                 
                 if (response.data?.success) {
                     setDigitaxStatus('connected');
-                    setSuccessMessage('DigiTax connection successful! Your credentials are valid.');
+                    // Update details with response data
+                    if (response.data?.data) {
+                        setDigitaxDetails(prev => ({
+                            ...prev,
+                            ...response.data.data,
+                            is_active: true,
+                            status: 'connected',
+                            last_tested_at: new Date().toISOString(),
+                        }));
+                    }
+                    setSuccessMessage(response.data?.message || 'DigiTax connection successful!');
                     setTimeout(() => setSuccessMessage(null), 3000);
+                    // Reload page to get fresh data from backend
+                    setTimeout(() => window.location.reload(), 1500);
                 } else {
                     setDigitaxStatus('error');
                     throw new Error(response.data?.error || 'Connection test failed');
@@ -1127,6 +1141,87 @@ export default function SettingsIndex({
                                     </Button>
                                 </div>
                             </div>
+                            
+                            {/* Smart Invoice Details Panel */}
+                            {digitaxDetails?.is_active && (
+                                <div className="mt-6 pt-6 border-t border-gray-200">
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                        Smart Invoice Connected
+                                    </h4>
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {digitaxDetails.business_name && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Business Name</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.business_name}</dd>
+                                                </div>
+                                            )}
+                                            {digitaxDetails.tpin && digitaxDetails.tpin !== 'pending' && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">TPIN</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.tpin}</dd>
+                                                </div>
+                                            )}
+                                            {digitaxDetails.serial_number && digitaxDetails.serial_number !== 'pending' && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.serial_number}</dd>
+                                                </div>
+                                            )}
+                                            {digitaxDetails.device_id && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Device ID</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.device_id}</dd>
+                                                </div>
+                                            )}
+                                            {digitaxDetails.branch_name && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.branch_name}</dd>
+                                                </div>
+                                            )}
+                                            {digitaxDetails.address && (
+                                                <div className="sm:col-span-2">
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.address}</dd>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</dt>
+                                                <dd className="mt-1">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                        digitaxDetails.environment === 'production' 
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                        {digitaxDetails.environment === 'production' ? 'Production (Live)' : 'Sandbox (Test)'}
+                                                    </span>
+                                                </dd>
+                                            </div>
+                                            {digitaxDetails.last_tested_at && (
+                                                <div>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Verified</dt>
+                                                    <dd className="mt-1 text-sm text-gray-600">
+                                                        {new Date(digitaxDetails.last_tested_at).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </dd>
+                                                </div>
+                                            )}
+                                        </dl>
+                                        <div className="mt-4 pt-4 border-t border-gray-200">
+                                            <p className="text-xs text-gray-500">
+                                                Your invoices will automatically include ZRA Smart Invoice QR codes when issued.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </SectionCard>
                 )}
