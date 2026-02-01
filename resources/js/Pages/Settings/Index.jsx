@@ -112,6 +112,14 @@ export default function SettingsIndex({
     const [editingTaxRate, setEditingTaxRate] = useState(null);
     const [loadingTaxRates, setLoadingTaxRates] = useState(false);
     
+    // DigiTax states
+    const [digitaxApiKey, setDigitaxApiKey] = useState('');
+    const [digitaxEnvironment, setDigitaxEnvironment] = useState('sandbox');
+    const [digitaxSaving, setDigitaxSaving] = useState(false);
+    const [digitaxTesting, setDigitaxTesting] = useState(false);
+    const [digitaxCredentialId, setDigitaxCredentialId] = useState(null);
+    const [digitaxStatus, setDigitaxStatus] = useState(null); // 'connected', 'disconnected', 'error'
+    
     // Support modal
     const [showSupportModal, setShowSupportModal] = useState(false);
     const [showDepartmentModal, setShowDepartmentModal] = useState(false);
@@ -868,6 +876,70 @@ export default function SettingsIndex({
             }
         };
 
+        // DigiTax handlers
+        const handleSaveDigitax = async () => {
+            if (!digitaxApiKey.trim()) {
+                setErrorMessage('Please enter your DigiTax API Key');
+                setTimeout(() => setErrorMessage(null), 3000);
+                return;
+            }
+            
+            setDigitaxSaving(true);
+            try {
+                const response = await axios.post('/api/settings/digitax', {
+                    api_key: digitaxApiKey,
+                    environment: digitaxEnvironment,
+                });
+                
+                if (response.data?.success) {
+                    setDigitaxCredentialId(response.data.credential_id);
+                    setDigitaxStatus('disconnected'); // Saved but not tested yet
+                    setSuccessMessage('DigiTax credentials saved. Please test the connection.');
+                    setTimeout(() => setSuccessMessage(null), 3000);
+                } else {
+                    throw new Error(response.data?.error || 'Failed to save credentials');
+                }
+            } catch (error) {
+                console.error('Error saving DigiTax credentials:', error);
+                setErrorMessage(error.response?.data?.error || error.message || 'Failed to save DigiTax credentials');
+                setTimeout(() => setErrorMessage(null), 5000);
+            } finally {
+                setDigitaxSaving(false);
+            }
+        };
+
+        const handleTestDigitax = async () => {
+            if (!digitaxApiKey.trim()) {
+                setErrorMessage('Please enter your DigiTax API Key first');
+                setTimeout(() => setErrorMessage(null), 3000);
+                return;
+            }
+            
+            setDigitaxTesting(true);
+            try {
+                const response = await axios.post('/api/settings/digitax/test', {
+                    api_key: digitaxApiKey,
+                    environment: digitaxEnvironment,
+                });
+                
+                if (response.data?.success) {
+                    setDigitaxStatus('connected');
+                    setSuccessMessage('DigiTax connection successful! Your credentials are valid.');
+                    setTimeout(() => setSuccessMessage(null), 3000);
+                } else {
+                    setDigitaxStatus('error');
+                    throw new Error(response.data?.error || 'Connection test failed');
+                }
+            } catch (error) {
+                console.error('Error testing DigiTax connection:', error);
+                setDigitaxStatus('error');
+                setErrorMessage(error.response?.data?.error || error.message || 'Failed to test DigiTax connection');
+                setTimeout(() => setErrorMessage(null), 5000);
+            } finally {
+                setDigitaxTesting(false);
+            }
+        };
+
         return (
             <div className="space-y-6">
                 {/* Tax Rates Management */}
@@ -984,7 +1056,8 @@ export default function SettingsIndex({
                                         type="password"
                                         placeholder="api_key_..."
                                         className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                        defaultValue=""
+                                        value={digitaxApiKey}
+                                        onChange={(e) => setDigitaxApiKey(e.target.value)}
                                     />
                                     <p className="text-xs text-gray-500 mt-1">From DigiTax Integrations tab</p>
                                 </div>
@@ -994,13 +1067,32 @@ export default function SettingsIndex({
                                     </label>
                                     <select
                                         className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                        defaultValue="sandbox"
+                                        value={digitaxEnvironment}
+                                        onChange={(e) => setDigitaxEnvironment(e.target.value)}
                                     >
                                         <option value="sandbox">Sandbox (Testing)</option>
                                         <option value="production">Production (Live)</option>
                                     </select>
                                 </div>
                             </div>
+                            
+                            {/* Connection Status */}
+                            {digitaxStatus && (
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                                    digitaxStatus === 'connected' ? 'bg-green-50 text-green-700' :
+                                    digitaxStatus === 'error' ? 'bg-red-50 text-red-700' :
+                                    'bg-yellow-50 text-yellow-700'
+                                }`}>
+                                    <div className={`w-2 h-2 rounded-full ${
+                                        digitaxStatus === 'connected' ? 'bg-green-500' :
+                                        digitaxStatus === 'error' ? 'bg-red-500' :
+                                        'bg-yellow-500'
+                                    }`} />
+                                    {digitaxStatus === 'connected' ? 'Connected to DigiTax' :
+                                     digitaxStatus === 'error' ? 'Connection failed' :
+                                     'Credentials saved - please test connection'}
+                                </div>
+                            )}
                             
                             <div className="flex items-center justify-between pt-4">
                                 <div className="flex items-center gap-2">
@@ -1016,12 +1108,22 @@ export default function SettingsIndex({
                                     </a>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="secondary" size="sm">
-                                        Test Connection
+                                    <Button 
+                                        variant="secondary" 
+                                        size="sm"
+                                        onClick={handleTestDigitax}
+                                        disabled={digitaxTesting || !digitaxApiKey.trim()}
+                                    >
+                                        {digitaxTesting ? 'Testing...' : 'Test Connection'}
                                     </Button>
-                                    <Button variant="primary" size="sm">
+                                    <Button 
+                                        variant="primary" 
+                                        size="sm"
+                                        onClick={handleSaveDigitax}
+                                        disabled={digitaxSaving || !digitaxApiKey.trim()}
+                                    >
                                         <Save className="h-4 w-4 mr-1" />
-                                        Save
+                                        {digitaxSaving ? 'Saving...' : 'Save'}
                                     </Button>
                                 </div>
                             </div>

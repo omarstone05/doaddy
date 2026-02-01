@@ -479,6 +479,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{taxRate}', [\App\Modules\Tax\Http\Controllers\TaxRateController::class, 'destroy'])->name('destroy');
     });
     
+    // DigiTax Settings API routes
+    Route::prefix('api/settings/digitax')->name('api.settings.digitax.')->middleware(['auth', 'verified'])->group(function () {
+        Route::post('/', [\App\Http\Controllers\DigitaxSettingsController::class, 'store'])->name('store');
+        Route::post('/test', [\App\Http\Controllers\DigitaxSettingsController::class, 'test'])->name('test');
+    });
+    
     // Support Tickets
     Route::prefix('support/tickets')->name('support.tickets.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SupportTicketController::class, 'index'])->name('index');
