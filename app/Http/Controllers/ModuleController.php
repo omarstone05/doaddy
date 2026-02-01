@@ -38,11 +38,12 @@ class ModuleController extends Controller
                 'display_name' => $module['config']['name'] ?? $name,
                 'description' => $module['config']['description'] ?? '',
                 'version' => $module['version'],
-                'enabled' => $module['enabled'],
+                'enabled' => $this->moduleManager->isEnabled($name),
                 'author' => $module['config']['author'] ?? 'Unknown',
                 'features' => $module['config']['features'] ?? [],
                 'suitable_for' => $module['config']['suitable_for'] ?? [],
                 'dependencies' => $module['config']['dependencies'] ?? [],
+                'alias' => $module['config']['alias'] ?? strtolower($name),
             ];
         }
 
@@ -211,11 +212,12 @@ class ModuleController extends Controller
                 'display_name' => $module['config']['name'] ?? $name,
                 'description' => $module['config']['description'] ?? '',
                 'version' => $module['version'],
-                'enabled' => $module['enabled'],
+                'enabled' => $this->moduleManager->isEnabled($name),
                 'author' => $module['config']['author'] ?? 'Unknown',
                 'features' => $module['config']['features'] ?? [],
                 'suitable_for' => $module['config']['suitable_for'] ?? [],
                 'dependencies' => $module['config']['dependencies'] ?? [],
+                'alias' => $module['config']['alias'] ?? strtolower($name),
             ];
         }
 
