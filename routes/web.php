@@ -91,11 +91,9 @@ Route::middleware('guest')->group(function () {
         return Inertia::render('Auth/Login');
     })->name('login');
     
-    // Register - redirects to Penda Cloud registration
+    // Register - shows registration info page, redirects to Penda Cloud on action
     Route::get('/register', function () {
-        $pendaCloudUrl = config('services.penda_sso.base_url', 'https://penda.cloud');
-        $returnUrl = urlencode(config('app.url'));
-        return redirect("{$pendaCloudUrl}/register?return_to={$returnUrl}");
+        return Inertia::render('Auth/Register');
     })->name('register');
     
     // Password Reset Routes
