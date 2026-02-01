@@ -1169,42 +1169,41 @@ export default function SettingsIndex({
                                     </h4>
                                     <div className="bg-gray-50 rounded-lg p-4">
                                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {digitaxDetails.business_name && (
-                                                <div>
-                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Business Name</dt>
-                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.business_name}</dd>
-                                                </div>
-                                            )}
-                                            {digitaxDetails.tpin && digitaxDetails.tpin !== 'pending' && (
+                                            {digitaxDetails.tpin && (
                                                 <div>
                                                     <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">TPIN</dt>
                                                     <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.tpin}</dd>
                                                 </div>
                                             )}
-                                            {digitaxDetails.serial_number && digitaxDetails.serial_number !== 'pending' && (
+                                            {digitaxDetails.branch_id && (
                                                 <div>
-                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</dt>
-                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.serial_number}</dd>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Branch ID</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono text-xs">{digitaxDetails.branch_id}</dd>
                                                 </div>
                                             )}
-                                            {digitaxDetails.device_id && (
+                                            {digitaxDetails.is_head_office !== undefined && (
                                                 <div>
-                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Device ID</dt>
-                                                    <dd className="mt-1 text-sm font-medium text-gray-900 font-mono">{digitaxDetails.device_id}</dd>
+                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Office Type</dt>
+                                                    <dd className="mt-1 text-sm font-medium text-gray-900">
+                                                        {digitaxDetails.is_head_office ? 'Head Office' : 'Branch Office'}
+                                                    </dd>
                                                 </div>
                                             )}
-                                            {digitaxDetails.branch_name && (
-                                                <div>
-                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</dt>
-                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.branch_name}</dd>
-                                                </div>
-                                            )}
-                                            {digitaxDetails.address && (
-                                                <div className="sm:col-span-2">
-                                                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</dt>
-                                                    <dd className="mt-1 text-sm font-medium text-gray-900">{digitaxDetails.address}</dd>
-                                                </div>
-                                            )}
+                                            <div>
+                                                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">DigiTax Status</dt>
+                                                <dd className="mt-1 flex gap-2">
+                                                    {digitaxDetails.is_test && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            Test Mode
+                                                        </span>
+                                                    )}
+                                                    {digitaxDetails.is_live && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                            Live
+                                                        </span>
+                                                    )}
+                                                </dd>
+                                            </div>
                                             <div>
                                                 <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</dt>
                                                 <dd className="mt-1">
@@ -1213,7 +1212,7 @@ export default function SettingsIndex({
                                                             ? 'bg-green-100 text-green-800' 
                                                             : 'bg-yellow-100 text-yellow-800'
                                                     }`}>
-                                                        {digitaxDetails.environment === 'production' ? 'Production (Live)' : 'Sandbox (Test)'}
+                                                        {digitaxDetails.environment === 'production' ? 'Production' : 'Sandbox'}
                                                     </span>
                                                 </dd>
                                             </div>

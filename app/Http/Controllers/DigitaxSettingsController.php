@@ -99,26 +99,38 @@ class DigitaxSettingsController extends Controller
                         'test_result' => $data,
                     ];
                     
-                    // Extract TPIN and Serial Number from DigiTax response if available
-                    if (!empty($data['tpin'])) {
-                        $updateData['api_secret'] = $data['tpin'];
+                    // Extract TPIN from DigiTax response (field is called "tax_pin")
+                    $tpin = $data['tax_pin'] ?? $data['tpin'] ?? null;
+                    if (!empty($tpin)) {
+                        $updateData['api_secret'] = $tpin;
                     }
-                    if (!empty($data['serial_number'])) {
-                        $updateData['api_key'] = $data['serial_number'];
+                    
+                    // Store branch ID if available
+                    if (!empty($data['id'])) {
+                        $updateData['api_key'] = $data['id'];
                     }
                     
                     DigitaxCredential::where('organization_id', $organizationId)
                         ->update($updateData);
                 }
 
-                $businessName = $data['business_name'] ?? $data['name'] ?? 'Your business';
+                // Extract TPIN for response
+                $tpin = $data['tax_pin'] ?? $data['tpin'] ?? null;
+                $branchId = $data['id'] ?? null;
+                $isTest = $data['is_test'] ?? false;
+                $isLive = $data['is_live'] ?? false;
                 
                 return response()->json([
                     'success' => true,
-                    'message' => "Connection successful! Connected to {$businessName}.",
+                    'message' => "Connection successful! TPIN: {$tpin}",
                     'data' => [
-                        'tpin' => $data['tpin'] ?? null,
-                        'business_name' => $businessName,
+                        'tpin' => $tpin,
+                        'branch_id' => $branchId,
+                        'branch_office_id' => $data['branch_office_id'] ?? null,
+                        'is_head_office' => $data['is_head_office'] ?? false,
+                        'is_test' => $isTest,
+                        'is_live' => $isLive,
+                        'environment_status' => $isTest ? 'Sandbox (Test)' : ($isLive ? 'Production (Live)' : 'Unknown'),
                     ],
                 ]);
             }

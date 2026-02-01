@@ -217,6 +217,14 @@ class SettingsController extends Controller
             // Extract business info from test_result if available
             $testResult = $credential->test_result ?? [];
             
+            // DigiTax uses "tax_pin" field name
+            $tpin = $testResult['tax_pin'] ?? $testResult['tpin'] ?? $credential->api_secret ?? null;
+            // Filter out placeholder values
+            if ($tpin === 'pending') $tpin = null;
+            
+            $branchId = $testResult['id'] ?? $credential->api_key ?? null;
+            if ($branchId === 'pending') $branchId = null;
+            
             return [
                 'id' => $credential->id,
                 'environment' => $credential->environment,
@@ -224,13 +232,12 @@ class SettingsController extends Controller
                 'last_tested_at' => $credential->last_tested_at?->toIso8601String(),
                 'has_api_key' => !empty($credential->digitax_api_key),
                 // Business details from DigiTax /info response
-                'tpin' => $testResult['tpin'] ?? $credential->api_secret ?? null,
-                'business_name' => $testResult['business_name'] ?? $testResult['name'] ?? null,
-                'serial_number' => $testResult['serial_number'] ?? $credential->api_key ?? null,
-                'device_id' => $testResult['device_id'] ?? null,
-                'branch_name' => $testResult['branch_name'] ?? null,
-                'address' => $testResult['address'] ?? null,
-                'phone' => $testResult['phone'] ?? null,
+                'tpin' => $tpin,
+                'branch_id' => $branchId,
+                'branch_office_id' => $testResult['branch_office_id'] ?? null,
+                'is_head_office' => $testResult['is_head_office'] ?? false,
+                'is_test' => $testResult['is_test'] ?? false,
+                'is_live' => $testResult['is_live'] ?? false,
                 // Status
                 'status' => $credential->is_active ? 'connected' : ($credential->test_error ? 'error' : 'pending'),
                 'test_error' => $credential->test_error,
