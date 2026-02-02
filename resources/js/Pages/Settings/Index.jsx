@@ -5,6 +5,7 @@ import { Button } from '@/Components/ui/Button';
 import { Toggle } from '@/Components/ui/Toggle';
 import DepartmentModal from '@/Components/Departments/DepartmentModal';
 import TaxRateModal from '@/Components/Tax/TaxRateModal';
+import AccessControlSection from '@/Components/Settings/AccessControlSection';
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { currencies, getCurrenciesByRegion } from '@/utils/currency';
@@ -71,14 +72,14 @@ const settingsNav = [
 export default function SettingsIndex({ 
     organization, 
     user, 
-    teamMembers, 
-    teamMember, 
+    // Access Control props
+    organizationUsers,
+    organizationRoles,
+    currentUserRole,
     teamViewMode, 
     departments, 
-    users, 
-    organizationRoles, 
-    userRole, 
     filters,
+    // Other settings
     modules: initialModules,
     invoiceSettings,
     bankDetails,
@@ -1258,7 +1259,7 @@ export default function SettingsIndex({
         );
     };
 
-    // Render Team Section
+    // Render Team Section (Access Control)
     const renderTeamSection = () => {
         // Show loading state if teamViewMode is null but we're on team section
         if (!teamViewMode && activeSection === 'team') {
@@ -1266,454 +1267,28 @@ export default function SettingsIndex({
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Team Members</h2>
-                            <p className="text-sm text-gray-500 mt-1">Loading team data...</p>
+                            <h2 className="text-xl font-bold text-gray-900">Access Control</h2>
+                            <p className="text-sm text-gray-500 mt-1">Loading access data...</p>
                         </div>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
                         <div className="animate-pulse">
                             <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500">Loading team members...</p>
+                            <p className="text-gray-500">Loading users...</p>
                         </div>
                     </div>
                 </div>
             );
         }
         
-        // Team create view
-        if (teamViewMode === 'create') {
-            return (
-                <div className="space-y-6">
-                    <button
-                                    onClick={() => router.visit('/settings/team')}
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                                >
-                        <ArrowLeft className="h-4 w-4" />
-                                    Back to Team List
-                    </button>
-
-                    <SectionCard title="Add Team Member" description="Add a new member to your team">
-                                <form onSubmit={handleTeamCreateSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <FormInput
-                                    label="First Name"
-                                    required
-                                    value={teamCreateForm.data.first_name}
-                                    onChange={(e) => teamCreateForm.setData('first_name', e.target.value)}
-                                    error={teamCreateForm.errors.first_name}
-                                />
-                                <FormInput
-                                    label="Last Name"
-                                    required
-                                    value={teamCreateForm.data.last_name}
-                                    onChange={(e) => teamCreateForm.setData('last_name', e.target.value)}
-                                    error={teamCreateForm.errors.last_name}
-                                />
-                                <FormInput
-                                    label="Email"
-                                    type="email"
-                                    value={teamCreateForm.data.email}
-                                    onChange={(e) => teamCreateForm.setData('email', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Phone"
-                                    value={teamCreateForm.data.phone}
-                                    onChange={(e) => teamCreateForm.setData('phone', e.target.value)}
-                                />
-                                <FormSelect
-                                    label="Department"
-                                    value={teamCreateForm.data.department_id}
-                                    onChange={(e) => teamCreateForm.setData('department_id', e.target.value)}
-                                >
-                                                <option value="">Select department</option>
-                                    {departments?.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Job Title"
-                                    value={teamCreateForm.data.job_title}
-                                    onChange={(e) => teamCreateForm.setData('job_title', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Employee Number"
-                                    value={teamCreateForm.data.employee_number}
-                                    onChange={(e) => teamCreateForm.setData('employee_number', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Hire Date"
-                                    type="date"
-                                    value={teamCreateForm.data.hire_date}
-                                    onChange={(e) => teamCreateForm.setData('hire_date', e.target.value)}
-                                />
-                                <FormSelect
-                                    label="Employment Type"
-                                    value={teamCreateForm.data.employment_type}
-                                    onChange={(e) => teamCreateForm.setData('employment_type', e.target.value)}
-                                >
-                                                    <option value="">Select type</option>
-                                                    <option value="full_time">Full Time</option>
-                                                    <option value="part_time">Part Time</option>
-                                                    <option value="contract">Contract</option>
-                                                    <option value="freelance">Freelance</option>
-                                </FormSelect>
-                                <FormInput
-                                    label="Salary"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={teamCreateForm.data.salary}
-                                    onChange={(e) => teamCreateForm.setData('salary', e.target.value)}
-                                />
-                                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    id="is_active"
-                                    checked={teamCreateForm.data.is_active}
-                                    onChange={(e) => teamCreateForm.setData('is_active', e.target.checked)}
-                                    className="rounded border-gray-300 text-teal-500 focus:ring-teal-500"
-                                />
-                                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Active</label>
-                                        </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <Button type="submit" disabled={teamCreateForm.processing}>
-                                    Create Team Member
-                                </Button>
-                                <Button type="button" variant="secondary" onClick={() => router.visit('/settings/team')}>
-                                    Cancel
-                                </Button>
-                                    </div>
-                                </form>
-                    </SectionCard>
-                            </div>
-            );
-        }
-
-        // Team edit view
-        if (teamViewMode === 'edit' && teamMember) {
-            return (
-                <div className="space-y-6">
-                    <button
-                        onClick={() => router.visit('/settings/team')}
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Team List
-                    </button>
-
-                    <SectionCard title="Edit Team Member" description={`${teamMember.first_name} ${teamMember.last_name}`}>
-                                <form onSubmit={handleTeamEditSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <FormInput
-                                    label="First Name"
-                                    required
-                                    value={teamEditForm.data.first_name}
-                                    onChange={(e) => teamEditForm.setData('first_name', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Last Name"
-                                    required
-                                    value={teamEditForm.data.last_name}
-                                    onChange={(e) => teamEditForm.setData('last_name', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Email"
-                                    type="email"
-                                    value={teamEditForm.data.email}
-                                    onChange={(e) => teamEditForm.setData('email', e.target.value)}
-                                />
-                                <FormInput
-                                    label="Phone"
-                                    value={teamEditForm.data.phone}
-                                    onChange={(e) => teamEditForm.setData('phone', e.target.value)}
-                                />
-                                <FormSelect
-                                    label="Department"
-                                    value={teamEditForm.data.department_id}
-                                    onChange={(e) => teamEditForm.setData('department_id', e.target.value)}
-                                >
-                                                <option value="">Select department</option>
-                                    {departments?.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Job Title"
-                                    value={teamEditForm.data.job_title}
-                                    onChange={(e) => teamEditForm.setData('job_title', e.target.value)}
-                                />
-                                        </div>
-
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    id="edit_is_active"
-                                    checked={teamEditForm.data.is_active}
-                                    onChange={(e) => teamEditForm.setData('is_active', e.target.checked)}
-                                    className="rounded border-gray-300 text-teal-500 focus:ring-teal-500"
-                                />
-                                        <label htmlFor="edit_is_active" className="text-sm font-medium text-gray-700">Active</label>
-                                    </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <Button type="submit" disabled={teamEditForm.processing}>
-                                    Save Changes
-                                </Button>
-                                <Button type="button" variant="secondary" onClick={() => router.visit(`/settings/team/${teamMember.id}`)}>
-                                    Cancel
-                                </Button>
-                                    </div>
-                                </form>
-                    </SectionCard>
-                            </div>
-            );
-        }
-                        
-        // Team show view
-        if (teamViewMode === 'show' && teamMember) {
-            return (
-                            <div className="space-y-6">
-                    <button
-                        onClick={() => router.visit('/settings/team')}
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Team List
-                    </button>
-
-                    <SectionCard>
-                        <div className="flex items-start justify-between mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-xl font-bold">
-                                    {teamMember.first_name?.charAt(0)}{teamMember.last_name?.charAt(0)}
-                                </div>
-                                        <div>
-                                    <h2 className="text-xl font-bold text-gray-900">{teamMember.first_name} {teamMember.last_name}</h2>
-                                    <p className="text-gray-500">{teamMember.job_title || 'Team Member'}</p>
-                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold mt-2 ${
-                                        teamMember.is_active ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                        {teamMember.is_active ? 'Active' : 'Inactive'}
-                                    </span>
-                                </div>
-                                        </div>
-                                        <Link href={`/settings/team/${teamMember.id}/edit`}>
-                                <Button variant="secondary">
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                </Button>
-                                        </Link>
-                                    </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                <h4 className="text-sm font-semibold text-gray-500 mb-3">Contact Information</h4>
-                                <div className="space-y-2 text-sm">
-                                    {teamMember.email && (
-                                        <p className="flex items-center gap-2">
-                                            <Mail className="h-4 w-4 text-gray-400" />
-                                            {teamMember.email}
-                                        </p>
-                                    )}
-                                    {teamMember.phone && (
-                                        <p className="flex items-center gap-2">
-                                            <Smartphone className="h-4 w-4 text-gray-400" />
-                                            {teamMember.phone}
-                                        </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div>
-                                <h4 className="text-sm font-semibold text-gray-500 mb-3">Employment Details</h4>
-                                <div className="space-y-2 text-sm">
-                                    {teamMember.department && (
-                                        <p><span className="text-gray-500">Department:</span> {teamMember.department.name}</p>
-                                    )}
-                                    {teamMember.employee_number && (
-                                        <p><span className="text-gray-500">Employee #:</span> {teamMember.employee_number}</p>
-                                    )}
-                                    {teamMember.hire_date && (
-                                        <p><span className="text-gray-500">Hire Date:</span> {new Date(teamMember.hire_date).toLocaleDateString()}</p>
-                                    )}
-                                                </div>
-                                                </div>
-                                                    </div>
-                    </SectionCard>
-                                                </div>
-            );
-        }
-
-        // Team list view
+        // Render Access Control Section
         return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                            <div>
-                        <h2 className="text-xl font-bold text-gray-900">Team Members</h2>
-                        <p className="text-sm text-gray-500 mt-1">Manage your team and departments</p>
-                                    </div>
-                                    <div className="flex gap-3">
-                        <Button variant="secondary" onClick={() => setShowDepartmentModal(true)}>
-                            <Building2 className="h-4 w-4 mr-2" />
-                                            Add Department
-                                        </Button>
-                        <Button onClick={() => router.visit('/settings/team/create')}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Member
-                                        </Button>
-                                    </div>
-                                </div>
-
-                {/* Filters */}
-                <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="relative">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                                <input
-                                                    type="text"
-                                                    defaultValue={filters?.search || ''}
-                                                    onChange={(e) => router.visit(`/settings/team?search=${e.target.value}`)}
-                                placeholder="Search members..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                                />
-                                            </div>
-                                            <select
-                                                defaultValue={filters?.department_id || ''}
-                                                onChange={(e) => router.visit(`/settings/team?department_id=${e.target.value}`)}
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-                                            >
-                                                <option value="">All Departments</option>
-                            {departments?.map((dept) => (
-                                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                defaultValue={filters?.is_active || ''}
-                                                onChange={(e) => router.visit(`/settings/team?is_active=${e.target.value}`)}
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-                                            >
-                                                <option value="">All Status</option>
-                                                <option value="true">Active</option>
-                                                <option value="false">Inactive</option>
-                                            </select>
-                                    </div>
-                                </div>
-
-                {/* Team List */}
-                {!teamMembers || teamMembers?.data?.length === 0 ? (
-                    <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-                        <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No team members yet</h3>
-                                        <p className="text-gray-500 mb-6">Add your first team member to get started</p>
-                        <Button onClick={() => router.visit('/settings/team/create')}>
-                            <Plus className="h-4 w-4 mr-2" />
-                                            Add Team Member
-                                        </Button>
-                                    </div>
-                ) : (
-                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                                                </tr>
-                                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {teamMembers?.data?.map((member) => (
-                                    <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-sm font-bold">
-                                                                    {member.first_name?.charAt(0)}{member.last_name?.charAt(0)}
-                                                                </div>
-                                                                <div>
-                                                    <p className="font-semibold text-gray-900">{member.first_name} {member.last_name}</p>
-                                                    <p className="text-xs text-gray-500">{member.job_title || '-'}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                            {member.email && <p className="text-sm text-gray-900">{member.email}</p>}
-                                            {member.phone && <p className="text-xs text-gray-500">{member.phone}</p>}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            {member.department ? (
-                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700">
-                                                                    {member.department.name}
-                                                                </span>
-                                                            ) : (
-                                                <span className="text-sm text-gray-400">-</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                member.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                                                            }`}>
-                                                                {member.is_active ? 'Active' : 'Inactive'}
-                                                            </span>
-                                                        </td>
-                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                <Link
-                                                                    href={`/settings/team/${member.id}`}
-                                                    className="p-2 rounded-lg text-gray-500 hover:text-teal-600 hover:bg-teal-50 transition-colors"
-                                                                >
-                                                                    <Eye className="h-4 w-4" />
-                                                                </Link>
-                                                                <Link
-                                                                    href={`/settings/team/${member.id}/edit`}
-                                                    className="p-2 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                                                >
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Link>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        if (confirm('Are you sure you want to delete this team member?')) {
-                                                                            router.delete(`/settings/team/${member.id}`);
-                                                                        }
-                                                                    }}
-                                                    className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                        
-                                        {/* Pagination */}
-                        {teamMembers?.links?.length > 3 && (
-                            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
-                                                <p className="text-sm text-gray-600">
-                                                    Showing <span className="font-semibold">{teamMembers.from}</span> to <span className="font-semibold">{teamMembers.to}</span> of <span className="font-semibold">{teamMembers.total}</span>
-                                                </p>
-                                                <div className="flex gap-1">
-                                                    {teamMembers.links.map((link, index) => (
-                                                        <Link
-                                                            key={index}
-                                                            href={link.url || '#'}
-                                                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                                                link.active
-                                                    ? 'bg-teal-500 text-white'
-                                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                                                            } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                )}
-                            </div>
+            <AccessControlSection
+                organizationUsers={organizationUsers}
+                organizationRoles={organizationRoles}
+                currentUserRole={currentUserRole}
+                filters={filters}
+            />
         );
     };
 

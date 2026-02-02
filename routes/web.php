@@ -381,21 +381,16 @@ Route::middleware('auth')->group(function () {
     // Departments
     Route::resource('departments', DepartmentController::class);
     
-    // Team Members (moved to Settings) - Views go through SettingsController to stay in settings context
+    // Access Control (Team section in Settings) - Manage user access and roles
     Route::prefix('settings')->name('settings.')->group(function () {
-        // Views - handled by SettingsController to keep within settings page
+        // View - handled by SettingsController
         Route::get('/team', [SettingsController::class, 'index'])->name('team.index');
-        Route::get('/team/create', [SettingsController::class, 'index'])->name('team.create');
-        Route::get('/team/{id}', [SettingsController::class, 'index'])->name('team.show');
-        Route::get('/team/{id}/edit', [SettingsController::class, 'index'])->name('team.edit');
         
-        // Actions - handled by TeamMemberController
-        Route::post('/team', [TeamMemberController::class, 'store'])->name('team.store');
-        Route::put('/team/{id}', [TeamMemberController::class, 'update'])->name('team.update');
-        Route::delete('/team/{id}', [TeamMemberController::class, 'destroy'])->name('team.destroy');
-        Route::post('/team/{id}/upload-document', [TeamMemberController::class, 'uploadDocument'])->name('team.upload-document');
-        Route::post('/team/{id}/grant-access', [TeamMemberController::class, 'grantAccess'])->name('team.grant-access');
-        Route::post('/team/{id}/update-user-role', [TeamMemberController::class, 'updateUserRole'])->name('team.update-user-role');
+        // Access Control Actions - handled by AccessControlController
+        Route::post('/team/invite', [\App\Http\Controllers\AccessControlController::class, 'invite'])->name('team.invite');
+        Route::put('/team/{userId}/role', [\App\Http\Controllers\AccessControlController::class, 'changeRole'])->name('team.change-role');
+        Route::delete('/team/{userId}', [\App\Http\Controllers\AccessControlController::class, 'remove'])->name('team.remove');
+        Route::post('/team/{userId}/toggle-status', [\App\Http\Controllers\AccessControlController::class, 'toggleStatus'])->name('team.toggle-status');
     });
     
     // Legacy team routes - redirect to settings

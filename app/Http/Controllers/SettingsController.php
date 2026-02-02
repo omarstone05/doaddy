@@ -21,119 +21,90 @@ class SettingsController extends Controller
             ? Storage::disk('public')->url($organization->logo)
             : null;
 
-        // Get team members if on team tab
-        $teamMembers = null;
-        $departments = null;
-        $teamMember = null;
+        // Access Control / Team section - Users with roles
+        $organizationUsers = null;
         $organizationRoles = null;
-        $userRole = null;
-        $users = null;
         $teamViewMode = null;
+        $currentUserRole = $user->getOrganizationRole($user->organization_id);
         
-        // Always load departments for team forms
-        $departments = \App\Models\Department::where('organization_id', $user->organization_id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-        
-        // Check if we're on a team route
+        // Check if we're on a team route (Access Control)
         $path = parse_url($request->url(), PHP_URL_PATH);
         $isTeamRoute = str_contains($path, '/settings/team') || str_contains($path, '/team');
         
         if ($isTeamRoute) {
             $teamViewMode = 'list';
             
-            if (preg_match('/\/settings\/team\/([^\/]+)\/edit$/', $path, $matches)) {
-                $teamViewMode = 'edit';
-                $teamMemberId = $matches[1];
-                $teamMember = \App\Models\TeamMember::where('organization_id', $user->organization_id)
-                    ->find($teamMemberId);
-                
-                if ($teamMember) {
-                    $users = \App\Models\User::where('organization_id', $user->organization_id)
-                        ->where(function ($q) use ($teamMember) {
-                            $q->whereDoesntHave('teamMember')
-                              ->orWhereHas('teamMember', function ($q) use ($teamMember) {
-                                  $q->where('id', $teamMember->id);
-                              });
-                        })
-                        ->orderBy('name')
-                        ->get();
-                }
-            } elseif (preg_match('/\/settings\/team\/create$/', $path)) {
-                $teamViewMode = 'create';
-                $users = \App\Models\User::where('organization_id', $user->organization_id)
-                    ->whereDoesntHave('teamMember')
-                    ->orderBy('name')
-                    ->get();
-            } elseif (preg_match('/\/settings\/team\/([^\/]+)$/', $path, $matches)) {
-                $teamViewMode = 'show';
-                $teamMemberId = $matches[1];
-                $teamMember = \App\Models\TeamMember::where('organization_id', $user->organization_id)
-                    ->with(['user', 'department', 'sales', 'attachments.uploadedBy', 'documents.createdBy', 'documents.attachments'])
-                    ->find($teamMemberId);
-                
-                if ($teamMember && $teamMember->user) {
-                    $organizationRoles = \App\Models\OrganizationRole::orderBy('level', 'desc')->get();
-                    $userRole = $teamMember->user->getOrganizationRole($user->organization_id);
-                }
-            } else {
-                // Default list view
-                $teamViewMode = 'list';
-                
-                // Check if current user has a TeamMember record, if not create one
-                $userTeamMember = \App\Models\TeamMember::where('organization_id', $user->organization_id)
-                    ->where('user_id', $user->id)
-                    ->first();
-                
-                if (!$userTeamMember) {
-                    // Auto-create a TeamMember record for the current user
-                    $nameParts = explode(' ', $user->name, 2);
-                    $firstName = $nameParts[0] ?? 'User';
-                    $lastName = $nameParts[1] ?? '';
-                    
-                    \App\Models\TeamMember::create([
-                        'id' => \Illuminate\Support\Str::uuid(),
-                        'organization_id' => $user->organization_id,
-                        'user_id' => $user->id,
-                        'first_name' => $firstName,
-                        'last_name' => $lastName,
-                        'email' => $user->email,
-                        'is_active' => true,
-                    ]);
-                    
-                    \Log::info('Auto-created TeamMember for current user', [
-                        'user_id' => $user->id,
-                        'organization_id' => $user->organization_id,
-                    ]);
-                }
-                
-                $query = \App\Models\TeamMember::where('organization_id', $user->organization_id);
-
-                if ($request->has('department_id') && $request->department_id !== '') {
-                    $query->where('department_id', $request->department_id);
-                }
-
-                if ($request->has('is_active') && $request->is_active !== '') {
-                    $query->where('is_active', $request->is_active === 'true');
-                }
-
-                if ($request->has('search') && $request->search !== '') {
-                    $search = $request->search;
-                    $query->where(function ($q) use ($search) {
-                        $q->where('first_name', 'like', "%{$search}%")
-                          ->orWhere('last_name', 'like', "%{$search}%")
-                          ->orWhere('email', 'like', "%{$search}%")
-                          ->orWhere('employee_number', 'like', "%{$search}%");
-                    });
-                }
-
-                $teamMembers = $query->with(['user', 'department'])->orderBy('first_name')->paginate(20);
+            // Load all organization roles for the role selector
+            $organizationRoles = \App\Models\OrganizationRole::orderBy('level', 'desc')->get();
+            
+            // Load users with access to this organization
+            $query = $organization->members()
+                ->withPivot('role', 'role_id', 'is_active', 'joined_at')
+                ->with(['organizations' => function ($q) use ($organization) {
+                    $q->where('organizations.id', $organization->id);
+                }]);
+            
+            // Search filter
+            if ($request->has('search') && $request->search !== '') {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
             }
+            
+            // Role filter
+            if ($request->has('role') && $request->role !== '') {
+                $roleSlug = $request->role;
+                $role = \App\Models\OrganizationRole::where('slug', $roleSlug)->first();
+                if ($role) {
+                    $query->wherePivot('role_id', $role->id);
+                }
+            }
+            
+            // Status filter
+            if ($request->has('status') && $request->status !== '') {
+                $query->wherePivot('is_active', $request->status === 'active');
+            }
+            
+            $usersWithAccess = $query->orderBy('name')->paginate(20);
+            
+            // Transform users to include role information
+            $organizationUsers = $usersWithAccess->through(function ($orgUser) use ($organization, $organizationRoles) {
+                $pivot = $orgUser->organizations->first()?->pivot;
+                $roleId = $pivot?->role_id;
+                $role = $roleId ? $organizationRoles->firstWhere('id', $roleId) : null;
+                
+                // Fallback to role slug if role_id not set
+                if (!$role && $pivot?->role) {
+                    $role = $organizationRoles->firstWhere('slug', $pivot->role);
+                }
+                
+                return [
+                    'id' => $orgUser->id,
+                    'name' => $orgUser->name,
+                    'email' => $orgUser->email,
+                    'avatar' => $orgUser->avatar,
+                    'role' => $role ? [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'slug' => $role->slug,
+                        'level' => $role->level,
+                    ] : null,
+                    'is_active' => $pivot?->is_active ?? true,
+                    'joined_at' => $pivot?->joined_at,
+                    'last_active_at' => $orgUser->last_active_at,
+                ];
+            });
         } else {
-            // Not on team route, but ensure teamViewMode is null
             $teamViewMode = null;
         }
+        
+        // Keep departments for potential HR module integration
+        $departments = \App\Models\Department::where('organization_id', $user->organization_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
 
         // Get modules
         $modules = $this->getModules($organization);
@@ -172,18 +143,26 @@ class SettingsController extends Controller
         return Inertia::render('Settings/Index', [
             'organization' => $organization,
             'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
                 'google_drive_connected' => !empty($user->google_drive_token),
                 'google_drive_connected_at' => $user->google_drive_connected_at,
                 'use_own_drive' => $user->use_own_drive ?? false,
             ],
-            'teamMembers' => $teamMembers,
-            'teamMember' => $teamMember,
+            // Access Control data
+            'organizationUsers' => $organizationUsers,
+            'organizationRoles' => $organizationRoles,
+            'currentUserRole' => $currentUserRole ? [
+                'id' => $currentUserRole->id,
+                'name' => $currentUserRole->name,
+                'slug' => $currentUserRole->slug,
+                'level' => $currentUserRole->level,
+                'permissions' => $currentUserRole->permissions,
+            ] : null,
             'teamViewMode' => $teamViewMode,
             'departments' => $departments,
-            'users' => $users,
-            'organizationRoles' => $organizationRoles,
-            'userRole' => $userRole,
-            'filters' => $request->only(['department_id', 'is_active', 'search']),
+            'filters' => $request->only(['role', 'status', 'search']),
             'modules' => $modules,
             'invoiceSettings' => $invoiceSettings,
             'bankDetails' => $bankDetails,
