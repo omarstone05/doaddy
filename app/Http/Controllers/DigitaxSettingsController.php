@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Addy\Modules\SmartInvoice\Models\DigitaxCredential;
+use App\Modules\SmartInvoice\Models\DigitaxCredential;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;

@@ -1,8 +1,8 @@
 <?php
 
-namespace Addy\Modules\SmartInvoice\Policies;
+namespace App\Modules\SmartInvoice\Policies;
 
-use Addy\Modules\SmartInvoice\Models\DigitaxCredential;
+use App\Modules\SmartInvoice\Models\DigitaxCredential;
 use Modules\User\Models\User;
 
 class DigitaxCredentialPolicy

@@ -1,9 +1,9 @@
 <?php
 
-namespace Addy\Modules\SmartInvoice\Http\Controllers;
+namespace App\Modules\SmartInvoice\Http\Controllers;
 
-use Addy\Modules\SmartInvoice\Models\DigitaxCredential;
-use Addy\Modules\SmartInvoice\Services\DigitaxService;
+use App\Modules\SmartInvoice\Models\DigitaxCredential;
+use App\Modules\SmartInvoice\Services\DigitaxService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;

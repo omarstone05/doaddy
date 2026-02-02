@@ -1,6 +1,6 @@
 <?php
 
-namespace Addy\Modules\SmartInvoice\Models;
+namespace App\Modules\SmartInvoice\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

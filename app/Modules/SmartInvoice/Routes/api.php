@@ -1,6 +1,6 @@
 <?php
 
-use Addy\Modules\SmartInvoice\Http\Controllers\DigitaxCredentialController;
+use App\Modules\SmartInvoice\Http\Controllers\DigitaxCredentialController;
 
 Route::middleware(['auth:api', 'organization'])->group(function () {
     

@@ -1,11 +1,11 @@
 <?php
 
-namespace Addy\Modules\SmartInvoice\Services;
+namespace App\Modules\SmartInvoice\Services;
 
 use App\Models\Invoice;
 use App\Models\Organization;
-use Addy\Modules\SmartInvoice\Models\DigitaxCredential;
-use Addy\Modules\SmartInvoice\Services\DigitaxService;
+use App\Modules\SmartInvoice\Models\DigitaxCredential;
+use App\Modules\SmartInvoice\Services\DigitaxService;
 use App\Jobs\CheckDigitaxInvoiceStatus;
 use Illuminate\Support\Facades\Log;
 use Exception;

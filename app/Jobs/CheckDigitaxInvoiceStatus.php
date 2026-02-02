@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Invoice;
-use Addy\Modules\SmartInvoice\Services\InvoiceDigitaxService;
+use App\Modules\SmartInvoice\Services\InvoiceDigitaxService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
