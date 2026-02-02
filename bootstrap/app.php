@@ -64,6 +64,16 @@ return tap(Application::configure(basePath: dirname(__DIR__))
         
         // Handle 500 Server errors with Inertia (only in production)
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            // Don't intercept authentication exceptions - let Laravel redirect to login
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                return null;
+            }
+            
+            // Don't intercept validation exceptions
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return null;
+            }
+            
             if (!app()->environment('local') && !$request->expectsJson()) {
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 
