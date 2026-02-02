@@ -117,6 +117,8 @@ class ModuleManager
 
         $organization = $this->getCurrentOrganization();
         if ($organization) {
+            // Refresh to get latest enabled_modules from database
+            $organization->refresh();
             $enabledModules = $organization->enabled_modules ?? [];
             $alias = $module['config']['alias'] ?? $name;
             return in_array($alias, $enabledModules, true) || in_array($name, $enabledModules, true);
@@ -469,11 +471,16 @@ class ModuleManager
             return null;
         }
 
-        $orgId = session('current_organization_id') ?? $user->current_organization_id;
+        // Try multiple sources for organization ID
+        $orgId = session('current_organization_id') 
+            ?? $user->current_organization_id 
+            ?? $user->organization_id;
+            
         if ($orgId) {
             return Organization::find($orgId);
         }
 
-        return null;
+        // Final fallback: get first organization the user belongs to
+        return $user->organizations()->first();
     }
 }

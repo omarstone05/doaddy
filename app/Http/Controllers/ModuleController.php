@@ -198,6 +198,8 @@ class ModuleController extends Controller
     {
         // Force fresh discovery by clearing cache first
         $this->moduleManager->discover();
+        
+        // Also refresh the organization from DB to get latest enabled_modules
         $modules = $this->moduleManager->all();
         
         $formattedModules = [];
