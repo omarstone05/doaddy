@@ -71,21 +71,36 @@ class DefaultChartOfAccountsSeeder extends Seeder
         $defaults = AccountType::getDefaults();
         
         foreach ($defaults as $default) {
-            // Check if account type already exists (code is unique globally)
-            $existing = AccountType::where('code', $default['code'])->first();
+            // Check if account type already exists for THIS organization
+            $existing = AccountType::where('code', $default['code'])
+                ->where('organization_id', $organizationId)
+                ->first();
             
             if ($existing) {
-                // Update existing to ensure it has the correct organization_id and other fields
+                // Update existing record
                 $existing->update(array_merge($default, [
-                    'organization_id' => $organizationId,
                     'report_category' => $this->getReportCategory($default['category']),
                 ]));
             } else {
-                // Create new
-                AccountType::create(array_merge($default, [
-                    'organization_id' => $organizationId,
-                    'report_category' => $this->getReportCategory($default['category']),
-                ]));
+                // Create new - use updateOrCreate to handle race conditions
+                try {
+                    AccountType::updateOrCreate(
+                        [
+                            'code' => $default['code'],
+                            'organization_id' => $organizationId,
+                        ],
+                        array_merge($default, [
+                            'report_category' => $this->getReportCategory($default['category']),
+                        ])
+                    );
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // If duplicate key error, log and continue - another process may have created it
+                    if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                        \Log::warning("Account type {$default['code']} already exists, skipping");
+                        continue;
+                    }
+                    throw $e;
+                }
             }
         }
     }
