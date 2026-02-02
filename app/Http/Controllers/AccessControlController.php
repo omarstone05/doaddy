@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AddedToOrganizationMail;
+use App\Mail\OrganizationInvitationMail;
 use App\Models\Organization;
 use App\Models\OrganizationRole;
 use App\Models\User;
@@ -66,6 +68,20 @@ class AccessControlController extends Controller
                 'invited_by' => $currentUser->id,
             ]);
 
+            // Send notification email to the added user
+            try {
+                Mail::to($existingUser->email)->send(new AddedToOrganizationMail(
+                    $organization,
+                    $role,
+                    $currentUser
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to send added-to-organization email', [
+                    'user_id' => $existingUser->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return back()->with('success', "{$existingUser->name} has been added to the organization as {$role->name}.");
         }
 
@@ -85,15 +101,29 @@ class AccessControlController extends Controller
             'updated_at' => now(),
         ]);
 
-        // TODO: Send invitation email
-        // Mail::to($request->email)->send(new OrganizationInvitation($organization, $inviteToken, $role, $request->name));
+        // Send invitation email
+        try {
+            Mail::to($request->email)->send(new OrganizationInvitationMail(
+                $organization,
+                $role,
+                $currentUser,
+                $inviteToken,
+                $request->name
+            ));
 
-        Log::info('Organization invitation sent', [
-            'email' => $request->email,
-            'organization_id' => $organizationId,
-            'role' => $role->slug,
-            'invited_by' => $currentUser->id,
-        ]);
+            Log::info('Organization invitation email sent', [
+                'email' => $request->email,
+                'organization_id' => $organizationId,
+                'role' => $role->slug,
+                'invited_by' => $currentUser->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send invitation email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the invite if email fails - invitation is still recorded
+        }
 
         return back()->with('success', "Invitation sent to {$request->email}.");
     }
