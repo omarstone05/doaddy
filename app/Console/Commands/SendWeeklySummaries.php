@@ -57,7 +57,7 @@ class SendWeeklySummaries extends Command
         foreach ($organizations as $organization) {
             // Get users to send to (owner and admins)
             $usersQuery = $organization->members()
-                ->wherePivotIn('organization_role_id', function ($q) {
+                ->wherePivotIn('role_id', function ($q) {
                     $q->select('id')
                         ->from('organization_roles')
                         ->whereIn('slug', ['owner', 'admin']);
