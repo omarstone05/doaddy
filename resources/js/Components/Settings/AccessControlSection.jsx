@@ -242,32 +242,38 @@ export default function AccessControlSection({
                                                 
                                                 {openDropdown === orgUser.id && (
                                                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10">
-                                                        {canChangeRoles && orgUser.role?.slug !== 'owner' && (
-                                                            <button
-                                                                onClick={() => openChangeRoleModal(orgUser)}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                            >
-                                                                <Shield className="h-4 w-4" />
-                                                                Change Role
-                                                            </button>
-                                                        )}
-                                                        {orgUser.role?.slug !== 'owner' && (
-                                                            <button
-                                                                onClick={() => handleToggleStatus(orgUser.id)}
-                                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                            >
-                                                                <RefreshCw className="h-4 w-4" />
-                                                                {orgUser.is_active ? 'Deactivate' : 'Activate'}
-                                                            </button>
-                                                        )}
-                                                        {orgUser.role?.slug !== 'owner' && (
-                                                            <button
-                                                                onClick={() => handleRemoveUser(orgUser.id, orgUser.name)}
-                                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                            >
-                                                                <UserMinus className="h-4 w-4" />
-                                                                Remove Access
-                                                            </button>
+                                                        {orgUser.role?.slug === 'owner' ? (
+                                                            // Owner users - limited actions
+                                                            <div className="px-4 py-2 text-sm text-gray-500 italic">
+                                                                Owner cannot be modified
+                                                            </div>
+                                                        ) : (
+                                                            // Non-owner users - full actions
+                                                            <>
+                                                                {canChangeRoles && (
+                                                                    <button
+                                                                        onClick={() => openChangeRoleModal(orgUser)}
+                                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                    >
+                                                                        <Shield className="h-4 w-4" />
+                                                                        Change Role
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleToggleStatus(orgUser.id)}
+                                                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                >
+                                                                    <RefreshCw className="h-4 w-4" />
+                                                                    {orgUser.is_active ? 'Deactivate' : 'Activate'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRemoveUser(orgUser.id, orgUser.name)}
+                                                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                                >
+                                                                    <UserMinus className="h-4 w-4" />
+                                                                    Remove Access
+                                                                </button>
+                                                            </>
                                                         )}
                                                     </div>
                                                 )}
