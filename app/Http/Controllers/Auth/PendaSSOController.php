@@ -352,6 +352,13 @@ class PendaSSOController extends Controller
 
     /**
      * Sync user's organizations from Penda Cloud.
+     * 
+     * IMPORTANT: Penda Cloud organizations have:
+     * - 'id': Integer ID (e.g., 27) - stored in penda_organization_id for linking
+     * - 'uuid': UUID string (e.g., 'e51d345b-...') - NOT used as Addy's org ID
+     * 
+     * Addy organizations use their own UUIDs as primary keys.
+     * We link them via penda_organization_id to enable subscription syncing.
      */
     protected function syncOrganizations(User $user, array $pendaOrganizations, string $accessToken): void
     {
@@ -360,54 +367,74 @@ class PendaSSOController extends Controller
         }
 
         foreach ($pendaOrganizations as $pendaOrg) {
-            $orgId = $pendaOrg['id'] ?? null;
-            if (!$orgId) {
+            // Penda Cloud's integer ID - this is what we store in penda_organization_id
+            $pendaOrgId = $pendaOrg['id'] ?? null;
+            // Penda Cloud's UUID - useful for additional linking but not as Addy's primary key
+            $pendaOrgUuid = $pendaOrg['uuid'] ?? null;
+            
+            if (!$pendaOrgId) {
+                Log::warning('Penda SSO: Organization missing ID', ['org' => $pendaOrg]);
                 continue;
             }
 
-            // Find or create organization
-            // First try to find by ID, then by slug (to handle cases where org exists with different ID)
-            $organization = \App\Models\Organization::find($orgId);
+            // Find organization by penda_organization_id first (the proper link)
+            $organization = \App\Models\Organization::where('penda_organization_id', $pendaOrgId)->first();
             
+            // Fallback: try to find by slug if not linked yet
             if (!$organization) {
                 $slug = $pendaOrg['slug'] ?? \Illuminate\Support\Str::slug($pendaOrg['name'] ?? 'organization');
                 $organization = \App\Models\Organization::where('slug', $slug)->first();
                 
-                if (!$organization) {
-                    // Create new organization with unique slug
-                    $baseSlug = $slug;
-                    $counter = 1;
-                    while (\App\Models\Organization::where('slug', $slug)->exists()) {
-                        $slug = $baseSlug . '-' . $counter;
-                        $counter++;
-                    }
-                    
-                    $organization = \App\Models\Organization::create([
-                        'id' => $orgId,
-                        'name' => $pendaOrg['name'] ?? 'Organization',
-                        'slug' => $slug,
-                        'currency' => $pendaOrg['currency'] ?? 'USD',
-                        'timezone' => $pendaOrg['timezone'] ?? 'UTC',
-                        'status' => $pendaOrg['status'] ?? 'active',
-                        'penda_organization_id' => $pendaOrg['uuid'] ?? $orgId,
-                        'logo' => $pendaOrg['logo'] ?? null,
+                if ($organization) {
+                    // Found by slug - link it to Penda Cloud
+                    Log::info('Penda SSO: Linking existing organization to Penda Cloud', [
+                        'addy_org_id' => $organization->id,
+                        'penda_org_id' => $pendaOrgId,
                     ]);
                 }
             }
+            
+            if (!$organization) {
+                // Create new organization with a fresh UUID (Addy generates its own IDs)
+                $slug = $pendaOrg['slug'] ?? \Illuminate\Support\Str::slug($pendaOrg['name'] ?? 'organization');
+                $baseSlug = $slug;
+                $counter = 1;
+                while (\App\Models\Organization::where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+                
+                $organization = \App\Models\Organization::create([
+                    // Let Addy generate its own UUID - don't use Penda's ID
+                    'name' => $pendaOrg['name'] ?? 'Organization',
+                    'slug' => $slug,
+                    'currency' => $pendaOrg['currency'] ?? 'USD',
+                    'timezone' => $pendaOrg['timezone'] ?? 'UTC',
+                    'status' => $pendaOrg['status'] ?? 'active',
+                    'penda_organization_id' => $pendaOrgId, // Store Penda's integer ID for linking
+                    'logo' => $pendaOrg['logo'] ?? null,
+                ]);
+                
+                Log::info('Penda SSO: Created new organization linked to Penda Cloud', [
+                    'addy_org_id' => $organization->id,
+                    'penda_org_id' => $pendaOrgId,
+                ]);
+            }
 
             // Always refresh organization details from Penda Cloud (source of truth)
+            // And ensure penda_organization_id is set for existing orgs
             $organization->fill([
                 'name' => $pendaOrg['name'] ?? $organization->name,
                 'slug' => $pendaOrg['slug'] ?? $organization->slug,
                 'currency' => $pendaOrg['currency'] ?? $organization->currency,
                 'timezone' => $pendaOrg['timezone'] ?? $organization->timezone,
                 'status' => $pendaOrg['status'] ?? $organization->status,
-                'penda_organization_id' => $pendaOrg['uuid'] ?? $organization->penda_organization_id,
+                'penda_organization_id' => $pendaOrgId, // Always ensure this is set
                 'logo' => $pendaOrg['logo'] ?? $organization->logo,
             ]);
             $organization->save();
 
-            // Use the actual organization ID (UUID) not the Penda org ID which may be an integer
+            // Use Addy's organization ID (UUID)
             $actualOrgId = $organization->id;
             
             // Attach user to organization if not already attached
@@ -644,35 +671,48 @@ class PendaSSOController extends Controller
     /**
      * Sync subscriptions from Penda Cloud to local organization_subscriptions table.
      * This ensures Addy's local checks for subscription status are up to date.
+     * 
+     * IMPORTANT: Organizations are linked via penda_organization_id (Penda's integer ID).
      */
     protected function syncSubscriptionsFromPenda($user, array $pendaOrganizations): void
     {
         try {
             foreach ($pendaOrganizations as $pendaOrg) {
                 $subscriptions = $pendaOrg['subscriptions'] ?? [];
-                $orgUuid = $pendaOrg['uuid'] ?? null;
-                $orgId = $pendaOrg['id'] ?? null;
-
-                if (empty($subscriptions)) {
-                    continue;
-                }
-
-                // Find the local organization by UUID or penda_organization_id
-                $localOrg = null;
-                if ($orgUuid) {
-                    $localOrg = \App\Models\Organization::where('id', $orgUuid)->first();
-                }
-                if (!$localOrg && $orgId) {
-                    $localOrg = \App\Models\Organization::where('penda_organization_id', $orgId)->first();
-                }
+                $pendaOrgId = $pendaOrg['id'] ?? null; // Penda's integer ID
                 
-                if (!$localOrg) {
-                    Log::debug('SSO Subscription Sync: Organization not found locally', [
-                        'penda_org_id' => $orgId,
-                        'penda_org_uuid' => $orgUuid,
+                if (empty($subscriptions)) {
+                    Log::debug('SSO Subscription Sync: No subscriptions for org', [
+                        'penda_org_id' => $pendaOrgId,
+                        'org_name' => $pendaOrg['name'] ?? 'unknown',
                     ]);
                     continue;
                 }
+
+                if (!$pendaOrgId) {
+                    Log::warning('SSO Subscription Sync: Missing penda_org_id', [
+                        'org' => $pendaOrg,
+                    ]);
+                    continue;
+                }
+
+                // Find the local organization by penda_organization_id (the proper link)
+                $localOrg = \App\Models\Organization::where('penda_organization_id', $pendaOrgId)->first();
+                
+                if (!$localOrg) {
+                    Log::warning('SSO Subscription Sync: Organization not found locally by penda_organization_id', [
+                        'penda_org_id' => $pendaOrgId,
+                        'org_name' => $pendaOrg['name'] ?? 'unknown',
+                        'hint' => 'Organization may not be properly linked. Check penda_organization_id column.',
+                    ]);
+                    continue;
+                }
+                
+                Log::info('SSO Subscription Sync: Processing subscriptions', [
+                    'local_org_id' => $localOrg->id,
+                    'penda_org_id' => $pendaOrgId,
+                    'subscription_count' => count($subscriptions),
+                ]);
 
                 foreach ($subscriptions as $sub) {
                     $appSlug = $sub['app']['slug'] ?? null;
