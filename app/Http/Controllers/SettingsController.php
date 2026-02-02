@@ -249,7 +249,8 @@ class SettingsController extends Controller
                     'features' => $module['config']['features'] ?? [],
                     'suitable_for' => $module['config']['suitable_for'] ?? [],
                     'dependencies' => $module['config']['dependencies'] ?? [],
-                    'enabled' => $module['enabled'] ?? false,
+                    // Use isEnabled() to check organization's enabled_modules, not module.json config
+                    'enabled' => $moduleManager->isEnabled($name),
                 ];
             }
             
