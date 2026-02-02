@@ -60,7 +60,6 @@ import {
 // Settings Navigation Items
 // Note: Organization, Team, Security, and Google Drive settings are managed in Penda Cloud
 const settingsNav = [
-    { id: 'subscription', name: 'Subscription', icon: CreditCard, description: 'Plan & billing' },
     { id: 'billing', name: 'Billing & Documents', icon: FileText, description: 'Invoices, quotes & banking' },
     { id: 'tax', name: 'Tax', icon: Receipt, description: 'Tax rates & compliance' },
     { id: 'team', name: 'Team', icon: Users, description: 'Manage team members' },
@@ -68,6 +67,7 @@ const settingsNav = [
     { id: 'modules', name: 'Modules', icon: Package, description: 'Enable/disable features' },
     { id: 'assistant', name: 'AI Assistant', icon: Sparkles, description: 'Addy preferences' },
     { id: 'notifications', name: 'Notifications', icon: Bell, description: 'Alert preferences' },
+    { id: 'subscription', name: 'Subscription', icon: CreditCard, description: 'Plan & billing' },
 ];
 
 export default function SettingsIndex({ 
@@ -93,7 +93,7 @@ export default function SettingsIndex({
     subscription = null,
 }) {
     const { flash, url } = usePage().props;
-    const [activeSection, setActiveSection] = useState('subscription');
+    const [activeSection, setActiveSection] = useState('billing');
     const [activeSubTab, setActiveSubTab] = useState(null);
     
     // Organization states
@@ -1969,8 +1969,6 @@ export default function SettingsIndex({
     // Render active section content
     const renderSectionContent = () => {
         switch (activeSection) {
-            case 'subscription':
-                return renderSubscriptionSection();
             case 'billing':
                 return renderBillingSection();
             case 'tax':
@@ -1985,8 +1983,10 @@ export default function SettingsIndex({
                 return renderTeamSection();
             case 'gamification':
                 return renderGamificationSection();
-            default:
+            case 'subscription':
                 return renderSubscriptionSection();
+            default:
+                return renderBillingSection();
         }
     };
 
