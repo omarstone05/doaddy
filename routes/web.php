@@ -391,6 +391,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/team/{userId}/role', [\App\Http\Controllers\AccessControlController::class, 'changeRole'])->name('team.change-role');
         Route::delete('/team/{userId}', [\App\Http\Controllers\AccessControlController::class, 'remove'])->name('team.remove');
         Route::post('/team/{userId}/toggle-status', [\App\Http\Controllers\AccessControlController::class, 'toggleStatus'])->name('team.toggle-status');
+        Route::post('/team/{userId}/transfer-ownership', [\App\Http\Controllers\AccessControlController::class, 'transferOwnership'])->name('team.transfer-ownership');
     });
     
     // Legacy team routes - redirect to settings

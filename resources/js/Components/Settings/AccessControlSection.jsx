@@ -12,6 +12,8 @@ import {
     UserMinus,
     RefreshCw,
     ChevronDown,
+    Crown,
+    AlertTriangle,
 } from 'lucide-react';
 
 // Role badge colors
@@ -34,8 +36,10 @@ export default function AccessControlSection({
 }) {
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showRoleModal, setShowRoleModal] = useState(false);
+    const [showTransferModal, setShowTransferModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [openDropdown, setOpenDropdown] = useState(null);
+    const [transferring, setTransferring] = useState(false);
 
     const inviteForm = useForm({
         email: '',
@@ -55,6 +59,8 @@ export default function AccessControlSection({
     const canChangeRoles = currentUserRole?.permissions?.includes('users.change_role') ||
                            currentUserRole?.slug === 'owner' ||
                            currentUserRole?.slug === 'admin';
+
+    const isOwner = currentUserRole?.slug === 'owner';
 
     const handleInvite = (e) => {
         e.preventDefault();
@@ -100,6 +106,29 @@ export default function AccessControlSection({
         roleForm.setData('role_id', user.role?.id || '');
         setShowRoleModal(true);
         setOpenDropdown(null);
+    };
+
+    const openTransferModal = (user) => {
+        setSelectedUser(user);
+        setShowTransferModal(true);
+        setOpenDropdown(null);
+    };
+
+    const handleTransferOwnership = () => {
+        if (!selectedUser) return;
+        setTransferring(true);
+        
+        router.post(`/settings/team/${selectedUser.id}/transfer-ownership`, {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowTransferModal(false);
+                setSelectedUser(null);
+                setTransferring(false);
+            },
+            onError: () => {
+                setTransferring(false);
+            },
+        });
     };
 
     // Filter roles that current user can assign (only lower level roles)
@@ -273,6 +302,18 @@ export default function AccessControlSection({
                                                                     <UserMinus className="h-4 w-4" />
                                                                     Remove Access
                                                                 </button>
+                                                                {isOwner && (
+                                                                    <>
+                                                                        <div className="border-t border-gray-100 my-1"></div>
+                                                                        <button
+                                                                            onClick={() => openTransferModal(orgUser)}
+                                                                            className="w-full px-4 py-2 text-left text-sm text-purple-600 hover:bg-purple-50 flex items-center gap-2"
+                                                                        >
+                                                                            <Crown className="h-4 w-4" />
+                                                                            Transfer Ownership
+                                                                        </button>
+                                                                    </>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -440,6 +481,69 @@ export default function AccessControlSection({
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer Ownership Modal */}
+            {showTransferModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-amber-100 rounded-xl">
+                                <AlertTriangle className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">Transfer Ownership</h3>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                            <p className="text-sm text-amber-800">
+                                <strong>Warning:</strong> This action will transfer full ownership of this organization to{' '}
+                                <span className="font-semibold">{selectedUser.name}</span>. You will be demoted to Admin.
+                            </p>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4">
+                            The new owner will have complete control over the organization, including:
+                        </p>
+                        <ul className="text-sm text-gray-600 mb-6 space-y-1">
+                            <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                Managing all users and their roles
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                Billing and subscription management
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                Organization settings and configuration
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                Ability to delete the organization
+                            </li>
+                        </ul>
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                onClick={handleTransferOwnership}
+                                disabled={transferring}
+                                className="flex-1 bg-amber-600 hover:bg-amber-700"
+                            >
+                                <Crown className="h-4 w-4 mr-2" />
+                                {transferring ? 'Transferring...' : 'Confirm Transfer'}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => {
+                                    setShowTransferModal(false);
+                                    setSelectedUser(null);
+                                }}
+                                disabled={transferring}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

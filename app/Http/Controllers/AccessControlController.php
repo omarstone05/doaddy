@@ -242,6 +242,63 @@ class AccessControlController extends Controller
     }
 
     /**
+     * Transfer organization ownership to another user
+     */
+    public function transferOwnership(string $userId)
+    {
+        $currentUser = Auth::user();
+        $organizationId = $currentUser->organization_id;
+        $currentUserRole = $currentUser->getOrganizationRole($organizationId);
+
+        // Only owner can transfer ownership
+        if ($currentUserRole?->slug !== 'owner') {
+            return back()->withErrors(['error' => 'Only the organization owner can transfer ownership.']);
+        }
+
+        $targetUser = User::findOrFail($userId);
+
+        // Cannot transfer to yourself
+        if ($targetUser->id === $currentUser->id) {
+            return back()->withErrors(['error' => 'You cannot transfer ownership to yourself.']);
+        }
+
+        // Target user must be a member of the organization
+        if (!$targetUser->belongsToOrganization($organizationId)) {
+            return back()->withErrors(['error' => 'The user must be a member of the organization to receive ownership.']);
+        }
+
+        $ownerRole = OrganizationRole::where('slug', 'owner')->first();
+        $adminRole = OrganizationRole::where('slug', 'admin')->first();
+
+        if (!$ownerRole || !$adminRole) {
+            return back()->withErrors(['error' => 'Required roles not found in the system.']);
+        }
+
+        // Use transaction for atomic operation
+        DB::transaction(function () use ($currentUser, $targetUser, $organizationId, $ownerRole, $adminRole) {
+            // Make the target user the new owner
+            $targetUser->organizations()->updateExistingPivot($organizationId, [
+                'role_id' => $ownerRole->id,
+                'role' => $ownerRole->slug,
+            ]);
+
+            // Demote current owner to admin
+            $currentUser->organizations()->updateExistingPivot($organizationId, [
+                'role_id' => $adminRole->id,
+                'role' => $adminRole->slug,
+            ]);
+        });
+
+        Log::info('Organization ownership transferred', [
+            'organization_id' => $organizationId,
+            'from_user_id' => $currentUser->id,
+            'to_user_id' => $targetUser->id,
+        ]);
+
+        return back()->with('success', "Ownership has been transferred to {$targetUser->name}. You are now an Admin.");
+    }
+
+    /**
      * Toggle a user's active status in the organization
      */
     public function toggleStatus(string $userId)
