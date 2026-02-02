@@ -77,6 +77,13 @@ class PendaSSOController extends Controller
      */
     public function callback(Request $request)
     {
+        Log::info('Penda SSO: Callback received', [
+            'has_code' => $request->has('code'),
+            'has_error' => $request->has('error'),
+            'has_state' => $request->has('state'),
+            'query_params' => array_keys($request->query()),
+        ]);
+
         // Verify state to prevent CSRF
         $storedState = $request->session()->pull('penda_sso_state');
         
