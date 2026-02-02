@@ -14,7 +14,9 @@ export default function Login({ errors }) {
         if (!errors?.sso && autoRedirect) {
             const timer = setTimeout(() => {
                 setIsRedirecting(true);
-                router.visit(ssoUrl, { method: 'get' });
+                // Use window.location.href for OAuth redirect to avoid CORS issues
+                // Inertia's router.visit() makes AJAX requests which get blocked by CORS
+                window.location.href = ssoUrl;
             }, 1000);
             return () => clearTimeout(timer);
         }
@@ -22,7 +24,8 @@ export default function Login({ errors }) {
 
     const handleLogin = () => {
         setIsRedirecting(true);
-        router.visit(ssoUrl, { method: 'get' });
+        // Use window.location.href for OAuth redirect to avoid CORS issues
+        window.location.href = ssoUrl;
     };
 
     return (
