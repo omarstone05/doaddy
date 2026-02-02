@@ -247,6 +247,9 @@ class PendaSSOController extends Controller
             // Sync organizations from Penda Cloud
             $this->syncOrganizations($user, $pendaOrganizations, $accessToken);
 
+            // Sync subscriptions from Penda Cloud to local table
+            $this->syncSubscriptionsFromPenda($user, $pendaOrganizations);
+
             // Log the user in
             Auth::login($user, true);
             $request->session()->regenerate();
@@ -636,5 +639,97 @@ class PendaSSOController extends Controller
             500, 502, 503 => 'Penda Cloud is temporarily unavailable. Please try again in a few minutes.',
             default => 'Failed to retrieve your user information. Please try again.',
         };
+    }
+
+    /**
+     * Sync subscriptions from Penda Cloud to local organization_subscriptions table.
+     * This ensures Addy's local checks for subscription status are up to date.
+     */
+    protected function syncSubscriptionsFromPenda($user, array $pendaOrganizations): void
+    {
+        try {
+            foreach ($pendaOrganizations as $pendaOrg) {
+                $subscriptions = $pendaOrg['subscriptions'] ?? [];
+                $orgUuid = $pendaOrg['uuid'] ?? null;
+                $orgId = $pendaOrg['id'] ?? null;
+
+                if (empty($subscriptions)) {
+                    continue;
+                }
+
+                // Find the local organization by UUID or penda_organization_id
+                $localOrg = null;
+                if ($orgUuid) {
+                    $localOrg = \App\Models\Organization::where('id', $orgUuid)->first();
+                }
+                if (!$localOrg && $orgId) {
+                    $localOrg = \App\Models\Organization::where('penda_organization_id', $orgId)->first();
+                }
+                
+                if (!$localOrg) {
+                    Log::debug('SSO Subscription Sync: Organization not found locally', [
+                        'penda_org_id' => $orgId,
+                        'penda_org_uuid' => $orgUuid,
+                    ]);
+                    continue;
+                }
+
+                foreach ($subscriptions as $sub) {
+                    $appSlug = $sub['app']['slug'] ?? null;
+                    
+                    // Only sync Addy subscriptions
+                    if ($appSlug !== 'addy') {
+                        continue;
+                    }
+
+                    $status = $sub['status'] ?? 'active';
+                    $planSlug = $sub['plan']['slug'] ?? 'basic';
+                    $planTier = $sub['plan']['tier'] ?? null;
+                    $trialEndsAt = $sub['trial_ends_at'] ?? null;
+                    $endsAt = $sub['ends_at'] ?? null;
+
+                    // Map plan slug to features
+                    $planFeatures = [
+                        'free' => ['has_elective_modules' => false, 'has_custom_module' => false, 'max_users' => 1],
+                        'starter' => ['has_elective_modules' => false, 'has_custom_module' => false, 'max_users' => 5],
+                        'basic' => ['has_elective_modules' => false, 'has_custom_module' => false, 'max_users' => 10],
+                        'professional' => ['has_elective_modules' => true, 'has_custom_module' => false, 'max_users' => 25],
+                        'enterprise' => ['has_elective_modules' => true, 'has_custom_module' => true, 'max_users' => null],
+                    ];
+
+                    $features = $planFeatures[$planSlug] ?? $planFeatures['basic'];
+
+                    // Upsert the local subscription
+                    \DB::table('organization_subscriptions')->updateOrInsert(
+                        [
+                            'organization_id' => $localOrg->id,
+                            'app_id' => 'addy',
+                        ],
+                        [
+                            'plan' => $planSlug,
+                            'status' => $status,
+                            'has_elective_modules' => $features['has_elective_modules'],
+                            'has_custom_module' => $features['has_custom_module'],
+                            'max_users' => $features['max_users'],
+                            'starts_at' => now(),
+                            'expires_at' => $endsAt ? \Carbon\Carbon::parse($endsAt) : ($trialEndsAt ? \Carbon\Carbon::parse($trialEndsAt) : null),
+                            'synced_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+
+                    Log::info('SSO Subscription Sync: Updated local subscription', [
+                        'organization_id' => $localOrg->id,
+                        'plan' => $planSlug,
+                        'status' => $status,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('SSO Subscription Sync: Failed', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+            ]);
+        }
     }
 }
