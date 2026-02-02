@@ -198,13 +198,13 @@ class PendaSSOController extends Controller
             
             // If not entitled via Penda Cloud, check local subscriptions
             if (!$hasAddyAccess) {
-                // Check if user's organization has a local active subscription
+                // Check if user's organization has a local active or trial subscription
                 $userOrgIds = collect($pendaOrganizations)->pluck('id')->filter()->toArray();
                 if (!empty($userOrgIds)) {
                     $hasLocalSubscription = \DB::table('organization_subscriptions')
                         ->whereIn('organization_id', $userOrgIds)
                         ->where('app_id', 'addy')
-                        ->where('status', 'active')
+                        ->whereIn('status', ['active', 'trial'])
                         ->where(function ($q) {
                             $q->whereNull('expires_at')
                               ->orWhere('expires_at', '>', now());
@@ -225,7 +225,7 @@ class PendaSSOController extends Controller
                     $hasLocalSubscription = \DB::table('organization_subscriptions')
                         ->where('organization_id', $user->organization_id)
                         ->where('app_id', 'addy')
-                        ->where('status', 'active')
+                        ->whereIn('status', ['active', 'trial'])
                         ->where(function ($q) {
                             $q->whereNull('expires_at')
                               ->orWhere('expires_at', '>', now());
