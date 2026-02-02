@@ -558,20 +558,60 @@ class InvoiceController extends Controller
         }
     }
 
-    public function send($id)
+    public function send(Request $request, $id)
     {
         $organizationId = $this->getOrganizationId();
         if (!$organizationId) {
             abort(403, 'You must belong to an organization to send invoices.');
         }
 
-        $invoice = Invoice::where('organization_id', $organizationId)
+        $invoice = Invoice::with(['customer', 'items'])
+            ->where('organization_id', $organizationId)
             ->findOrFail($id);
 
-        // TODO: Implement email sending
-        $invoice->update(['status' => 'sent']);
+        $organization = Organization::find($organizationId);
 
-        return back()->with('message', 'Invoice sent successfully');
+        // Check if customer has an email
+        if (!$invoice->customer || !$invoice->customer->email) {
+            return back()->withErrors(['error' => 'Customer does not have an email address.']);
+        }
+
+        $customMessage = $request->input('message');
+
+        try {
+            // Send the invoice email
+            \Illuminate\Support\Facades\Mail::to($invoice->customer->email)
+                ->send(new \App\Mail\InvoiceSentMail(
+                    $invoice,
+                    $organization,
+                    null, // PDF path - can be implemented later
+                    $customMessage
+                ));
+
+            // Update invoice status
+            $invoice->update([
+                'status' => 'sent',
+                'last_reminder_sent_at' => now(),
+                'last_reminder_channel' => 'email',
+            ]);
+
+            Log::info('Invoice sent via email', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'customer_email' => $invoice->customer->email,
+                'organization_id' => $organizationId,
+            ]);
+
+            return back()->with('message', 'Invoice sent successfully to ' . $invoice->customer->email);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send invoice email', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'Failed to send invoice: ' . $e->getMessage()]);
+        }
     }
 
     protected function calculateNextInvoiceDate($startDate, $frequency, $day): ?string
