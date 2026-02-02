@@ -128,7 +128,10 @@ class ModuleController extends Controller
         }
 
         try {
-            if ($moduleData['enabled']) {
+            // Use isEnabled() which checks organization's enabled_modules, not the module.json config
+            $isCurrentlyEnabled = $this->moduleManager->isEnabled($module);
+            
+            if ($isCurrentlyEnabled) {
                 $this->moduleManager->disable($module);
                 $message = 'Module disabled successfully';
             } else {
@@ -156,7 +159,7 @@ class ModuleController extends Controller
                     'message' => $message,
                     'module' => [
                         'name' => $module,
-                        'enabled' => !$moduleData['enabled'],
+                        'enabled' => !$isCurrentlyEnabled,
                     ],
                 ]);
             }
