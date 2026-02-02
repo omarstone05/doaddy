@@ -667,6 +667,73 @@ class ModuleToggleRobustTest extends TestCase
     }
 
     /**
+     * Ensures the settings page shows correct module enabled state based on organization,
+     * not module.json config.
+     * 
+     * @test
+     */
+    public function settings_page_shows_correct_module_enabled_state(): void
+    {
+        $this->authenticate();
+        
+        // Set organization to have specific modules enabled
+        $this->testOrganization->enabled_modules = [$this->testModuleAlias];
+        $this->testOrganization->save();
+        
+        // Visit settings page (which should show modules from getModules())
+        $response = $this->get('/settings');
+        
+        $response->assertSuccessful();
+        
+        // Check that the modules prop contains correct enabled state
+        $page = $response->viewData('page');
+        $modules = $page['props']['modules'] ?? [];
+        
+        $testModule = collect($modules)->firstWhere('name', $this->testModuleName);
+        
+        if ($testModule) {
+            $this->assertTrue(
+                $testModule['enabled'], 
+                "Settings page should show {$this->testModuleName} as enabled based on organization->enabled_modules"
+            );
+        }
+    }
+
+    /**
+     * Ensures the settings page shows modules as disabled when not in organization's enabled_modules.
+     * 
+     * @test
+     */
+    public function settings_page_shows_module_as_disabled_when_not_in_org(): void
+    {
+        $this->authenticate();
+        
+        // Set organization to have NO modules enabled
+        $this->testOrganization->enabled_modules = [];
+        $this->testOrganization->save();
+        
+        $response = $this->get('/settings');
+        $response->assertSuccessful();
+        
+        $page = $response->viewData('page');
+        $modules = $page['props']['modules'] ?? [];
+        
+        $testModule = collect($modules)->firstWhere('name', $this->testModuleName);
+        
+        // Get module config to check if it has always_enabled
+        $moduleManager = new ModuleManager();
+        $allModules = $moduleManager->all();
+        $moduleConfig = $allModules[$this->testModuleName] ?? [];
+        
+        if ($testModule && empty($moduleConfig['config']['always_enabled'])) {
+            $this->assertFalse(
+                $testModule['enabled'], 
+                "Settings page should show {$this->testModuleName} as disabled when not in organization->enabled_modules"
+            );
+        }
+    }
+
+    /**
      * Ensures that new modules added to the system work correctly with toggle.
      * 
      * @test
