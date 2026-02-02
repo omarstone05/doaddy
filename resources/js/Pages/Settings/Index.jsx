@@ -60,6 +60,7 @@ import {
 // Settings Navigation Items
 // Note: Organization, Team, Security, and Google Drive settings are managed in Penda Cloud
 const settingsNav = [
+    { id: 'subscription', name: 'Subscription', icon: CreditCard, description: 'Plan & billing' },
     { id: 'billing', name: 'Billing & Documents', icon: FileText, description: 'Invoices, quotes & banking' },
     { id: 'tax', name: 'Tax', icon: Receipt, description: 'Tax rates & compliance' },
     { id: 'team', name: 'Team', icon: Users, description: 'Manage team members' },
@@ -89,9 +90,10 @@ export default function SettingsIndex({
     digitaxAvailable = false,
     digitaxCredentials = null,
     gamificationData = {},
+    subscription = null,
 }) {
     const { flash, url } = usePage().props;
-    const [activeSection, setActiveSection] = useState('billing');
+    const [activeSection, setActiveSection] = useState('subscription');
     const [activeSubTab, setActiveSubTab] = useState(null);
     
     // Organization states
@@ -639,6 +641,158 @@ export default function SettingsIndex({
                             </div>
             </SectionCard>
                             </div>
+    );
+
+    // Render Subscription Section
+    const renderSubscriptionSection = () => (
+        <div className="space-y-6">
+            {/* Current Plan */}
+            <SectionCard title="Your Subscription" description="Manage your Addy subscription">
+                {subscription ? (
+                    <div className="space-y-6">
+                        {/* Plan Header */}
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-xl ${
+                                    subscription.plan === 'enterprise' ? 'bg-purple-100' :
+                                    subscription.plan === 'professional' ? 'bg-teal-100' :
+                                    'bg-blue-100'
+                                }`}>
+                                    <CreditCard className={`h-6 w-6 ${
+                                        subscription.plan === 'enterprise' ? 'text-purple-600' :
+                                        subscription.plan === 'professional' ? 'text-teal-600' :
+                                        'text-blue-600'
+                                    }`} />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {subscription.plan_name} Plan
+                                        </h3>
+                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                            subscription.status === 'trial' 
+                                                ? 'bg-amber-100 text-amber-700' 
+                                                : 'bg-green-100 text-green-700'
+                                        }`}>
+                                            {subscription.status === 'trial' ? 'Trial' : 'Active'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-0.5">
+                                        {subscription.is_trial 
+                                            ? `Trial ends in ${subscription.days_remaining} days`
+                                            : subscription.expires_at 
+                                                ? `Renews ${new Date(subscription.expires_at).toLocaleDateString()}`
+                                                : 'Active subscription'
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                            <a
+                                href={subscription.manage_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors"
+                            >
+                                Manage Subscription
+                                <ExternalLink className="h-4 w-4" />
+                            </a>
+                        </div>
+
+                        {/* Trial Warning */}
+                        {subscription.is_trial && subscription.days_remaining <= 7 && (
+                            <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-medium text-amber-800">
+                                        Your trial ends {subscription.days_remaining === 0 ? 'today' : `in ${subscription.days_remaining} days`}
+                                    </p>
+                                    <p className="text-sm text-amber-700 mt-0.5">
+                                        Upgrade now to keep access to all features.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Plan Features */}
+                        <div className="border-t pt-6">
+                            <h4 className="text-sm font-medium text-gray-700 mb-4">Your plan includes:</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {subscription.features?.map((feature, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                                        <span className="text-sm text-gray-600">{feature}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Plan Limits */}
+                        <div className="border-t pt-6">
+                            <h4 className="text-sm font-medium text-gray-700 mb-4">Plan details:</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Users</p>
+                                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                                        {subscription.max_users === null ? 'Unlimited' : subscription.max_users}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Custom Modules</p>
+                                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                                        {subscription.has_custom_module ? 'Yes' : 'No'}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Elective Modules</p>
+                                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                                        {subscription.has_elective_modules ? 'Yes' : 'No'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <CreditCard className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Subscription</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Subscribe to unlock all features of Addy.
+                        </p>
+                        <a
+                            href="https://penda.cloud/billing/choose-plan"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                        >
+                            Choose a Plan
+                            <ExternalLink className="h-4 w-4" />
+                        </a>
+                    </div>
+                )}
+            </SectionCard>
+
+            {/* Billing Portal Link */}
+            <SectionCard title="Billing Management" description="View invoices, update payment methods, and more">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm text-gray-600">
+                            Manage your payment methods, view invoices, and update billing information in Penda Cloud.
+                        </p>
+                    </div>
+                    <a
+                        href="https://penda.cloud/settings/billing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                        Open Billing Portal
+                        <ExternalLink className="h-4 w-4" />
+                    </a>
+                </div>
+            </SectionCard>
+        </div>
     );
 
     // Render Billing Section
@@ -1815,6 +1969,8 @@ export default function SettingsIndex({
     // Render active section content
     const renderSectionContent = () => {
         switch (activeSection) {
+            case 'subscription':
+                return renderSubscriptionSection();
             case 'billing':
                 return renderBillingSection();
             case 'tax':
@@ -1830,7 +1986,7 @@ export default function SettingsIndex({
             case 'gamification':
                 return renderGamificationSection();
             default:
-                return renderBillingSection();
+                return renderSubscriptionSection();
         }
     };
 

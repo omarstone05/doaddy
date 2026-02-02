@@ -140,6 +140,9 @@ class SettingsController extends Controller
         // Get gamification data
         $gamificationData = $this->getGamificationData($user, $organization);
 
+        // Get subscription data
+        $subscription = $this->getSubscriptionData($organization);
+
         return Inertia::render('Settings/Index', [
             'organization' => $organization,
             'user' => [
@@ -172,6 +175,7 @@ class SettingsController extends Controller
             'digitaxAvailable' => $digitaxAvailable,
             'digitaxCredentials' => $digitaxCredentials,
             'gamificationData' => $gamificationData,
+            'subscription' => $subscription,
         ]);
     }
 
@@ -617,5 +621,92 @@ class SettingsController extends Controller
             'tone' => $organization->tone_preference,
             'setting_id' => $setting->id,
         ]);
+    }
+
+    private function getSubscriptionData(Organization $organization): ?array
+    {
+        try {
+            $subscription = \DB::table('organization_subscriptions')
+                ->where('organization_id', $organization->id)
+                ->where('app_id', 'addy')
+                ->whereIn('status', ['active', 'trial'])
+                ->first();
+
+            if (!$subscription) {
+                return null;
+            }
+
+            // Calculate days remaining
+            $daysRemaining = null;
+            $expiryDate = null;
+            if ($subscription->status === 'trial' && $subscription->expires_at) {
+                $expiryDate = \Carbon\Carbon::parse($subscription->expires_at);
+                $daysRemaining = max(0, now()->diffInDays($expiryDate, false));
+            } elseif ($subscription->expires_at) {
+                $expiryDate = \Carbon\Carbon::parse($subscription->expires_at);
+                $daysRemaining = max(0, now()->diffInDays($expiryDate, false));
+            }
+
+            // Plan display names
+            $planNames = [
+                'basic' => 'Basic',
+                'starter' => 'Starter',
+                'professional' => 'Professional',
+                'enterprise' => 'Enterprise',
+            ];
+
+            // Plan features
+            $planFeatures = [
+                'basic' => [
+                    'Unlimited invoices & quotes',
+                    'Full reporting & analytics',
+                    'Your whole team included',
+                    'Addy AI assistant',
+                    'Email support',
+                ],
+                'starter' => [
+                    'Unlimited invoices & quotes',
+                    'Full reporting & analytics',
+                    'Your whole team included',
+                    'Addy AI assistant',
+                    'Email support',
+                ],
+                'professional' => [
+                    'Everything in Basic',
+                    'Cash flow insights & forecasting',
+                    'Custom modules',
+                    'Advanced reporting',
+                    'Priority support',
+                ],
+                'enterprise' => [
+                    'Everything in Professional',
+                    'Access control & permissions',
+                    'Full audit trails',
+                    'Access to other Penda apps',
+                    'Dedicated success manager',
+                ],
+            ];
+
+            $plan = $subscription->plan ?? 'basic';
+
+            return [
+                'id' => $subscription->id,
+                'plan' => $plan,
+                'plan_name' => $planNames[$plan] ?? ucfirst($plan),
+                'status' => $subscription->status,
+                'starts_at' => $subscription->starts_at,
+                'expires_at' => $subscription->expires_at,
+                'days_remaining' => $daysRemaining,
+                'has_elective_modules' => (bool) $subscription->has_elective_modules,
+                'has_custom_module' => (bool) $subscription->has_custom_module,
+                'max_users' => $subscription->max_users,
+                'features' => $planFeatures[$plan] ?? $planFeatures['basic'],
+                'is_trial' => $subscription->status === 'trial',
+                'manage_url' => config('services.penda.url', 'https://penda.cloud') . '/org/' . $organization->id . '/subscriptions',
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Failed to get subscription data', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 }
