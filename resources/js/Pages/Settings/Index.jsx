@@ -192,47 +192,7 @@ export default function SettingsIndex({
         marketing_emails: false,
     });
 
-    // Team create form
-    const teamCreateForm = useForm({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        employee_number: '',
-        hire_date: '',
-        job_title: '',
-        salary: '',
-        employment_type: '',
-        department_id: '',
-        user_id: '',
-        is_active: true,
-    });
-    
-    // Team edit form
-    const teamEditForm = useForm({
-        first_name: teamMember?.first_name || '',
-        last_name: teamMember?.last_name || '',
-        email: teamMember?.email || '',
-        phone: teamMember?.phone || '',
-        employee_number: teamMember?.employee_number || '',
-        hire_date: teamMember?.hire_date || '',
-        job_title: teamMember?.job_title || '',
-        salary: teamMember?.salary || '',
-        employment_type: teamMember?.employment_type || '',
-        department_id: teamMember?.department_id || '',
-        user_id: teamMember?.user_id || '',
-        is_active: teamMember?.is_active ?? true,
-    });
-    
-    const accessSystemForm = useForm({
-        email: teamMember?.email || '',
-        password: '',
-        action: 'invite',
-    });
-    
-    const permissionsForm = useForm({
-        role_id: userRole?.id || '',
-    });
+    // NOTE: Team create/edit forms removed - Access Control now handled by AccessControlSection component
     
     const supportForm = useForm({
         subject: '',
@@ -276,36 +236,6 @@ export default function SettingsIndex({
             setActiveSection('organization');
         }
     }, [url]);
-
-    // Update forms when props change
-    useEffect(() => {
-        if (teamMember && teamViewMode === 'edit') {
-            teamEditForm.setData({
-                first_name: teamMember.first_name || '',
-                last_name: teamMember.last_name || '',
-                email: teamMember.email || '',
-                phone: teamMember.phone || '',
-                employee_number: teamMember.employee_number || '',
-                hire_date: teamMember.hire_date || '',
-                job_title: teamMember.job_title || '',
-                salary: teamMember.salary || '',
-                employment_type: teamMember.employment_type || '',
-                department_id: teamMember.department_id || '',
-                user_id: teamMember.user_id || '',
-                is_active: teamMember.is_active ?? true,
-            });
-        }
-    }, [teamMember, teamViewMode]);
-    
-    useEffect(() => {
-        if (teamMember && teamViewMode === 'show') {
-            accessSystemForm.setData({
-                email: teamMember.email || '',
-                password: '',
-                action: 'invite',
-            });
-        }
-    }, [teamMember, teamViewMode]);
 
     useEffect(() => {
         setModules(initialModules || []);
@@ -444,21 +374,7 @@ export default function SettingsIndex({
         }
     };
     
-    const handleTeamCreateSubmit = (e) => {
-        e.preventDefault();
-        teamCreateForm.post('/settings/team', {
-            preserveScroll: true,
-            onSuccess: () => router.visit('/settings/team'),
-        });
-    };
-    
-    const handleTeamEditSubmit = (e) => {
-        e.preventDefault();
-        teamEditForm.put(`/settings/team/${teamMember.id}`, {
-            preserveScroll: true,
-            onSuccess: () => router.visit(`/settings/team/${teamMember.id}`),
-        });
-    };
+    // NOTE: Team create/edit submit handlers removed - Access Control now handled by AccessControlSection component
 
     const handleSupportSubmit = (e) => {
         e.preventDefault();
