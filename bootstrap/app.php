@@ -68,6 +68,15 @@ return tap(Application::configure(basePath: dirname(__DIR__))
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 
                 if ($statusCode === 500) {
+                    // Log the error before rendering the error page
+                    \Illuminate\Support\Facades\Log::error('500 Error: ' . $e->getMessage(), [
+                        'exception' => get_class($e),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'url' => $request->fullUrl(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    
                     return \Inertia\Inertia::render('Errors/500')
                         ->toResponse($request)
                         ->setStatusCode(500);
