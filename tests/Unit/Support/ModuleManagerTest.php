@@ -304,4 +304,302 @@ class ModuleManagerTest extends TestCase
             $this->assertIsArray($modulesAfter);
         }
     }
+
+    // ==========================================
+    // isEnabled() SPECIFIC TESTS
+    // ==========================================
+
+    /** @test */
+    public function is_enabled_checks_organization_enabled_modules_not_module_json(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Set organization to have module enabled
+        $this->testOrganization->enabled_modules = [$alias];
+        $this->testOrganization->save();
+        
+        // Create fresh manager to ensure no stale state
+        $freshManager = new ModuleManager();
+        
+        // isEnabled should return true based on organization, 
+        // regardless of module.json's 'enabled' value
+        $this->assertTrue($freshManager->isEnabled($moduleName));
+    }
+
+    /** @test */
+    public function is_enabled_returns_false_when_module_not_in_organization_enabled_modules(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        
+        // Set organization to have NO modules enabled
+        $this->testOrganization->enabled_modules = [];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        
+        // Skip if module has always_enabled flag
+        $module = $modules[$moduleName];
+        if (!empty($module['config']['always_enabled'])) {
+            $this->assertTrue($freshManager->isEnabled($moduleName));
+        } else {
+            $this->assertFalse($freshManager->isEnabled($moduleName));
+        }
+    }
+
+    /** @test */
+    public function is_enabled_handles_null_enabled_modules(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        
+        // Set enabled_modules to null
+        $this->testOrganization->enabled_modules = null;
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        
+        // Should not throw exception
+        $result = $freshManager->isEnabled($moduleName);
+        
+        // Should return false (or true if always_enabled)
+        if (!empty($module['config']['always_enabled'])) {
+            $this->assertTrue($result);
+        } else {
+            $this->assertFalse($result);
+        }
+    }
+
+    /** @test */
+    public function is_enabled_checks_both_alias_and_name(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Skip if always_enabled
+        if (!empty($module['config']['always_enabled'])) {
+            $this->markTestSkipped('Module is always enabled');
+        }
+        
+        // Enable using alias
+        $this->testOrganization->enabled_modules = [$alias];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        
+        // Should be able to check using the NAME
+        $this->assertTrue($freshManager->isEnabled($moduleName));
+    }
+
+    /** @test */
+    public function is_enabled_respects_always_enabled_flag(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        
+        foreach ($modules as $name => $module) {
+            if (!empty($module['config']['always_enabled'])) {
+                // This module should always return true
+                $this->assertTrue($this->moduleManager->isEnabled($name));
+                
+                // Even if organization doesn't have it in enabled_modules
+                $this->testOrganization->enabled_modules = [];
+                $this->testOrganization->save();
+                
+                $freshManager = new ModuleManager();
+                $this->assertTrue($freshManager->isEnabled($name), "{$name} should always be enabled");
+            }
+        }
+    }
+
+    // ==========================================
+    // ORGANIZATION DETECTION TESTS
+    // ==========================================
+
+    /** @test */
+    public function get_current_organization_uses_user_organization_id_fallback(): void
+    {
+        $this->authenticate();
+        
+        // Clear session org
+        session()->forget('current_organization_id');
+        
+        // Ensure user has organization_id set (don't touch current_organization_id as it may not exist in test DB)
+        $this->testUser->organization_id = $this->testOrganization->id;
+        $this->testUser->save();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        $this->testOrganization->enabled_modules = [$alias];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        
+        // Should still find the organization and return correct enabled state
+        if (empty($module['config']['always_enabled'])) {
+            $this->assertTrue($freshManager->isEnabled($moduleName));
+        }
+    }
+
+    /** @test */
+    public function enable_updates_organization_enabled_modules(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Start with empty
+        $this->testOrganization->enabled_modules = [];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        $result = $freshManager->enable($moduleName);
+        
+        $this->assertTrue($result);
+        
+        // Verify database was updated
+        $this->testOrganization->refresh();
+        $this->assertContains($alias, $this->testOrganization->enabled_modules);
+    }
+
+    /** @test */
+    public function disable_removes_from_organization_enabled_modules(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Start with module enabled
+        $this->testOrganization->enabled_modules = [$alias];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        $result = $freshManager->disable($moduleName);
+        
+        $this->assertTrue($result);
+        
+        // Verify database was updated
+        $this->testOrganization->refresh();
+        $this->assertNotContains($alias, $this->testOrganization->enabled_modules ?? []);
+    }
+
+    /** @test */
+    public function enable_does_not_duplicate_module(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Start with module already enabled
+        $this->testOrganization->enabled_modules = [$alias];
+        $this->testOrganization->save();
+        
+        $freshManager = new ModuleManager();
+        $freshManager->enable($moduleName);
+        
+        $this->testOrganization->refresh();
+        
+        // Count occurrences
+        $count = count(array_filter(
+            $this->testOrganization->enabled_modules,
+            fn($m) => $m === $alias
+        ));
+        
+        $this->assertEquals(1, $count);
+    }
+
+    /** @test */
+    public function model_is_refreshed_when_checking_is_enabled(): void
+    {
+        $this->authenticate();
+        
+        $modules = $this->moduleManager->all();
+        if (empty($modules)) {
+            $this->markTestSkipped('No modules available');
+        }
+        
+        $moduleName = array_key_first($modules);
+        $module = $modules[$moduleName];
+        $alias = $module['config']['alias'] ?? strtolower($moduleName);
+        
+        // Skip if always_enabled
+        if (!empty($module['config']['always_enabled'])) {
+            $this->markTestSkipped('Module is always enabled');
+        }
+        
+        // Start with module disabled
+        $this->testOrganization->enabled_modules = [];
+        $this->testOrganization->save();
+        
+        $manager1 = new ModuleManager();
+        $this->assertFalse($manager1->isEnabled($moduleName));
+        
+        // Update database directly (simulating another process)
+        \DB::table('organizations')
+            ->where('id', $this->testOrganization->id)
+            ->update(['enabled_modules' => json_encode([$alias])]);
+        
+        // Fresh manager should see the change due to refresh()
+        $manager2 = new ModuleManager();
+        $this->assertTrue($manager2->isEnabled($moduleName));
+    }
 }
