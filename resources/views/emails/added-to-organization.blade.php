@@ -102,7 +102,9 @@
 <body>
     <div class="email-container">
         <div class="header">
+            <img src="{{ config('app.url') }}/assets/logos/icon-white.png" alt="Addy" style="height: 48px; margin-bottom: 12px;">
             <h1>Addy</h1>
+            <p>Your AI-Powered Business Assistant</p>
         </div>
         
         <div class="content">

@@ -13,9 +13,9 @@
             padding: 20px;
         }
         .header {
-            background: #4F46E5;
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
             color: white;
-            padding: 20px;
+            padding: 24px 20px;
             text-align: center;
             border-radius: 8px 8px 0 0;
         }
@@ -34,6 +34,7 @@
 </head>
 <body>
     <div class="header">
+        <img src="{{ config('app.url') }}/assets/logos/icon-white.png" alt="Addy" style="height: 40px; margin-bottom: 8px;">
         <h1>Addy Business</h1>
     </div>
     <div class="content">
