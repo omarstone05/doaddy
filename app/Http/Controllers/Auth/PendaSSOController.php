@@ -269,11 +269,35 @@ class PendaSSOController extends Controller
 
             // Determine organization context
             $organizations = $user->organizations()->wherePivot('is_active', true)->get();
-            $currentOrgId = $pendaUser['current_organization']['id'] ?? null
-                ?? session('current_organization_id')
-                ?? ($organizations->count() === 1 ? $organizations->first()?->id : null);
+            
+            // Get current org ID - prefer from user's synced organizations (UUIDs), not Penda's raw ID (integers)
+            $currentOrgId = session('current_organization_id');
+            
+            // If no session org, try to find the Penda current org in our synced organizations
+            if (!$currentOrgId && isset($pendaUser['current_organization']['id'])) {
+                $pendaCurrentOrgId = $pendaUser['current_organization']['id'];
+                // Look for organization by penda_organization_id or by matching ID
+                $matchedOrg = $organizations->first(function ($org) use ($pendaCurrentOrgId) {
+                    return $org->penda_organization_id == $pendaCurrentOrgId 
+                        || $org->id == $pendaCurrentOrgId;
+                });
+                if ($matchedOrg) {
+                    $currentOrgId = $matchedOrg->id;
+                }
+            }
+            
+            // Fallback to first organization if user only has one
+            if (!$currentOrgId && $organizations->count() === 1) {
+                $currentOrgId = $organizations->first()?->id;
+            }
 
-            if ($currentOrgId) {
+            // Only set organization_id if it's a valid UUID that exists in our organizations table
+            if ($currentOrgId && $organizations->contains('id', $currentOrgId)) {
+                session(['current_organization_id' => $currentOrgId]);
+                $user->update(['organization_id' => $currentOrgId]);
+            } elseif ($organizations->isNotEmpty()) {
+                // Fallback: use first available organization
+                $currentOrgId = $organizations->first()->id;
                 session(['current_organization_id' => $currentOrgId]);
                 $user->update(['organization_id' => $currentOrgId]);
             }

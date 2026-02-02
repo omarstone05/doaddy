@@ -207,7 +207,7 @@ class SettingsController extends Controller
     private function getDigitaxCredentials(Organization $organization): ?array
     {
         try {
-            $credential = \Addy\Modules\SmartInvoice\Models\DigitaxCredential::where('organization_id', $organization->id)
+            $credential = \App\Modules\SmartInvoice\Models\DigitaxCredential::where('organization_id', $organization->id)
                 ->first();
 
             if (!$credential) {
