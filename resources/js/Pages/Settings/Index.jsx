@@ -2404,7 +2404,14 @@ export default function SettingsIndex({
                                 <button
                                     key={item.id}
                                     onClick={() => {
-                                        setActiveSection(item.id);
+                                        // Navigate to URL for sections that require backend data
+                                        if (item.id === 'team') {
+                                            router.visit('/settings/team');
+                                        } else if (item.id === 'modules') {
+                                            router.visit('/settings/modules');
+                                        } else {
+                                            setActiveSection(item.id);
+                                        }
                                     }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all mb-1 ${
                                         activeSection === item.id
