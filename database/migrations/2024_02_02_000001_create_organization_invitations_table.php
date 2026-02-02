@@ -16,9 +16,9 @@ return new class extends Migration
             $table->uuid('organization_id');
             $table->string('email');
             $table->string('name')->nullable();
-            $table->foreignId('role_id')->constrained('organization_roles');
+            $table->unsignedBigInteger('role_id');
             $table->string('token');
-            $table->foreignId('invited_by')->nullable()->constrained('users');
+            $table->uuid('invited_by')->nullable();
             $table->timestamp('expires_at');
             $table->timestamp('accepted_at')->nullable();
             $table->timestamps();
@@ -27,6 +27,15 @@ return new class extends Migration
                 ->references('id')
                 ->on('organizations')
                 ->onDelete('cascade');
+
+            $table->foreign('role_id')
+                ->references('id')
+                ->on('organization_roles');
+
+            $table->foreign('invited_by')
+                ->references('id')
+                ->on('users')
+                ->onDelete('set null');
 
             $table->index(['organization_id', 'email']);
             $table->index('token');
