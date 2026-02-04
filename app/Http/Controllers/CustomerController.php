@@ -12,9 +12,21 @@ use Inertia\Response;
 
 class CustomerController extends Controller
 {
+    protected function getOrganizationId(): ?string
+    {
+        $user = auth()->user();
+        return session('current_organization_id')
+            ?? $user->organization_id
+            ?? $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request): Response
     {
-        $customers = Customer::where('organization_id', auth()->user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization.');
+        }
+        $customers = Customer::where('organization_id', $organizationId)
             ->with(['persona'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -32,7 +44,7 @@ class CustomerController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        $personas = CustomerPersona::where('organization_id', auth()->user()->organization_id)
+        $personas = CustomerPersona::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->get();
 
@@ -45,7 +57,11 @@ class CustomerController extends Controller
 
     public function create(): Response
     {
-        $personas = CustomerPersona::where('organization_id', auth()->user()->organization_id)
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization.');
+        }
+        $personas = CustomerPersona::where('organization_id', $organizationId)
             ->where('is_active', true)
             ->get();
 
@@ -82,15 +98,15 @@ class CustomerController extends Controller
                 'tags' => 'nullable|array',
             ]);
 
-            $user = auth()->user();
-            if (!$user || !$user->organization_id) {
+            $organizationId = $this->getOrganizationId();
+            if (!$organizationId) {
                 return back()->withErrors([
                     'error' => 'You must belong to an organization to create customers.',
                 ])->withInput();
             }
 
             $customer = Customer::create(array_merge($validated, [
-                'organization_id' => $user->organization_id,
+                'organization_id' => $organizationId,
                 'status' => 'active',
             ]));
 
@@ -148,7 +164,7 @@ class CustomerController extends Controller
     public function show(Customer $customer): Response
     {
         // Ensure customer belongs to user's organization
-        if ($customer->organization_id !== Auth::user()->organization_id) {
+        if ($customer->organization_id !== $this->getOrganizationId()) {
             abort(403, 'Unauthorized access to customer.');
         }
 
@@ -166,11 +182,11 @@ class CustomerController extends Controller
     public function edit(Customer $customer): Response
     {
         // Ensure customer belongs to user's organization
-        if ($customer->organization_id !== Auth::user()->organization_id) {
+        if ($customer->organization_id !== $this->getOrganizationId()) {
             abort(403, 'Unauthorized access to customer.');
         }
 
-        $personas = CustomerPersona::where('organization_id', auth()->user()->organization_id)
+        $personas = CustomerPersona::where('organization_id', $this->getOrganizationId())
             ->where('is_active', true)
             ->get();
 
@@ -183,7 +199,7 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         // Ensure customer belongs to user's organization
-        if ($customer->organization_id !== Auth::user()->organization_id) {
+        if ($customer->organization_id !== $this->getOrganizationId()) {
             abort(403, 'Unauthorized access to customer.');
         }
 
@@ -222,7 +238,7 @@ class CustomerController extends Controller
     public function destroy(Customer $customer)
     {
         // Ensure customer belongs to user's organization
-        if ($customer->organization_id !== Auth::user()->organization_id) {
+        if ($customer->organization_id !== $this->getOrganizationId()) {
             abort(403, 'Unauthorized access to customer.');
         }
 
@@ -234,7 +250,7 @@ class CustomerController extends Controller
 
     public function personas(): Response
     {
-        $personas = CustomerPersona::where('organization_id', auth()->user()->organization_id)
+        $personas = CustomerPersona::where('organization_id', $this->getOrganizationId())
             ->withCount('customers')
             ->get();
 
@@ -256,7 +272,7 @@ class CustomerController extends Controller
         ]);
 
         CustomerPersona::create(array_merge($validated, [
-            'organization_id' => auth()->user()->organization_id,
+            'organization_id' => $this->getOrganizationId(),
             'is_active' => true,
         ]));
 
@@ -287,7 +303,7 @@ class CustomerController extends Controller
                 ], 401);
             }
 
-            $organizationId = $user->organization_id ?? null;
+            $organizationId = $this->getOrganizationId();
             
             if (!$organizationId) {
                 return response()->json([
@@ -383,8 +399,7 @@ class CustomerController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('q', '');
-        $user = auth()->user();
-        $organizationId = $user->organization_id ?? null;
+        $organizationId = $this->getOrganizationId();
 
         if (!$organizationId) {
             return response()->json([

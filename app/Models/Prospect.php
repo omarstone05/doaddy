@@ -233,6 +233,7 @@ class Prospect extends Model
     {
         $customer = Customer::create(array_merge([
             'organization_id' => $this->organization_id,
+            'type' => $this->company_name ? 'business' : 'individual',
             'name' => $this->company_name ?: $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
@@ -244,6 +245,9 @@ class Prospect extends Model
             'primary_contact_name' => $this->contact_person,
             'primary_contact_email' => $this->contact_email,
             'primary_contact_phone' => $this->contact_phone,
+            'payment_terms' => 'net_30',
+            'currency' => $this->currency ?? 'ZMW',
+            'status' => 'active',
             'notes' => $this->notes,
             'tags' => $this->tags,
         ], $customerData));

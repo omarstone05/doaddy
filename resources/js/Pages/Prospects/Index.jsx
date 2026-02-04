@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
-import { Plus, Edit, Eye, Search, Users } from 'lucide-react';
+import { Plus, Edit, Eye, Search, Users, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProspectsIndex({ prospects, filters }) {
@@ -128,6 +128,19 @@ export default function ProspectsIndex({ prospects, filters }) {
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
+                                                {!prospect.converted_to_customer_id && prospect.stage !== 'lost' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm('Convert this prospect to a customer?')) {
+                                                                router.post(`/prospects/${prospect.id}/convert`);
+                                                            }
+                                                        }}
+                                                        className="text-green-500 hover:text-green-600"
+                                                        title="Convert to Customer"
+                                                    >
+                                                        <UserPlus className="h-4 w-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

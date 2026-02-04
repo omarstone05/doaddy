@@ -324,6 +324,87 @@ class QuotationController extends Controller
     }
 
     /**
+     * Convert quotation to invoice
+     */
+    public function convertToInvoice(Request $request, Quotation $quotation)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization.');
+        }
+
+        if ($quotation->organization_id !== $organizationId) {
+            abort(403, 'Unauthorized access to this quotation.');
+        }
+
+        if ($quotation->converted_to_invoice_id) {
+            return redirect()->route('quotations.show', $quotation)
+                ->with('info', 'This quotation has already been converted to an invoice.');
+        }
+
+        try {
+            // If quotation has prospect but no customer, convert prospect to customer first
+            if (!$quotation->customer_id && $quotation->prospect_id) {
+                $prospect = $quotation->prospect;
+                if ($prospect) {
+                    $customer = $prospect->convertToCustomer([]);
+                    $quotation->update(['customer_id' => $customer->id]);
+                    $quotation->refresh();
+                }
+            }
+
+            if (!$quotation->customer_id) {
+                return back()->withErrors([
+                    'error' => 'This quotation must have a customer before converting to an invoice. Please edit the quotation to assign a customer.',
+                ]);
+            }
+
+            $invoice = $quotation->convertToInvoice();
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', 'Quotation converted to invoice successfully.');
+        } catch (\Exception $e) {
+            Log::error('Quotation convert to invoice failed', [
+                'quotation_id' => $quotation->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return back()->withErrors(['error' => 'Failed to convert: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update quotation status
+     */
+    public function updateStatus(Request $request, Quotation $quotation)
+    {
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization.');
+        }
+
+        if ($quotation->organization_id !== $organizationId) {
+            abort(403, 'Unauthorized access to this quotation.');
+        }
+
+        if ($quotation->converted_to_invoice_id) {
+            return back()->withErrors(['error' => 'Cannot update status of a converted quotation.']);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:draft,sent,viewed,accepted,rejected,expired',
+        ]);
+
+        $quotation->update(['status' => $validated['status']]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'status' => $quotation->status]);
+        }
+
+        return redirect()->back()->with('success', 'Quotation status updated.');
+    }
+
+    /**
      * Download quotation as PDF
      */
     public function downloadPdf(Quotation $quotation)

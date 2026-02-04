@@ -1,10 +1,22 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2, Download, ChevronDown } from 'lucide-react';
+
+const STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'sent', label: 'Sent' },
+    { value: 'viewed', label: 'Viewed' },
+    { value: 'accepted', label: 'Accepted' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'expired', label: 'Expired' },
+];
 
 export default function QuotesShow({ quote }) {
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+
     // Handle case where quote is undefined
     if (!quote) {
         return (
@@ -48,6 +60,7 @@ export default function QuotesShow({ quote }) {
         const badges = {
             draft: { color: 'bg-gray-100 text-gray-700', icon: Clock },
             sent: { color: 'bg-blue-100 text-blue-700', icon: FileText },
+            viewed: { color: 'bg-yellow-100 text-yellow-700', icon: FileText },
             accepted: { color: 'bg-green-100 text-green-700', icon: CheckCircle },
             rejected: { color: 'bg-red-100 text-red-700', icon: XCircle },
             expired: { color: 'bg-orange-100 text-orange-700', icon: Clock },
@@ -60,6 +73,12 @@ export default function QuotesShow({ quote }) {
                 {status.charAt(0).toUpperCase() + status.slice(1)}
             </span>
         );
+    };
+
+    const handleStatusChange = (newStatus) => {
+        router.put(`/quotations/${quote.id}/status`, { status: newStatus }, {
+            preserveScroll: true,
+        });
     };
 
     const handleConvert = () => {
@@ -88,7 +107,45 @@ export default function QuotesShow({ quote }) {
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
                                     <h1 className="text-3xl font-bold text-gray-900">Quote {normalizedQuote.quote_number}</h1>
-                                    {getStatusBadge(normalizedQuote.status)}
+                                    {!normalizedQuote.invoice_id ? (
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            >
+                                                {normalizedQuote.status.charAt(0).toUpperCase() + normalizedQuote.status.slice(1)}
+                                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                                            </button>
+                                            {showStatusDropdown && (
+                                                <>
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={() => setShowStatusDropdown(false)}
+                                                    />
+                                                    <div className="absolute left-0 mt-1 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-20 py-1">
+                                                        {STATUS_OPTIONS.map((opt) => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleStatusChange(opt.value);
+                                                                    setShowStatusDropdown(false);
+                                                                }}
+                                                                className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                                                                    normalizedQuote.status === opt.value ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'
+                                                                }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        getStatusBadge(normalizedQuote.status)
+                                    )}
                                 </div>
                                 <p className="text-gray-500 text-lg">
                                     {normalizedQuote.customer?.name || normalizedQuote.prospect?.company_name || normalizedQuote.prospect?.name || '-'}

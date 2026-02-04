@@ -84,7 +84,7 @@ export default function Overview({
                                     </div>
                                     <div className="flex flex-col gap-3">
                                         <Link
-                                            href="/customers/invoices"
+                                            href="/invoices"
                                             className="px-6 py-3 bg-white text-teal-600 rounded-lg font-semibold hover:bg-teal-50 transition-colors shadow-lg"
                                         >
                                             View Invoices
@@ -146,7 +146,7 @@ export default function Overview({
                                     Projected Income Timeline
                                 </h3>
                                 <Link
-                                    href="/customers/invoices"
+                                    href="/invoices"
                                     className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                                 >
                                     View All →

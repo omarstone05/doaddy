@@ -64,6 +64,8 @@ Route::prefix('quotations')->name('quotations.')->group(function () {
     Route::get('/{quotation}/edit', [QuotationController::class, 'edit'])->name('edit');
     Route::get('/{quotation}/download-pdf', [QuotationController::class, 'downloadPdf'])->name('download-pdf');
     Route::put('/{quotation}', [QuotationController::class, 'update'])->name('update');
+    Route::put('/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('update-status');
+    Route::post('/{quotation}/convert', [QuotationController::class, 'convertToInvoice'])->name('convert');
     Route::delete('/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
 });
 

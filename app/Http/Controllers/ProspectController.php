@@ -10,9 +10,20 @@ use Inertia\Inertia;
 
 class ProspectController extends Controller
 {
+    protected function getOrganizationId(): ?string
+    {
+        $user = Auth::user();
+        return session('current_organization_id')
+            ?? $user->organization_id
+            ?? $user->organizations()->first()?->id;
+    }
+
     public function index(Request $request)
     {
-        $organizationId = Auth::user()->organization_id;
+        $organizationId = $this->getOrganizationId();
+        if (!$organizationId) {
+            abort(403, 'You must belong to an organization.');
+        }
         
         $prospects = Prospect::where('organization_id', $organizationId)
             ->orderBy('created_at', 'desc')
@@ -25,7 +36,8 @@ class ProspectController extends Controller
 
     public function create()
     {
-        $organization = Auth::user()->organization;
+        $organizationId = $this->getOrganizationId();
+        $organization = Auth::user()->organizations()->where('organizations.id', $organizationId)->first();
         
         if (!$organization) {
             return redirect()->route('prospects.index')
@@ -50,7 +62,8 @@ class ProspectController extends Controller
             'currency' => 'nullable|string|max:3',
         ]);
 
-        $organization = Auth::user()->organization;
+        $organizationId = $this->getOrganizationId();
+        $organization = Auth::user()->organizations()->where('organizations.id', $organizationId)->first();
         
         if (!$organization) {
             return redirect()->back()
@@ -147,11 +160,12 @@ class ProspectController extends Controller
             'currency' => 'nullable|string|max:3',
         ]);
 
-        $organization = Auth::user()->organization;
+        $organizationId = $this->getOrganizationId();
+        $organization = Auth::user()->organizations()->where('organizations.id', $organizationId)->first();
         
         // Set currency from organization if not provided
         if (empty($validated['currency'])) {
-            $validated['currency'] = $organization->currency ?? 'ZMW';
+            $validated['currency'] = $organization?->currency ?? 'ZMW';
         }
         if (!array_key_exists('probability', $validated) || $validated['probability'] === null) {
             $validated['probability'] = 0;
