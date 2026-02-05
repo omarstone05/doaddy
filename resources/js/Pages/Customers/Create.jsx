@@ -33,7 +33,10 @@ export default function CustomersCreate({ personas }) {
         e.preventDefault();
         post('/customers', {
             onError: (errors) => {
-                console.error('Customer creation errors:', errors);
+                // Errors are shared with useForm and displayed in the form
+                if (Object.keys(errors).length > 0 && process.env.NODE_ENV === 'development') {
+                    console.error('Customer creation errors:', JSON.stringify(errors, null, 2));
+                }
             },
             onSuccess: () => {
                 console.log('Customer created successfully');
@@ -62,7 +65,9 @@ export default function CustomersCreate({ personas }) {
                     {/* Display general errors */}
                     {errors.error && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-600">{errors.error}</p>
+                            <p className="text-sm text-red-600">
+                                {Array.isArray(errors.error) ? errors.error[0] : errors.error}
+                            </p>
                         </div>
                     )}
                     
@@ -100,6 +105,11 @@ export default function CustomersCreate({ personas }) {
                                         <option key={persona.id} value={persona.id}>{persona.name}</option>
                                     ))}
                                 </select>
+                                {errors.customer_persona_id && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {Array.isArray(errors.customer_persona_id) ? errors.customer_persona_id[0] : errors.customer_persona_id}
+                                    </p>
+                                )}
                             </div>
                         </div>
 

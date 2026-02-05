@@ -73,8 +73,30 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         try {
+            // Convert empty strings to null for optional fields (avoids validation failures)
+            $request->merge([
+                'customer_persona_id' => $request->filled('customer_persona_id') ? $request->customer_persona_id : null,
+                'credit_limit' => $request->filled('credit_limit') ? $request->credit_limit : null,
+                'custom_payment_days' => $request->filled('custom_payment_days') ? $request->custom_payment_days : null,
+            ]);
+
+            $organizationId = $this->getOrganizationId();
+            if (!$organizationId) {
+                return back()->withErrors([
+                    'error' => 'You must belong to an organization to create customers.',
+                ])->withInput();
+            }
+
             $validated = $request->validate([
-                'customer_persona_id' => 'nullable|exists:customer_personas,id',
+                'customer_persona_id' => [
+                    'nullable',
+                    'exists:customer_personas,id',
+                    function ($attribute, $value, $fail) use ($organizationId) {
+                        if ($value && !\App\Models\CustomerPersona::where('id', $value)->where('organization_id', $organizationId)->exists()) {
+                            $fail('The selected persona does not belong to your organization.');
+                        }
+                    },
+                ],
                 'type' => 'required|in:individual,business',
                 'name' => 'required|string|max:255',
                 'email' => 'nullable|email|max:255',
@@ -97,13 +119,6 @@ class CustomerController extends Controller
                 'notes' => 'nullable|string',
                 'tags' => 'nullable|array',
             ]);
-
-            $organizationId = $this->getOrganizationId();
-            if (!$organizationId) {
-                return back()->withErrors([
-                    'error' => 'You must belong to an organization to create customers.',
-                ])->withInput();
-            }
 
             $customer = Customer::create(array_merge($validated, [
                 'organization_id' => $organizationId,
@@ -203,8 +218,24 @@ class CustomerController extends Controller
             abort(403, 'Unauthorized access to customer.');
         }
 
+        // Convert empty strings to null for optional fields
+        $request->merge([
+            'customer_persona_id' => $request->filled('customer_persona_id') ? $request->customer_persona_id : null,
+            'credit_limit' => $request->filled('credit_limit') ? $request->credit_limit : null,
+            'custom_payment_days' => $request->filled('custom_payment_days') ? $request->custom_payment_days : null,
+        ]);
+
+        $organizationId = $this->getOrganizationId();
         $validated = $request->validate([
-            'customer_persona_id' => 'nullable|exists:customer_personas,id',
+            'customer_persona_id' => [
+                'nullable',
+                'exists:customer_personas,id',
+                function ($attribute, $value, $fail) use ($organizationId) {
+                    if ($value && $organizationId && !\App\Models\CustomerPersona::where('id', $value)->where('organization_id', $organizationId)->exists()) {
+                        $fail('The selected persona does not belong to your organization.');
+                    }
+                },
+            ],
             'type' => 'required|in:individual,business',
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
