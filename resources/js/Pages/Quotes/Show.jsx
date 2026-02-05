@@ -1,13 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SectionLayout from '@/Layouts/SectionLayout';
 import { Button } from '@/Components/ui/Button';
 import FileUpload from '@/Components/FileUpload';
 import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, Edit, Trash2, Download, ChevronDown } from 'lucide-react';
 
 const STATUS_OPTIONS = [
     { value: 'draft', label: 'Draft' },
+    { value: 'approved', label: 'Approved' },
     { value: 'sent', label: 'Sent' },
+    { value: 'complete', label: 'Complete' },
     { value: 'viewed', label: 'Viewed' },
     { value: 'accepted', label: 'Accepted' },
     { value: 'rejected', label: 'Rejected' },
@@ -20,7 +22,7 @@ export default function QuotesShow({ quote }) {
     // Handle case where quote is undefined
     if (!quote) {
         return (
-            <AuthenticatedLayout>
+            <SectionLayout sectionName="Sales">
                 <Head title="Quote Not Found" />
                 <div className="max-w-5xl mx-auto text-center py-12">
                     <h1 className="text-2xl font-bold text-gray-900 mb-4">Quote not found</h1>
@@ -29,7 +31,7 @@ export default function QuotesShow({ quote }) {
                         Go Back
                     </Button>
                 </div>
-            </AuthenticatedLayout>
+            </SectionLayout>
         );
     }
 
@@ -59,7 +61,9 @@ export default function QuotesShow({ quote }) {
     const getStatusBadge = (status) => {
         const badges = {
             draft: { color: 'bg-gray-100 text-gray-700', icon: Clock },
+            approved: { color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
             sent: { color: 'bg-blue-100 text-blue-700', icon: FileText },
+            complete: { color: 'bg-green-100 text-green-700', icon: CheckCircle },
             viewed: { color: 'bg-yellow-100 text-yellow-700', icon: FileText },
             accepted: { color: 'bg-green-100 text-green-700', icon: CheckCircle },
             rejected: { color: 'bg-red-100 text-red-700', icon: XCircle },
@@ -88,7 +92,7 @@ export default function QuotesShow({ quote }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <SectionLayout sectionName="Sales">
             <Head title={`Quote - ${normalizedQuote.quote_number}`} />
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
@@ -166,7 +170,7 @@ export default function QuotesShow({ quote }) {
                                             Download PDF
                                         </Button>
                                     </a>
-                                    {(normalizedQuote.status === 'accepted' || normalizedQuote.status === 'draft' || normalizedQuote.status === 'sent') && !normalizedQuote.invoice_id && (
+                                    {['accepted', 'approved', 'complete', 'draft', 'sent'].includes(normalizedQuote.status) && !normalizedQuote.invoice_id && (
                                         <Button onClick={handleConvert}>
                                             Convert to Invoice
                                         </Button>
@@ -332,7 +336,7 @@ export default function QuotesShow({ quote }) {
                     </p>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </SectionLayout>
     );
 }
 

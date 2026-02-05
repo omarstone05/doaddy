@@ -392,7 +392,7 @@ class QuotationController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:draft,sent,viewed,accepted,rejected,expired',
+            'status' => 'required|in:draft,approved,sent,complete,viewed,accepted,rejected,expired',
         ]);
 
         $quotation->update(['status' => $validated['status']]);
