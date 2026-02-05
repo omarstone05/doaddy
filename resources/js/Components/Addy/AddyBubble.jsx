@@ -91,7 +91,7 @@ export default function AddyBubble() {
                 
                 {/* Addy icon */}
                 <img 
-                    src="/assets/logos/icon-white.png" 
+                    src="/assets/logos/icon-white.webp" 
                     alt="Addy" 
                     className="relative z-10 w-12 h-12 object-contain"
                     onError={(e) => {

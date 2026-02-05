@@ -6,9 +6,9 @@ import axios from 'axios';
 import { MobileMenu } from './MobileMenu';
 
 // Base navigation items - core sections
-// Note: dashboard is PNG, others are SVG
+// Note: dashboard is webp, others are SVG
 const baseNavItems = [
-  { name: 'Dashboard', icon: 'dashboard', extension: 'png', href: '/dashboard' },
+  { name: 'Dashboard', icon: 'dashboard', extension: 'webp', href: '/dashboard' },
   { name: 'Money', icon: 'money', extension: 'svg', href: '/money' },
   { name: 'Sales', icon: 'sales', extension: 'svg', href: '/sales' }, // Will be replaced by Retail if enabled
   { name: 'Expenses', icon: 'expenses', extension: 'svg', href: '/expenses' },
@@ -346,7 +346,7 @@ export function Navigation() {
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0">
               <img
-                src="/assets/logos/size.png"
+                src="/assets/logos/size.webp"
                 alt="Addy"
                 className="h-10 sm:h-12 object-contain"
                 onError={(e) => {
@@ -363,7 +363,7 @@ export function Navigation() {
                     const active = isActive(item.href);
                     // Dashboard uses different icons for active/inactive states
                     const iconSrc = item.name === 'Dashboard'
-                      ? (active ? '/assets/icons/dashboard.png' : '/assets/icons/not-selected.png')
+                      ? (active ? '/assets/icons/dashboard.webp' : '/assets/icons/not-selected.webp')
                       : `/assets/icons/${item.icon}.${item.extension}`;
 
                     // Check if this item has a dropdown (sub-items)
@@ -398,7 +398,7 @@ export function Navigation() {
                               // Fallback: try the other extension if one fails (for non-dashboard items)
                               if (item.name !== 'Dashboard') {
                                 const currentExt = item.extension;
-                                const altExt = currentExt === 'png' ? 'svg' : 'png';
+                                const altExt = currentExt === 'webp' ? 'svg' : 'webp';
                                 if (e.target.src.includes(currentExt)) {
                                   e.target.src = `/assets/icons/${item.icon}.${altExt}`;
                                 } else {
@@ -444,7 +444,7 @@ export function Navigation() {
                                       alt={subItem.name}
                                       className="h-4 w-4 object-contain"
                                       onError={(e) => {
-                                        e.target.src = `/assets/icons/${subItem.icon}.png`;
+                                        e.target.src = `/assets/icons/${subItem.icon}.webp`;
                                       }}
                                     />
                                     <span>{subItem.name}</span>
@@ -534,7 +534,7 @@ export function Navigation() {
                                   alt={module.name}
                                   className="h-5 w-5 object-contain"
                                   onError={(e) => {
-                                    e.target.src = `/assets/icons/${module.icon}.png`;
+                                    e.target.src = `/assets/icons/${module.icon}.webp`;
                                   }}
                                 />
                               </div>

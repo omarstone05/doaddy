@@ -34,7 +34,7 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ config('app.url') }}/assets/logos/icon-white.png" alt="Addy" style="height: 40px; margin-bottom: 8px;">
+        <img src="{{ config('app.url') }}/assets/logos/icon-white.webp" alt="Addy" style="height: 40px; margin-bottom: 8px;">
         <h1>Addy Business</h1>
     </div>
     <div class="content">

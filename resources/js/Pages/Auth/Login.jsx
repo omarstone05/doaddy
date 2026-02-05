@@ -45,7 +45,7 @@ export default function Login({ errors }) {
                             <div className="flex justify-center mb-4">
                                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg flex items-center justify-center border-4 border-white/50">
                                     <img 
-                                        src="/assets/logos/icon.png" 
+                                        src="/assets/logos/icon.webp" 
                                         alt="Addy" 
                                         className="w-10 h-10 object-contain"
                                         onError={(e) => {

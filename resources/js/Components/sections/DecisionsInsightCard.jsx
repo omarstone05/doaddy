@@ -76,7 +76,7 @@ export function DecisionsInsightCard({ sectionName, insights }) {
         {/* Large Teal Addy Icon */}
         <div className="absolute -right-4 -bottom-4 opacity-10 z-20">
           <img 
-            src="/assets/logos/icon-white.png" 
+            src="/assets/logos/icon-white.webp" 
             alt="Addy" 
             className="w-48 h-48 transform rotate-12"
             style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(142deg) brightness(95%) contrast(101%)' }}

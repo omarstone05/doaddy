@@ -20,7 +20,7 @@ export default function Enterprise({ auth }) {
                             <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-teal-600 transition-colors" />
                             <span className="text-gray-600 font-medium group-hover:text-teal-700 transition-colors">Back to Home</span>
                         </Link>
-                        <img src="/assets/logos/size.png" alt="Addy Logo" className="h-8 w-auto object-contain" />
+                        <img src="/assets/logos/size.webp" alt="Addy Logo" className="h-8 w-auto object-contain" />
                     </div>
                 </nav>
 

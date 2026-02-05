@@ -353,7 +353,7 @@ export default function AddyChat() {
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-sm">
                                 <img
-                                    src="/assets/logos/icon-white.png"
+                                    src="/assets/logos/icon-white.webp"
                                     alt="Addy"
                                     className="w-6 h-6 object-contain"
                                 />
@@ -401,7 +401,7 @@ export default function AddyChat() {
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
                                     <img
-                                        src="/assets/logos/icon.png"
+                                        src="/assets/logos/icon.webp"
                                         alt="Addy"
                                         className="w-10 h-10 object-contain"
                                     />
@@ -602,7 +602,7 @@ export default function AddyChat() {
                                         {message.role === 'assistant' && (
                                             <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center mr-2 flex-shrink-0">
                                                 <img
-                                                    src="/assets/logos/icon.png"
+                                                    src="/assets/logos/icon.webp"
                                                     alt="Addy"
                                                     className="w-5 h-5 object-contain"
                                                 />
@@ -615,7 +615,7 @@ export default function AddyChat() {
                                     <div className="flex justify-start">
                                         <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center mr-2">
                                             <img
-                                                src="/assets/logos/icon.png"
+                                                src="/assets/logos/icon.webp"
                                                 alt="Addy"
                                                 className="w-5 h-5 object-contain"
                                             />

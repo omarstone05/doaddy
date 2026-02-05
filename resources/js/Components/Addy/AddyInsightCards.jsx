@@ -84,7 +84,7 @@ const AddyInsightCards = ({ insights = [], onDismiss, onAction, sectionName }) =
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <img 
-                  src="/assets/logos/icon-white.png" 
+                  src="/assets/logos/icon-white.webp" 
                   alt="Addy" 
                   className="w-8 h-8 object-contain"
                 />

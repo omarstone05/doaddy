@@ -50,7 +50,7 @@ export default function Sidenav({ color = '#1890ff' }) {
   return (
     <>
       <div className="brand">
-        <img src="/images/logo.png" alt="Addy" />
+        <img src="/images/logo.webp" alt="Addy" />
         <span>Addy Dashboard</span>
       </div>
       <hr />

@@ -84,7 +84,7 @@ const InsightCardsPage = ({ insights: initialInsights = [], statistics = {}, sec
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                   <img 
-                    src="/assets/logos/icon-white.png" 
+                    src="/assets/logos/icon-white.webp" 
                     alt="Addy" 
                     className="w-8 h-8 object-contain"
                   />

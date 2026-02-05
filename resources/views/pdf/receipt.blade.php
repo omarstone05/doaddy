@@ -323,7 +323,7 @@
         <div class="footer-brand">
             <span class="footer-brand-text">Created with</span>
             @php
-                $logoPath = public_path('assets/logos/icon.png');
+                $logoPath = public_path('assets/logos/icon.webp');
                 $addyLogoUrl = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
             @endphp
             @if($addyLogoUrl)
@@ -333,7 +333,7 @@
 
         <div class="penda-footer">
             @php
-                $pendaLogoPath = public_path('assets/logos/penda.png');
+                $pendaLogoPath = public_path('assets/logos/penda.webp');
                 $pendaLogoUrl = file_exists($pendaLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($pendaLogoPath)) : '';
             @endphp
             @if($pendaLogoUrl)

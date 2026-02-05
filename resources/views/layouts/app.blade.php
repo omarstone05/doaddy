@@ -20,7 +20,7 @@
                 <!-- Logo -->
                 <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                     <div class="flex items-center gap-2">
-                        <img src="/assets/logos/icon.png" alt="Addy" class="h-8 w-8" />
+                        <img src="/assets/logos/icon.webp" alt="Addy" class="h-8 w-8" />
                         <span class="text-xl font-bold text-gray-900">Addy</span>
                     </div>
                     <button

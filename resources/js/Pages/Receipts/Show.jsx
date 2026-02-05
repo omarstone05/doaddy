@@ -166,7 +166,7 @@ export default function ReceiptsShow({ receipt, organization, logoUrl }) {
                     <div className="mt-8 pt-4 border-t border-gray-200 receipt-penda-footer print-only">
                         <div className="flex flex-col items-center gap-3">
                             <img 
-                                src="/assets/logos/penda.png" 
+                                src="/assets/logos/penda.webp" 
                                 alt="Penda Digital" 
                                 className="h-8 w-auto object-contain"
                             />

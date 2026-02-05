@@ -184,7 +184,7 @@ export default function AddyInsights() {
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                                 <img 
-                                    src="/assets/logos/icon-white.png" 
+                                    src="/assets/logos/icon-white.webp" 
                                     alt="Addy" 
                                     className="w-8 h-8 object-contain"
                                 />
@@ -265,7 +265,7 @@ export default function AddyInsights() {
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                                 <img 
-                                    src="/assets/logos/icon-white.png" 
+                                    src="/assets/logos/icon-white.webp" 
                                     alt="Addy" 
                                     className="w-6 h-6 object-contain"
                                 />

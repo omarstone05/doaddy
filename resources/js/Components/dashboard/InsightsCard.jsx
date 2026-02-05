@@ -195,7 +195,7 @@ export function InsightsCard({ userName = 'User', organizationName, message }) {
       {/* Proportional Addy Icon - positioned in bottom right */}
       <div className="absolute right-0 bottom-0 opacity-15 md:opacity-20 z-0 pointer-events-none">
         <img 
-          src="/assets/logos/icon-white.png" 
+          src="/assets/logos/icon-white.webp" 
           alt="Addy" 
           className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 transform rotate-12"
         />

@@ -705,7 +705,7 @@
                     <span class="footer-powered">Powered by</span>
                     <span class="footer-logo">
                         @php
-                            $addyLogoPath = public_path('assets/logos/size.png');
+                            $addyLogoPath = public_path('assets/logos/size.webp');
                             $addyLogoUrl = file_exists($addyLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($addyLogoPath)) : '';
                         @endphp
                         @if($addyLogoUrl)

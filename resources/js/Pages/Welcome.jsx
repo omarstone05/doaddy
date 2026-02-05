@@ -11,7 +11,7 @@ export default function Welcome({ auth }) {
                 <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-white/70 backdrop-blur-xl border-b border-gray-100/50">
                     <div className="max-w-7xl mx-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <img src="/assets/logos/size.png" alt="Addy Logo" className="h-9 w-auto object-contain" />
+                            <img src="/assets/logos/size.webp" alt="Addy Logo" className="h-9 w-auto object-contain" />
                         </div>
 
                         <div className="hidden md:flex items-center gap-8">
@@ -50,11 +50,7 @@ export default function Welcome({ auth }) {
 
                 {/* Hero Section */}
                 <main className="relative z-10 pt-24">
-                    <section className="pt-16 pb-24 px-6 relative overflow-hidden">
-                        {/* Gradient orbs */}
-                        <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-gradient-to-r from-[#7DDBA3]/20 to-emerald-200/20 rounded-full blur-[100px] -translate-x-1/2"></div>
-                        <div className="absolute top-40 right-1/4 w-[400px] h-[400px] bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full blur-[100px] translate-x-1/2"></div>
-
+                    <section className="pt-16 pb-12 px-6 relative overflow-hidden">
                         <div className="max-w-5xl mx-auto text-center relative">
                             {/* Badge */}
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm mb-8">
@@ -75,7 +71,7 @@ export default function Welcome({ auth }) {
 
                             {/* CTA Buttons */}
                             {!auth.user && (
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
                                     <Link
                                         href={route('register')}
                                         className="w-full sm:w-auto px-8 py-4 rounded-full bg-gray-900 text-white font-semibold text-lg hover:bg-gray-800 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2"
@@ -92,7 +88,7 @@ export default function Welcome({ auth }) {
                             )}
 
                             {/* Social Proof */}
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-500">
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-500 mb-16">
                                 <div className="flex items-center gap-1">
                                     {[...Array(5)].map((_, i) => (
                                         <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -106,39 +102,13 @@ export default function Welcome({ auth }) {
                             </div>
                         </div>
 
-                        {/* Dashboard Preview */}
-                        <div className="max-w-6xl mx-auto mt-20 relative">
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#FAFBFC] via-transparent to-transparent z-10 pointer-events-none h-full"></div>
-                            <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/50 border border-gray-200/50 overflow-hidden">
-                                <div className="h-12 bg-gray-50 border-b border-gray-100 flex items-center px-4 gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                                    <div className="flex-1 flex justify-center">
-                                        <div className="h-6 w-64 bg-gray-100 rounded-md"></div>
-                                    </div>
-                                </div>
-                                <div className="p-6 bg-gradient-to-br from-gray-50 to-white min-h-[400px]">
-                                    <div className="grid grid-cols-4 gap-4 mb-6">
-                                        {[
-                                            { label: 'Revenue', value: 'K847,291', change: '+12.5%', color: 'emerald' },
-                                            { label: 'Invoices', value: '1,284', change: '+8.2%', color: 'blue' },
-                                            { label: 'Customers', value: '492', change: '+23.1%', color: 'purple' },
-                                            { label: 'Expenses', value: 'K124,891', change: '-4.3%', color: 'orange' },
-                                        ].map((stat, i) => (
-                                            <div key={i} className="bg-white rounded-xl p-4 border border-gray-100">
-                                                <div className="text-xs text-gray-500 mb-1">{stat.label}</div>
-                                                <div className="text-xl font-bold text-gray-900">{stat.value}</div>
-                                                <div className={`text-xs font-medium ${stat.change.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>{stat.change}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="col-span-2 bg-white rounded-xl p-4 border border-gray-100 h-48"></div>
-                                        <div className="bg-white rounded-xl p-4 border border-gray-100 h-48"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Hero Image */}
+                        <div className="max-w-6xl mx-auto">
+                            <img
+                                src="/images/hero.webp"
+                                alt="Business owner focused on managing finances"
+                                className="w-full rounded-2xl shadow-2xl shadow-gray-200/50 border border-gray-200/50 object-cover object-center"
+                            />
                         </div>
                     </section>
 
@@ -402,7 +372,7 @@ export default function Welcome({ auth }) {
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div className="flex items-center gap-3">
-                                <img src="/assets/logos/size.png" alt="Addy Logo" className="h-8 w-auto object-contain" />
+                                <img src="/assets/logos/size.webp" alt="Addy Logo" className="h-8 w-auto object-contain" />
                             </div>
                             <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} Addy Business. All rights reserved.</p>
                             <div className="flex items-center gap-6">

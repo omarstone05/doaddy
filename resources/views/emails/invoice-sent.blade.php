@@ -21,7 +21,7 @@
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); padding: 32px 24px; text-align: center;">
-                            <img src="{{ config('app.url') }}/assets/logos/icon-white.png" alt="Addy" style="height: 48px; margin-bottom: 12px;">
+                            <img src="{{ config('app.url') }}/assets/logos/icon-white.webp" alt="Addy" style="height: 48px; margin-bottom: 12px;">
                             <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: white;">Invoice</h1>
                             <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px; color: white;">From {{ $organizationName }}</p>
                         </td>
