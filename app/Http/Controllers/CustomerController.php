@@ -120,10 +120,16 @@ class CustomerController extends Controller
                 'tags' => 'nullable|array',
             ]);
 
-            $customer = Customer::create(array_merge($validated, [
+            // Ensure credit_limit is 0 when null (DB column may be NOT NULL)
+            $createData = array_merge($validated, [
                 'organization_id' => $organizationId,
                 'status' => 'active',
-            ]));
+            ]);
+            if (!isset($createData['credit_limit']) || $createData['credit_limit'] === null || $createData['credit_limit'] === '') {
+                $createData['credit_limit'] = 0;
+            }
+
+            $customer = Customer::create($createData);
 
             return redirect()->route('customers.show', $customer)
                 ->with('success', 'Customer created successfully.');
