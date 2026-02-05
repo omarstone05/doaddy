@@ -40,9 +40,24 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    $stats = \Illuminate\Support\Facades\Cache::remember('welcome_page_stats', 3600, function () {
+        // Total invoiced: exclude draft and cancelled (only count issued invoices)
+        $totalInvoiced = \App\Models\Invoice::whereNotIn('status', ['draft', 'cancelled'])->sum('total_amount');
+        // Businesses: exclude suspended organizations
+        $businessCount = \App\Models\Organization::where(function ($q) {
+            $q->whereNull('status')->orWhere('status', '!=', 'suspended');
+        })->count();
+
+        return [
+            'totalInvoiced' => (float) $totalInvoiced,
+            'businessCount' => (int) $businessCount,
+        ];
+    });
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'stats' => $stats,
     ]);
 });
 
