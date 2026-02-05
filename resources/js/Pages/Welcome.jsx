@@ -2,7 +2,6 @@ import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import {
     ArrowRight,
-    ArrowUpRight,
     Receipt,
     FileText,
     Calculator,
@@ -70,29 +69,6 @@ export default function Welcome({ auth, stats = {} }) {
         },
     ];
 
-    const services = [
-        {
-            title: 'Invoicing and Quotes',
-            desc: 'Create clean, professional invoices and quotes in seconds. Automatic reminders help you get paid without feeling like a debt collector.',
-            image: '/images/card-invoices.png',
-        },
-        {
-            title: 'Receipt Management',
-            desc: 'Snap a receipt, Addy pulls the details, files it properly, and keeps it ready for reporting and tax time.',
-            image: '/images/card-receipts.png',
-        },
-        {
-            title: 'Dashboards and Reports',
-            desc: 'See what is coming in, what is going out, and what is actually profit, in real time. Make smarter decisions with less guessing.',
-            image: '/images/card-cashflow.png',
-        },
-        {
-            title: 'Tax Preparation',
-            desc: 'Auto categorisation and clean reports so filing stops being a yearly horror movie. Keep more of what you earn.',
-            image: '/images/card-tax.png',
-        },
-    ];
-
     const faqs = [
         { q: 'What does Addy include?', a: 'Addy includes invoicing, quotes, receipt management, financial reports, tax preparation tools, customer management, and smart automation. Plans scale from solo entrepreneurs to growing teams.' },
         { q: 'Can I try Addy for free?', a: 'Yes. Start with a free trial on any plan. No credit card required. Upgrade or downgrade anytime.' },
@@ -116,7 +92,6 @@ export default function Welcome({ auth, stats = {} }) {
                             />
                         </div>
                         <div className="hidden md:flex items-center gap-8">
-                            <a href="#services" className={`font-medium transition-colors text-sm ${navLight ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>Services</a>
                             <a href="#pricing" className={`font-medium transition-colors text-sm ${navLight ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>Pricing</a>
                             <a href="#about" className={`font-medium transition-colors text-sm ${navLight ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>About</a>
                             <a href="#faq" className={`font-medium transition-colors text-sm ${navLight ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>FAQ</a>
@@ -270,83 +245,15 @@ export default function Welcome({ auth, stats = {} }) {
                         </div>
                     </section>
 
-                    {/* Services - Card section with images */}
-                    <section id="services" className="py-24 px-6 bg-teal-800 scroll-mt-24">
-                        <div className="max-w-7xl mx-auto">
-                            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-                                <h2 className="text-3xl md:text-4xl font-bold text-white">
-                                    Everything you need to run the business side of your business.
-                                </h2>
-                                <Link
-                                    href={route('register')}
-                                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-white font-semibold text-sm hover:bg-white/25 hover:border-white/40 transition-colors shrink-0"
-                                >
-                                    Learn more
-                                </Link>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {services.map((s, i) => (
-                                    <Link
-                                        key={i}
-                                        href={route('register')}
-                                        className="group block rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:bg-white/15 hover:border-white/30"
-                                    >
-                                        {/* Screenshot - large for visibility */}
-                                        <div className="relative min-h-[280px] md:min-h-[320px] overflow-hidden">
-                                            <img
-                                                src={s.image}
-                                                alt={s.title}
-                                                className="w-full h-full min-h-[280px] md:min-h-[320px] object-cover object-top"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-teal-900/40 via-transparent to-transparent pointer-events-none" />
-                                        </div>
-                                        {/* Card footer - mint glass */}
-                                        <div className="p-6 bg-white/5 backdrop-blur-sm border-t border-white/10">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-white mb-2">{s.title}</h3>
-                                                    <p className="text-white/90 text-sm leading-relaxed">{s.desc}</p>
-                                                </div>
-                                                <span className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 group-hover:bg-white/30 transition-colors shrink-0">
-                                                    <ArrowUpRight className="w-6 h-6" />
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Why Addy - Finovate "Why us" style */}
-                    <section className="py-24 px-6 bg-teal-800">
-                        <div className="max-w-4xl mx-auto text-center">
-                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                                You'll Know What You're Getting
-                            </h2>
-                            <p className="text-xl text-teal-100 mb-8">
-                                We are transparent like that. No gimmicks.
-                            </p>
-                            {!auth.user && (
-                                <Link
-                                    href={route('register')}
-                                    className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#7DDBA3] text-gray-900 font-semibold text-lg hover:bg-[#6BCF91] transition-all duration-300"
-                                >
-                                    Get Started Free <ArrowRight className="w-5 h-5" />
-                                </Link>
-                            )}
-                        </div>
-                    </section>
-
                     {/* Pricing */}
-                    <section id="pricing" className="py-24 px-6 bg-gray-50 scroll-mt-24">
+                    <section id="pricing" className="py-24 px-6 bg-teal-800 scroll-mt-24">
                         <div className="max-w-6xl mx-auto">
                             <div className="text-center mb-16">
-                                <p className="text-sm font-semibold text-teal-600 uppercase tracking-wider mb-3">Pricing</p>
-                                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                                <p className="text-sm font-semibold text-teal-200 uppercase tracking-wider mb-3">Pricing</p>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                                     Simple, Transparent Pricing
                                 </h2>
-                                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                                <p className="text-lg text-teal-100 max-w-2xl mx-auto">
                                     Choose the plan that fits your business. Upgrade or downgrade anytime.
                                 </p>
                             </div>
@@ -367,12 +274,12 @@ export default function Welcome({ auth, stats = {} }) {
                                         Get Started
                                     </Link>
                                 </div>
-                                <div className="p-8 rounded-2xl bg-teal-800 text-white relative flex flex-col">
+                                <div className="p-8 rounded-2xl bg-white/10 backdrop-blur-sm border-2 border-[#7DDBA3] text-white relative flex flex-col">
                                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#7DDBA3] text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
                                         Most Popular
                                     </div>
                                     <h3 className="text-xl font-bold mb-2">Growth</h3>
-                                    <div className="text-4xl font-bold mb-1">K2,000<span className="text-base text-teal-200 font-normal">/mo</span></div>
+                                    <div className="text-4xl font-bold text-[#7DDBA3] mb-1">K2,000<span className="text-base text-teal-200 font-normal">/mo</span></div>
                                     <p className="text-teal-100 text-sm mb-8">For growing teams needing more power.</p>
                                     <ul className="space-y-3 mb-8 flex-1">
                                         {["Advanced Reporting", "Inventory Management", "Up to 10 Users", "Payroll (Basic)", "Priority Support"].map((f, i) => (
@@ -404,7 +311,7 @@ export default function Welcome({ auth, stats = {} }) {
                                 </div>
                             </div>
                             <div className="text-center mt-12">
-                                <Link href="/enterprise" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors group">
+                                <Link href="/enterprise" className="inline-flex items-center gap-2 text-teal-200 hover:text-white font-medium text-sm transition-colors group">
                                     <Shield className="w-4 h-4" />
                                     Looking for Enterprise?
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -447,7 +354,7 @@ export default function Welcome({ auth, stats = {} }) {
                     </section>
 
                     {/* CTA */}
-                    <section className="py-24 px-6 bg-gray-50">
+                    <section className="py-24 px-6 bg-emerald-50">
                         <div className="max-w-4xl mx-auto text-center">
                             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                                 Ready to Take Control?
@@ -481,7 +388,6 @@ export default function Welcome({ auth, stats = {} }) {
                             <div>
                                 <h4 className="font-semibold text-white mb-4">Product</h4>
                                 <ul className="space-y-2">
-                                    <li><a href="#services" className="text-gray-400 hover:text-white text-sm transition-colors">Services</a></li>
                                     <li><a href="#pricing" className="text-gray-400 hover:text-white text-sm transition-colors">Pricing</a></li>
                                     <li><Link href={route('register')} className="text-gray-400 hover:text-white text-sm transition-colors">Get Started</Link></li>
                                     <li><a href="/enterprise" className="text-gray-400 hover:text-white text-sm transition-colors">Enterprise</a></li>
